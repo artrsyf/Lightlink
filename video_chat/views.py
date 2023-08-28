@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.db.models import Q
 from .models import Profile, Friendship
 
@@ -15,3 +16,7 @@ def index(request):
         'friends': friends
     }
     return render(request, 'video_chat/index.html', context)
+
+def return_profile_data(request, _id):
+    profile_name = Profile.objects.get(id=_id).profile_name
+    return JsonResponse({'profile_name': profile_name})

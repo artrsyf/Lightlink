@@ -6,6 +6,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <title>Document</title>
     <script src="https://kit.fontawesome.com/3c928d185b.js" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <style>
         html, body, ul{
             margin: 0px;
@@ -342,7 +343,7 @@
                 </div>
             </div>
             <div class="main_panel">
-                <div class="main_panel_wrapper">
+                <div class="main_panel_wrapper" id="main_conversation_panel">
                     <div class="big_profile_info profile_info">
                         <div class="pure_profile_img_wrapper">
                             <img class="big_profile_img" src="logo.svg" alt="Profile_pic">
@@ -389,6 +390,18 @@
 <script>
     {% comment %} Обработка нажатия на юзера в диалогах {% endcomment %}
     handleFriendClick = (id) => {
-        alert(id)
+        {% comment %} alert(id) {% endcomment %}
+        $.ajax({
+            url: `/vw/return_profile_data/${id}`,
+            dataType: "json",
+            method: 'GET',
+            success: function(data){
+                main_conversation_panel = document.getElementById('main_conversation_panel')
+                main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button>Звонок ${data.profile_name}</button>`
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
+        })
     }
 </script>
