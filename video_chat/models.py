@@ -13,7 +13,7 @@ class Profile(models.Model):
     profiles = models.ManyToManyField(to='self', through="Friendship")
 
     def __str__(self) -> str:
-        return f"Profile: {self.profile_name} with User ID: {self.user}"
+        return f"Profile: {self.profile_name} with User ID: {self.user.id}"
     
 class FriendRequestType(models.Model):
     type = models.CharField(null=False)
