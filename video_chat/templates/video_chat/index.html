@@ -397,7 +397,38 @@
             method: 'GET',
             success: function(data){
                 main_conversation_panel = document.getElementById('main_conversation_panel')
-                main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button>Звонок ${data.profile_name}</button>`
+                main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
+                
+                {% comment %} call_data = {
+                    sender: {{ user.username }},
+                    receiver: data.profile_name
+                }
+                json_call_data = JSON.stringify(call_data) {% endcomment %}
+
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
+        })
+    }
+
+    start_call = (id) => {
+        call_data = {
+            sender_id: {{ user.id }},
+            receiver_id: id
+        }
+        json_call_data = JSON.stringify(call_data)
+        $.ajax({
+            url: '/vw/call_process',
+            dataType: 'json',
+            //data: json_call_data,
+            data: {
+                'content': json_call_data,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            method: 'POST',
+            success: function(data){
+                console.log('AJAX Notice: Successfully send request to server to start call')
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
