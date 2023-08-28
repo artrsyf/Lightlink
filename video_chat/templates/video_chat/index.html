@@ -429,6 +429,10 @@
             method: 'POST',
             success: function(data){
                 console.log('AJAX Notice: Successfully send request to server to start call')
+
+                // get this data in session storage (log is just for check)
+                console.log('TEST LOG: Testing fetching channel data after attempt to create\
+                or use existing channel:', data)
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
