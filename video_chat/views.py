@@ -43,8 +43,9 @@ def call_process(request):
             raise Exception("Personal channel have doubles")
         if existing_channel_meta.exists():
             existing_channel = existing_channel_meta.get().channel
-            return JsonResponse({'channel_name': existing_channel.channel_name,
-                                 'channel_type_id': existing_channel.channel_type.type})
+            return JsonResponse({'channel_id': existing_channel.id,
+                                 'channel_name': existing_channel.channel_name,
+                                 'channel_type': existing_channel.channel_type.type})
         else:
             new_channel_name = str(sender_id) + '____' + str(receiver_id)
             DIALOG_TYPE = 2
@@ -52,8 +53,9 @@ def call_process(request):
             new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
             ChannelInfo.objects.create(channel= new_channel, profile=sender_profile)
             ChannelInfo.objects.create(channel= new_channel, profile=receiver_profile)
-            return JsonResponse({'channel_name': new_channel.channel_name,
-                                 'channel_type_id': new_channel.channel_type.type})
+            return JsonResponse({'channel_id': new_channel.id,
+                                 'channel_name': new_channel.channel_name,
+                                 'channel_type': new_channel.channel_type.type})
     return JsonResponse({'ERROR_MESSAGE': 'Invalid request method',
                          'REQUEST_METHOD': request.method}, status=400)
 def get_token(request):
