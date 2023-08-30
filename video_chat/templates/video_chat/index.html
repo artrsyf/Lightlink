@@ -412,6 +412,12 @@
         })
     }
 
+    data_parser = async (channel_name) => {
+        let response = await fetch(`get_token/?channel=${channel_name}`)
+        let data = await response.json()
+        return data
+    }
+
     start_call = (id) => {
         call_data = {
             sender_id: {{ user.id }},
@@ -431,8 +437,20 @@
                 console.log('AJAX Notice: Successfully send request to server to start call')
 
                 // get this data in session storage (log is just for check)
-                console.log('TEST LOG: Testing fetching channel data after attempt to create\
-                or use existing channel:', data)
+                console.log('TEST LOG: Testing fetching channel data after attempt to create or use existing channel:', data)
+
+                channel_id = data.channel_id
+                channel_name = data.channel_name
+                data_parser(channel_name).then(result => {
+                    console.log('FETCHED DATA FROM SERVER SUCCESSFULLY', result)
+                    // Заменить хранение клиентских данных с sessionStorage на что- то другое
+                    sessionStorage.setItem('user_id', result.user_id)
+                    sessionStorage.setItem('token', result.token)
+                    sessionStorage.setItem('stream_id', result.stream_id)
+                    sessionStorage.setItem('stream_token', result.stream_token)
+                    window.open(`channel/${channel_id}`, '_self')
+                })
+                
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)

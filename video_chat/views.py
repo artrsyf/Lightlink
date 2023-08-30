@@ -74,3 +74,6 @@ def get_token(request):
     stream_token = RtcTokenBuilder.buildTokenWithUid(app_id, app_certificate, channel_name, stream_id, role, privilege_expired_Ts)
 
     return JsonResponse({'user_id': user_id, 'token': token, 'stream_id': stream_id, 'stream_token': stream_token}, safe=False)
+
+def channel(request, channel_id):
+    return render(request, 'video_chat/channel.html')
