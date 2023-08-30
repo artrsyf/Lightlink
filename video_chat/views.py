@@ -3,6 +3,9 @@ from django.http import JsonResponse
 from django.db.models import Q
 from .models import Profile, Friendship, Channel, ChannelInfo, ChannelType
 import json
+from agora_token_builder import RtcTokenBuilder
+import time
+from sys import maxsize as MAX_INT
 
 def index(request):
     current_user_id = request.user.id
@@ -53,3 +56,19 @@ def call_process(request):
                                  'channel_type_id': new_channel.channel_type.type})
     return JsonResponse({'ERROR_MESSAGE': 'Invalid request method',
                          'REQUEST_METHOD': request.method}, status=400)
+def get_token(request):
+    app_id = "1460eda6077d4e99b932d6f53532f479"
+    channel_name = request.GET.get('channel')
+    app_certificate = "4c09a6e949604b4b9f58c308669d7b3d"
+    user_id = request.session['user_id']
+    stream_id = MAX_INT // 10_000_000 - user_id
+    expiration_time_in_sec = 3600
+    current_time_stamp = int(time.time())
+    privilege_expired_Ts = current_time_stamp + expiration_time_in_sec
+    role = 1
+
+    token = RtcTokenBuilder.buildTokenWithUid(app_id, app_certificate, channel_name, user_id, role, privilege_expired_Ts)
+
+    stream_token = RtcTokenBuilder.buildTokenWithUid(app_id, app_certificate, channel_name, stream_id, role, privilege_expired_Ts)
+
+    return JsonResponse({'user_id': user_id, 'token': token, 'stream_id': stream_id, 'stream_token': stream_token}, safe=False)
