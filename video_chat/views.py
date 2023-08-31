@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.db.models import Q
-from .models import Profile, Friendship, Channel, ChannelInfo, ChannelType
+from .models import User, Profile, Friendship, Channel, ChannelInfo, ChannelType
 import json
 from agora_token_builder import RtcTokenBuilder
 import time
@@ -114,3 +114,11 @@ def get_agora_sdk_data(request):
     else:
         return JsonResponse({'ERROR_MESSAGE': 'Invalid request method',
                          'REQUEST_METHOD': request.method}, status=400)
+
+def get_member(request):
+    uid = request.GET.get('uid')
+
+    member = User.objects.get(id=uid)
+    member_profile = Profile.objects.get(user=member)
+    name = member_profile.profile_name
+    return JsonResponse({'name': name}, safe=False)

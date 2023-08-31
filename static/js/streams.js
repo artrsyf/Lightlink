@@ -113,3 +113,11 @@ let handleUserLeft = async (user) => {
     delete remoteUsers[user.uid]
     document.getElementById(`user-container-${user.uid}`).remove()
 }
+
+let getMember = async (user) => {
+    let response = await fetch(`/vw/get_member/?uid=${user.uid}`)
+    let member = await response.json()
+    return member
+}
+
+joinAndDisplayLocalStream()
