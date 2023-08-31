@@ -373,8 +373,8 @@
         })
     }
 
-    data_parser = async (channel_name) => {
-        let response = await fetch(`get_token/?channel=${channel_name}`)
+    data_parser = async (channel_id) => {
+        let response = await fetch(`get_token/?channel=${channel_id}`)
         let data = await response.json()
         return data
     }
@@ -402,13 +402,14 @@
 
                 channel_id = data.channel_id
                 channel_name = data.channel_name
-                data_parser(channel_name).then(result => {
+                data_parser(channel_id).then(result => {
                     console.log('FETCHED DATA FROM SERVER SUCCESSFULLY', result)
                     // Заменить хранение клиентских данных с sessionStorage на что- то другое
                     sessionStorage.setItem('user_id', result.user_id)
                     sessionStorage.setItem('token', result.token)
                     sessionStorage.setItem('stream_id', result.stream_id)
                     sessionStorage.setItem('stream_token', result.stream_token)
+                    sessionStorage.setItem('channel_id', channel_id)
                     window.open(`channel/${channel_id}`, '_self')
                 })
                 

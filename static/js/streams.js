@@ -4,6 +4,7 @@ let USER_ID = sessionStorage.getItem("user_id")
 let TOKEN = sessionStorage.getItem("token")
 let STREAM_ID = sessionStorage.getItem("stream_id")
 let STREAM_TOKEN = sessionStorage.getItem("stream_token")
+let CHANNEL = sessionStorage.getItem("channel_id")
 
 const client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
 const share_client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'})
