@@ -18,7 +18,6 @@ let getSessionUserData = async () => {
     return data
 }
 
-// APP_ID можно перехватить!
 let getAgoraSDKData = async () => {
     let response = await new Promise((resolve, reject) => {
         $.ajax({
@@ -40,10 +39,6 @@ let getAgoraSDKData = async () => {
     })
     return response
 }
-var APP_ID;
-getAgoraSDKData().then(data => {
-    APP_ID = data.app_id
-})
 
 curr_user = getSessionUserData()
 let USER_USERNAME = curr_user.user_username
@@ -121,4 +116,11 @@ let getMember = async (user) => {
     return member
 }
 
-joinAndDisplayLocalStream()
+// APP_ID можно перехватить!
+var APP_ID;
+getAgoraSDKData().then(data => {
+    APP_ID = data.app_id
+    // Видеочат начинает работать только после установки id приложения
+    // В случае большой загрузке сервера чат ляжет!
+    joinAndDisplayLocalStream()
+})
