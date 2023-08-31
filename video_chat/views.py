@@ -6,6 +6,10 @@ import json
 from agora_token_builder import RtcTokenBuilder
 import time
 from sys import maxsize as MAX_INT
+import environ
+
+env = environ.Env()
+environ.Env().read_env('../lightlink/')
 
 def index(request):
     current_user_id = request.user.id
@@ -59,9 +63,9 @@ def call_process(request):
     return JsonResponse({'ERROR_MESSAGE': 'Invalid request method',
                          'REQUEST_METHOD': request.method}, status=400)
 def get_token(request):
-    app_id = "1460eda6077d4e99b932d6f53532f479"
+    app_id = env("APP_ID")
     channel_name = request.GET.get('channel')
-    app_certificate = "4c09a6e949604b4b9f58c308669d7b3d"
+    app_certificate = env("APP_CERTIFICATE")
     user_id = request.session['user_id']
     stream_id = MAX_INT // 10_000_000 - user_id
     expiration_time_in_sec = 3600
