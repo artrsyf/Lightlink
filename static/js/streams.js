@@ -1,3 +1,5 @@
+const csrf_token = document.getElementById('channel-meta').getAttribute('data-csrf-token')
+
 let USER_ID = sessionStorage.getItem("user_id")
 let TOKEN = sessionStorage.getItem("token")
 let STREAM_ID = sessionStorage.getItem("stream_id")
@@ -14,6 +16,33 @@ let getSessionUserData = async () => {
     data = await response.json()
     return data
 }
+
+// APP_ID можно перехватить!
+let getAgoraSDKData = async () => {
+    let response = await new Promise((resolve, reject) => {
+        $.ajax({
+            url: '/vw/get_agora_sdk_data',
+            dataType: 'json',
+            data:{
+                'csrfmiddlewaretoken': csrf_token
+            },
+            method: 'POST',
+            success: function(data){
+                console.log('AGORA_DATA', data)
+                resolve(data)
+            },
+            error: function(xhr, error, status){
+                console.error('AGORA_DATA_failure')
+                reject(error)
+            }
+        })
+    })
+    return response
+}
+var APP_ID;
+getAgoraSDKData().then(data => {
+    APP_ID = data.app_id
+})
 
 curr_user = getSessionUserData()
 let USER_USERNAME = curr_user.user_username
@@ -45,5 +74,4 @@ let joinAndDisplayLocalStream = async () => {
 
 
     await client.publish([localTracks[0], localTracks[1]])
-    
 }

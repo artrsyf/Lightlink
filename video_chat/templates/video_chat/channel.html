@@ -1,5 +1,5 @@
 {% extends 'video_chat/home_base.html' %}
-
+{% load static %}
 {% block main_panel %}
 <style>
     html, body, ul{
@@ -270,6 +270,7 @@
     }
 </style>
 
+<script type="text/javascript" src="{% static 'js/AgoraRTC_N-4.18.2.js' %}"></script>
 
 <div class="main_panel">
     <div class="videochat_wrapper">
@@ -362,4 +363,6 @@
        </div>
     </div>
 </div>
+<div id="channel-meta" data-csrf-token="{{ csrf_token }}"></div>
+<script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
 {% endblock main_panel %}

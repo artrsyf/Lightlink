@@ -107,3 +107,10 @@ def get_user_data(request):
     except Exception:
         return JsonResponse({})
     
+def get_agora_sdk_data(request):
+    if request.method == 'POST':
+        app_id = env("APP_ID")
+        return JsonResponse({'app_id': app_id})
+    else:
+        return JsonResponse({'ERROR_MESSAGE': 'Invalid request method',
+                         'REQUEST_METHOD': request.method}, status=400)
