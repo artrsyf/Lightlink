@@ -89,6 +89,7 @@ def channel(request, channel_id):
         friends.append(relation.receiver if relation.sender.id == current_profile.id \
                               else relation.sender)
     context = {
-        'friends': friends
+        'friends': friends,
+        'channel_id': channel_id
     }
     return render(request, 'video_chat/channel.html', context)
