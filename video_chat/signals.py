@@ -23,7 +23,10 @@ def set_logged_user_settings(sender, request, user, **kwargs):
         user = request.user
         user_id = user.id
         user_username = user.username
+        user_profile = Profile.objects.get(user=user)
+        user_profilename = user_profile.profile_name
         request.session['user_id'] = user_id
         request.session['user_username'] = user_username
+        request.session['user_profilename'] = user_profilename
     else:
         print('SERVER RESPONSE: SESSION BEGINS AND IMMEDIATELY CLOSES')

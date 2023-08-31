@@ -93,3 +93,17 @@ def channel(request, channel_id):
         'channel_id': channel_id
     }
     return render(request, 'video_chat/channel.html', context)
+
+def get_user_data(request):
+    try:
+        user_id = request.session['user_id']
+        user_username = request.session['user_username']
+        user_profilename = request.session['user_profilename']
+        return JsonResponse({'user_id': user_id,
+                            'user_username': user_username,
+                            'user_profilename': user_profilename})
+    except KeyError:
+        return JsonResponse({})
+    except Exception:
+        return JsonResponse({})
+    
