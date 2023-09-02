@@ -380,6 +380,8 @@
     }
 
     start_call = (id) => {
+        console.log('call is starting')
+
         call_data = {
             sender_id: {{ user.id }},
             receiver_id: id
@@ -419,4 +421,36 @@
             }
         })
     }
+
+    const isNumeric = n => $.isNumeric(n);
+
+    checkURL = (currentURL) => {
+        // Стоит вынести из функции
+        const targetURLKey = '/vw/channel/'
+        const targetURLKeyLength = targetURLKey.length
+
+        // Проверка на домен...
+
+        if (currentURL.includes(targetURLKey)){
+            matchIndex = currentURL.indexOf(targetURLKey)
+
+            remainURL = currentURL.substr(matchIndex + targetURLKeyLength)
+
+            return isNumeric(remainURL) ? remainURL : false
+        }
+
+        return false
+    }
+
+    {% comment %} $(window).on('popstate', (event) => {
+        console.log('ok')
+        let currentURL = window.location.href
+        let URLReport = checkURL(currentURL)
+
+        if (URLReport){
+            concole.log(`Successfull URL: ${currentURL}. Starts call..`)
+
+            start_call(URLReport)
+        }
+    }) {% endcomment %}
 </script>

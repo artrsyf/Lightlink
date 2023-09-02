@@ -64,7 +64,7 @@ def call_process(request):
                          'REQUEST_METHOD': request.method}, status=400)
 def get_token(request):
     app_id = env("APP_ID")
-    channel_name = request.GET.get('channel')
+    channel_id = request.GET.get('channel')
     app_certificate = env("APP_CERTIFICATE")
     user_id = request.session['user_id']
     stream_id = MAX_INT // 10_000_000 - user_id
@@ -73,11 +73,11 @@ def get_token(request):
     privilege_expired_Ts = current_time_stamp + expiration_time_in_sec
     role = 1
 
-    token = RtcTokenBuilder.buildTokenWithUid(app_id, app_certificate, channel_name, user_id, role, privilege_expired_Ts)
+    token = RtcTokenBuilder.buildTokenWithUid(app_id, app_certificate, channel_id, user_id, role, privilege_expired_Ts)
 
-    stream_token = RtcTokenBuilder.buildTokenWithUid(app_id, app_certificate, channel_name, stream_id, role, privilege_expired_Ts)
+    stream_token = RtcTokenBuilder.buildTokenWithUid(app_id, app_certificate, channel_id, stream_id, role, privilege_expired_Ts)
 
-    return JsonResponse({'user_id': user_id, 'token': token, 'stream_id': stream_id, 'stream_token': stream_token}, safe=False)
+    return JsonResponse({'channel': channel_id, 'user_id': user_id, 'token': token, 'stream_id': stream_id, 'stream_token': stream_token}, safe=False)
 
 def channel(request, channel_id):
     # Написать управление контектом, данный код излишен
