@@ -1,26 +1,22 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.db.models import Q
-from .models import User, Profile, Friendship, Channel, ChannelInfo, ChannelType
-import json
+from .models import User, Profile, Channel, ChannelInfo, ChannelType
+import json, time, environ
 from agora_token_builder import RtcTokenBuilder
-import time
 from sys import maxsize as MAX_INT
-import environ
+from .utils import find_friend_list
 
 env = environ.Env()
 environ.Env().read_env('../lightlink/')
 
 def index(request):
     current_user_id = request.user.id
-    current_profile = Profile.objects.get(user=current_user_id)
-    friendship = Friendship.objects.filter(Q(sender=current_profile, status_type=3) | Q(receiver=current_profile, status_type=3))
-    friends = []
-    for relation in friendship:
-        friends.append(relation.receiver if relation.sender.id == current_profile.id \
-                              else relation.sender)
+    friends = find_friend_list(current_user_id)
+    current_profile = Profile.objects.get(user=request.user)
     print(friends)
     context = {
+        'current_profile': current_profile,
         'friends': friends
     }
     return render(request, 'video_chat/index.html', context)
@@ -36,8 +32,10 @@ def call_process(request):
         content = json.loads(json_content)
         sender_id = content['sender_id']
         receiver_id = content['receiver_id']
+
         print(f'SERVER RESPONSE: ASYNC POST REQUEST GOT WITH SENDER_ID: {sender_id}')
         print(f'SERVER RESPONSE: ASYNC POST REQUEST GOT WITH RECEIVER_ID: {receiver_id}')
+        
         sender_profile = Profile.objects.get(id=sender_id)
         receiver_profile = Profile.objects.get(id=receiver_id)
         # Нашли все персональные каналы вызывающего
@@ -80,15 +78,12 @@ def get_token(request):
     return JsonResponse({'channel': channel_id, 'user_id': user_id, 'token': token, 'stream_id': stream_id, 'stream_token': stream_token}, safe=False)
 
 def channel(request, channel_id):
-    # Написать управление контектом, данный код излишен
     current_user_id = request.user.id
-    current_profile = Profile.objects.get(user=current_user_id)
-    friendship = Friendship.objects.filter(Q(sender=current_profile, status_type=3) | Q(receiver=current_profile, status_type=3))
-    friends = []
-    for relation in friendship:
-        friends.append(relation.receiver if relation.sender.id == current_profile.id \
-                              else relation.sender)
+    current_profile = Profile.objects.get(user=request.user)
+    friends = find_friend_list(current_user_id)
     context = {
+        #*** Разобраться, почему этот контекст иногда может использоваться
+        'current_profile': current_profile,
         'friends': friends,
         'channel_id': channel_id
     }

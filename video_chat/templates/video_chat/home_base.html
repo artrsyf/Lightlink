@@ -351,7 +351,6 @@
 <script>
     {% comment %} Обработка нажатия на юзера в диалогах {% endcomment %}
     handleFriendClick = (id) => {
-        {% comment %} alert(id) {% endcomment %}
         $.ajax({
             url: `/vw/return_profile_data/${id}`,
             dataType: "json",
@@ -359,13 +358,6 @@
             success: function(data){
                 main_conversation_panel = document.getElementById('main_conversation_panel')
                 main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
-                
-                {% comment %} call_data = {
-                    sender: {{ user.username }},
-                    receiver: data.profile_name
-                }
-                json_call_data = JSON.stringify(call_data) {% endcomment %}
-
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -383,14 +375,13 @@
         console.log('call is starting')
 
         call_data = {
-            sender_id: {{ user.id }},
+            sender_id: {{ current_profile.id }},
             receiver_id: id
         }
         json_call_data = JSON.stringify(call_data)
         $.ajax({
             url: '/vw/call_process',
             dataType: 'json',
-            //data: json_call_data,
             data: {
                 'content': json_call_data,
                 'csrfmiddlewaretoken': '{{ csrf_token }}'
@@ -406,7 +397,7 @@
                 channel_name = data.channel_name
                 data_parser(channel_id).then(result => {
                     console.log('FETCHED DATA FROM SERVER SUCCESSFULLY', result)
-                    // Заменить хранение клиентских данных с sessionStorage на что- то другое
+                    // For debugging
                     sessionStorage.setItem('user_id', result.user_id)
                     sessionStorage.setItem('token', result.token)
                     sessionStorage.setItem('stream_id', result.stream_id)
@@ -421,36 +412,4 @@
             }
         })
     }
-
-    const isNumeric = n => $.isNumeric(n);
-
-    checkURL = (currentURL) => {
-        // Стоит вынести из функции
-        const targetURLKey = '/vw/channel/'
-        const targetURLKeyLength = targetURLKey.length
-
-        // Проверка на домен...
-
-        if (currentURL.includes(targetURLKey)){
-            matchIndex = currentURL.indexOf(targetURLKey)
-
-            remainURL = currentURL.substr(matchIndex + targetURLKeyLength)
-
-            return isNumeric(remainURL) ? remainURL : false
-        }
-
-        return false
-    }
-
-    {% comment %} $(window).on('popstate', (event) => {
-        console.log('ok')
-        let currentURL = window.location.href
-        let URLReport = checkURL(currentURL)
-
-        if (URLReport){
-            concole.log(`Successfull URL: ${currentURL}. Starts call..`)
-
-            start_call(URLReport)
-        }
-    }) {% endcomment %}
 </script>

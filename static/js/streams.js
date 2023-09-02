@@ -1,12 +1,6 @@
 const csrf_token = document.getElementById('channel-meta').getAttribute('data-csrf-token')
 let channel_id = document.getElementById('channel-meta').getAttribute('channel-id')
 
-// let USER_ID = sessionStorage.getItem("user_id")
-// let TOKEN = sessionStorage.getItem("token")
-// let STREAM_ID = sessionStorage.getItem("stream_id")
-// let STREAM_TOKEN = sessionStorage.getItem("stream_token")
-// let CHANNEL = sessionStorage.getItem("channel_id")
-
 const client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
 const share_client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'})
 
@@ -124,29 +118,19 @@ var TOKEN
 var STREAM_ID
 var STREAM_TOKEN
 let CHANNEL = channel_id
+
 getAgoraSDKData().then(data => {
     APP_ID = data.app_id
     fetch(`/vw/get_token/?channel=${channel_id}`)
         .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
         .then(CONVERSATION_DATA =>{
-            console.log(CONVERSATION_DATA)
+            console.log(`CONVERSATION INFO: ${CONVERSATION_DATA}`)
+
             USER_ID = CONVERSATION_DATA.user_id
             TOKEN = CONVERSATION_DATA.token
-            // sth wrong
             STREAM_ID = CONVERSATION_DATA.stream_id
             STREAM_TOKEN = CONVERSATION_DATA.stream_token
+
             joinAndDisplayLocalStream()
     })
-    // Видеочат начинает работать только после установки id приложения
-    // В случае большой загрузке сервера чат ляжет!
 })
-
-
-/* Комментарий не для коммита <TODO>
-   1. Работа чата полностью зависит от параметров, зафиксированных в sessionStorage,
-        соответственно, любая проблема с ними приведет к не работе чата, нужно заменить
-        данный способ на POST fetching данных с сервера. К примеру, может быть такая проблема:
-        Юзер переходит в чат не по нажатию кнопки, а по ссылке, в этом случае из- за отсутсвия значнеия
-        канала в sessionStorage (подгрузка происходит только по нажатию на кнопку)
-        пользователь не попадет в чат. 
-        В теории такой денай пользовательского запроса можно реализовать как часть предметной области*/
