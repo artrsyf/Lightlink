@@ -67,7 +67,7 @@ def get_token(request):
     channel_id = request.GET.get('channel')
     app_certificate = env("APP_CERTIFICATE")
     user_id = request.session['user_id']
-    stream_id = MAX_INT // 10_000_000 - user_id
+    stream_id = MAX_INT // 100_000_000_000 - user_id
     expiration_time_in_sec = 3600
     current_time_stamp = int(time.time())
     privilege_expired_Ts = current_time_stamp + expiration_time_in_sec
