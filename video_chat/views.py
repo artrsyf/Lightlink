@@ -6,6 +6,7 @@ import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
 from .utils import find_friend_list
+from django.core.exceptions import ObjectDoesNotExist
 
 env = environ.Env()
 environ.Env().read_env('../lightlink/')
@@ -14,7 +15,6 @@ def index(request):
     current_user_id = request.user.id
     friends = find_friend_list(current_user_id)
     current_profile = Profile.objects.get(user=request.user)
-    print(friends)
     context = {
         'current_profile': current_profile,
         'friends': friends
@@ -33,33 +33,34 @@ def call_process(request):
         sender_id = content['sender_id']
         receiver_id = content['receiver_id']
 
-        print(f'SERVER RESPONSE: ASYNC POST REQUEST GOT WITH SENDER_ID: {sender_id}')
-        print(f'SERVER RESPONSE: ASYNC POST REQUEST GOT WITH RECEIVER_ID: {receiver_id}')
+        print(f'*SERVER RESPONSE: Async post request got with sender_profile_id: {sender_id}')
+        print(f'*SERVER RESPONSE: Async post request got with receiver_profile_id: {receiver_id}')
         
         sender_profile = Profile.objects.get(id=sender_id)
         receiver_profile = Profile.objects.get(id=receiver_id)
-        # Нашли все персональные каналы вызывающего
-        channels = sender_profile.channels.filter(channel_type=2).values_list('id', flat=True)
-        existing_channel_meta = ChannelInfo.objects.filter(Q(channel__in=channels) & Q(profile__id=receiver_id))
-        if existing_channel_meta.count() > 1:
-            raise Exception("Personal channel have doubles")
-        if existing_channel_meta.exists():
-            existing_channel = existing_channel_meta.get().channel
-            return JsonResponse({'channel_id': existing_channel.id,
-                                 'channel_name': existing_channel.channel_name,
-                                 'channel_type': existing_channel.channel_type.type})
+
+        channels = Channel.objects.filter(Q(channelinfo__profile_id=sender_id)
+                                         & Q(channelinfo__profile_id=receiver_id)
+                                         & Q(channel_type=2))
+        if channels.count() > 1:
+            raise Exception("Personal channel has doubles")
+        if channels.exists():
+            channel = channels.first()
+            return JsonResponse({'channel_id': channel.id,
+                                 'channel_name': channel.channel_name,
+                                 'channel_type': channel.channel_type.type})
         else:
             new_channel_name = str(sender_id) + '____' + str(receiver_id)
             DIALOG_TYPE = 2
             channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
             new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
-            ChannelInfo.objects.create(channel= new_channel, profile=sender_profile)
-            ChannelInfo.objects.create(channel= new_channel, profile=receiver_profile)
+            ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
+            ChannelInfo.objects.create(channel=new_channel, profile=receiver_profile)
             return JsonResponse({'channel_id': new_channel.id,
                                  'channel_name': new_channel.channel_name,
                                  'channel_type': new_channel.channel_type.type})
-    return JsonResponse({'ERROR_MESSAGE': 'Invalid request method',
-                         'REQUEST_METHOD': request.method}, status=400)
+    return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Invalid request method',
+                         'REQUEST_METHOD': request.method}}, status=400)
 def get_token(request):
     app_id = env("APP_ID")
     channel_id = request.GET.get('channel')
@@ -82,7 +83,6 @@ def channel(request, channel_id):
     current_profile = Profile.objects.get(user=request.user)
     friends = find_friend_list(current_user_id)
     context = {
-        #*** Разобраться, почему этот контекст иногда может использоваться
         'current_profile': current_profile,
         'friends': friends,
         'channel_id': channel_id
@@ -98,22 +98,31 @@ def get_user_data(request):
                             'user_username': user_username,
                             'user_profilename': user_profilename})
     except KeyError:
-        return JsonResponse({})
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE':
+                                               'Request session has KeyError in get_user_data',
+                                               'REQUEST METHOD': request.method}}, status=400)
     except Exception:
-        return JsonResponse({})
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Unexpected Exception',
+                                               'REQUEST METHOD': request.method}}, status=400)
     
 def get_agora_sdk_data(request):
     if request.method == 'POST':
         app_id = env("APP_ID")
         return JsonResponse({'app_id': app_id})
     else:
-        return JsonResponse({'ERROR_MESSAGE': 'Invalid request method',
-                         'REQUEST_METHOD': request.method}, status=400)
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Invalid request method',
+                                                'REQUEST_METHOD': request.method}}, status=400)
 
 def get_member(request):
-    uid = request.GET.get('uid')
-
-    member = User.objects.get(id=uid)
-    member_profile = Profile.objects.get(user=member)
-    name = member_profile.profile_name
-    return JsonResponse({'name': name}, safe=False)
+    try:
+        uid = request.GET.get('uid')
+        member = User.objects.get(id=uid)
+        member_profile = Profile.objects.get(user=member)
+        name = member_profile.profile_name
+        return JsonResponse({'name': name}, safe=False)
+    except ValueError:
+        print(f'*SERVER RESPONSE: Incorrect request URL')
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Incorrect request URL'}}, status=400)
+    except ObjectDoesNotExist:
+        print(f'*SERVER RESPONSE: Requested user does not exist')
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Requested user does not exist'}}, status=400)
