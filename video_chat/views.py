@@ -6,7 +6,7 @@ import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
 from .utils import find_friend_list
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 
 env = environ.Env()
 environ.Env().read_env('../lightlink/')
@@ -38,27 +38,29 @@ def call_process(request):
         
         sender_profile = Profile.objects.get(id=sender_id)
         receiver_profile = Profile.objects.get(id=receiver_id)
-
-        channels = Channel.objects.filter(Q(channelinfo__profile_id=sender_id)
-                                         & Q(channelinfo__profile_id=receiver_id)
-                                         & Q(channel_type=2))
-        if channels.count() > 1:
-            raise Exception("Personal channel has doubles")
-        if channels.exists():
-            channel = channels.first()
+        try:
+            channel = Channel.objects\
+                .filter(channel_infos__profile=sender_profile, channel_type=2)\
+                .get(channel_infos__profile=receiver_profile)
+            print(f'*SERVER RESPONSE: Channel is using: {channel}')
             return JsonResponse({'channel_id': channel.id,
                                  'channel_name': channel.channel_name,
                                  'channel_type': channel.channel_type.type})
-        else:
+        except Channel.DoesNotExist:
             new_channel_name = str(sender_id) + '____' + str(receiver_id)
             DIALOG_TYPE = 2
             channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
             new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
             ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
             ChannelInfo.objects.create(channel=new_channel, profile=receiver_profile)
+            print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
             return JsonResponse({'channel_id': new_channel.id,
                                  'channel_name': new_channel.channel_name,
                                  'channel_type': new_channel.channel_type.type})
+        except MultipleObjectsReturned:
+            print(f'*SERVER RESPONSE: Multiple channels detected')
+            raise MultipleObjectsReturned
+
     return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Invalid request method',
                          'REQUEST_METHOD': request.method}}, status=400)
 def get_token(request):
