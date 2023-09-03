@@ -1,5 +1,5 @@
 const csrf_token = document.getElementById('channel-meta').getAttribute('data-csrf-token')
-let channel_id = document.getElementById('channel-meta').getAttribute('channel-id')
+const channel_id = document.getElementById('channel-meta').getAttribute('channel-id')
 
 const client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
 const share_client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'})
@@ -10,7 +10,13 @@ let remoteUsers = {}
 let getSessionUserData = async () => {
     let response = await fetch('/vw/get_user_data/')
     data = await response.json()
-    return data
+    console.log(`*CLIENT RESPONSE: Successfully parsed user data: ${JSON.stringify(data)}`)
+    if (data.user_id){
+        return data
+    }
+    else{
+        return false;
+    }
 }
 
 let getAgoraSDKData = async () => {
@@ -23,21 +29,17 @@ let getAgoraSDKData = async () => {
             },
             method: 'POST',
             success: function(data){
-                console.log('AGORA_DATA', data)
+                console.log('*CLIENT RESPONSE: Successfully parsed Agora app data')
                 resolve(data)
             },
             error: function(xhr, error, status){
-                console.error('AGORA_DATA_failure')
+                console.error(`*CLIENT RESPONSE: Could not parse Agora app data with error: ${error}, with status: ${status}`)
                 reject(error)
             }
         })
     })
     return response
 }
-
-curr_user = getSessionUserData()
-let USER_USERNAME = curr_user.user_username
-let USER_PROFILENAME = curr_user.user_profilename
 
 let joinAndDisplayLocalStream = async () => {
 
@@ -46,12 +48,19 @@ let joinAndDisplayLocalStream = async () => {
 
     try{
         await share_client.join(APP_ID, CHANNEL, STREAM_TOKEN, STREAM_ID)
+        console.log('*CLIENT RESPONSE: Successfully create stream client')
     }
     catch(ex){
-        console.error('Cant make stream mirror client')
+        console.error('*CLIENT RESPONSE: Could not create stream client, check Agora logs')
     }
 
-    await client.join(APP_ID, CHANNEL, TOKEN, USER_ID)
+    try{
+        await client.join(APP_ID, CHANNEL, TOKEN, USER_ID)
+        console.log('*CLIENT RESPONSE: Successfully create client')
+    }
+    catch(ex){
+        console.error('*CLIENT RESPONSE: Could not create client, check Agora logs')
+    }
 
     localTracks = AgoraRTC.createMicrophoneAndCameraTracks()
 
@@ -62,7 +71,6 @@ let joinAndDisplayLocalStream = async () => {
 
     document.getElementById('video-streams').insertAdjacentHTML("beforeend", player)
     localTracks[1].play(`user-${USER_ID}`)
-
 
     await client.publish([localTracks[0], localTracks[1]])
 }
@@ -82,7 +90,7 @@ let handleUserJoined = async (user, mediaType) => {
             member = await getMember(user)
         }
         catch(ex){
-            console.error("CANT READ MEMBER NAME")
+            console.error("*CLIENT RESPONSE: Could not parse member name")
             member = {name: 'Undefined'}
         }
 
@@ -118,13 +126,17 @@ var TOKEN
 var STREAM_ID
 var STREAM_TOKEN
 let CHANNEL = channel_id
+curr_user = getSessionUserData()
+
+let USER_USERNAME = curr_user.user_username
+let USER_PROFILENAME = curr_user.user_profilename
 
 getAgoraSDKData().then(data => {
     APP_ID = data.app_id
     fetch(`/vw/get_token/?channel=${channel_id}`)
         .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
         .then(CONVERSATION_DATA =>{
-            console.log(`CONVERSATION INFO: ${CONVERSATION_DATA}`)
+            console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
 
             USER_ID = CONVERSATION_DATA.user_id
             TOKEN = CONVERSATION_DATA.token
