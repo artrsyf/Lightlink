@@ -62,7 +62,7 @@ let joinAndDisplayLocalStream = async () => {
         console.error('*CLIENT RESPONSE: Could not create client, check Agora logs')
     }
 
-    localTracks = AgoraRTC.createMicrophoneAndCameraTracks()
+    localTracks = await AgoraRTC.createMicrophoneAndCameraTracks()
 
     let player = `<div class="videostream" id="user-container-${USER_ID}">
                     <div class="video-player" id="user-${USER_ID}"></div>
