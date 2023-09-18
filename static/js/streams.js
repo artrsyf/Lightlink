@@ -119,6 +119,64 @@ let getMember = async (user) => {
     return member
 }
 
+let leaveAndRemovLocalStreams = async () => {
+    for (let i = 0; i < localTracks.length; i++){
+        localTracks[i].stop()
+        localTracks[i].close()
+    }
+
+    await client.leave()
+    window.open('/vw/Home', '_self')
+}
+
+let toggleCamera = async (e) => {
+    if (localTracks[1].muted){
+        await localTracks[1].setMuted(false)
+        e.target.style.backgroundColor = 'green'
+    }
+    else{
+        await localTracks[1].setMuted(true)
+        e.target.style.backgroundColor = 'blue'
+    }
+}
+
+let toggleMicrophone = async (e) => {
+    if (localTracks[0].muted){
+        await localTracks[0].setMuted(false)
+        e.target.style.backgroundColor = 'green'
+    }
+    else{
+        await localTracks[0].setMuted(true)
+        e.target.style.backgroundColor = 'blue'
+    }
+}
+
+var isSharingEnabled = false
+var screenTrack = []
+
+let toggleSharing = async (e) => {
+    if (!isSharingEnabled){
+        let withAudio = true
+        let defaultConfig = {}
+        screenTrack = AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
+
+        await share_client.publish([screenTrack[0], screenTrack[1]])
+        e.target.style.backgroundColor = 'green'
+        isSharingEnabled = true
+    }
+    else{
+        for (const track of screenTrack){
+            track.stop()
+            track.close()
+        }
+
+        await share_client.unpublish([screenTrack[0], screenTrack[1]])
+        document.getElementById(`user-container-${stream_UID}`).remove()
+        e.target.style.backgroundColor = 'blue'
+        isSharingEnabled = false
+    }
+}
+
 // APP_ID можно перехватить!
 var APP_ID;
 var USER_ID
@@ -142,6 +200,14 @@ getAgoraSDKData().then(data => {
             TOKEN = CONVERSATION_DATA.token
             STREAM_ID = CONVERSATION_DATA.stream_id
             STREAM_TOKEN = CONVERSATION_DATA.stream_token
+
+            document.getElementById('leave-btn').addEventListener('click', leaveAndRemovLocalStreams)
+
+            document.getElementById('video-btn').addEventListener('click', toggleCamera)
+
+            document.getElementById('mic-btn').addEventListener('click', toggleMicrophone)
+
+            document.getElementById('share-btn').addEventListener('click', toggleSharing)
 
             joinAndDisplayLocalStream()
     })
