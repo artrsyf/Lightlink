@@ -304,10 +304,10 @@
            </div>
            <div class="videostreams_wrapper" id="streams_wrapper">
                <div class="videostreams" id="streams_store">
-                   <div class="videostream">
+                   <!-- <div class="videostream">
 
                    </div>
-                   <!-- <div class="videostream">
+                   <div class="videostream">
                        
                    </div>
                    <div class="videostream">
@@ -322,23 +322,23 @@
                </div>
                <div class="control_panel_wrapper">
                    <div class="control_panel">
-                       <div class="share_stream_btn">
-                           <button type="submit" id="share-btn">
+                       <div class="share_stream_btn" id="share-btn">
+                           <button type="submit">
                                <i class="fa-solid fa-desktop"></i>
                            </button>
                        </div>
-                       <div class="mute_video_btn">
-                           <button type="submit" id="video-btn">
+                       <div class="mute_video_btn" id="video-btn">
+                           <button type="submit">
                                <i class="fa-solid fa-video"></i>
                            </button>
                        </div>
-                       <div class="mute_mic_btn">
-                           <button type="submit" id="mic-btn">
+                       <div class="mute_mic_btn" id="mic-btn">
+                           <button type="submit">
                                <i class="fa-solid fa-microphone-lines"></i>
                            </button>
                        </div>
-                       <div class="leave_room_btn">
-                           <button type="submit" id="leave-btn">
+                       <div class="leave_room_btn" id="leave-btn">
+                           <button type="submit">
                                <i class="fa-solid fa-phone-slash fa-flip-horizontal"></i>
                            </button>
                        </div>
@@ -365,4 +365,60 @@
 </div>
 <div id="channel-meta" data-csrf-token="{{ csrf_token }}" channel-id="{{ channel_id }}"></div>
 <script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
+<script>
+    const videostreams = document.getElementById('streams_store')
+    var defaultStreamWidth = 0
+    const observerOptions = {
+        childList: true,
+        subtree: false,
+        attributes: false
+    };
+    
+
+    findOptimalDimension = (usersCount) => {
+        return Math.ceil(Math.sqrt(usersCount))
+    }
+
+    optimizeVideostreamsWrapper = () => {
+        let streamsContainer = document.getElementsByClassName('videostream')
+        let usersCount = streamsContainer.length
+        if (usersCount > 1){
+            streamsContainer[0].style.width = 'auto'
+            let optimalDimension = findOptimalDimension(usersCount)
+            videostreams.style.gridTemplateColumns = `repeat(${optimalDimension}, 1fr)`;
+            videostreams.style.justifyItems = ''
+            // Идеальная высота - высота грида
+            // Идеальная ширина - 48% грида
+            let maxStreamHeight = videostreams.clientHeight
+            let currentStreamHeight = streamsContainer[0].clientHeight
+            let currentStreamWidth = streamsContainer[0].clientWidth
+            
+            for (let i = 0; i < usersCount; i++){
+                //streamsContainer[i].style.width = `${48 / maxStreamHeight * currentStreamHeight}%`
+                streamsContainer[i].style.width  = `${defaultStreamWidth / Math.ceil(usersCount / optimalDimension)}`
+            }
+        }
+        else{
+            videostreams.style.gridTemplateColumns = ''
+            videostreams.style.justifyItems = 'center'
+            streamsContainer[0].style.width = `${streams_wrapper.clientWidth * 0.48}px`
+            if (defaultStreamWidth == 0) defaultStreamWidth = streamsContainer[0].clientWidth
+        }
+    }
+
+    function handleChanges(mutationsList, observer) {
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+                optimizeVideostreamsWrapper()
+            }
+        }
+    }
+    const observer = new MutationObserver(handleChanges);
+    observer.observe(videostreams, observerOptions);
+    checker = () => {
+        videostreams.innerHTML += "<div class='videostream'></div>"
+    }
+
+    optimizeVideostreamsWrapper()
+</script>
 {% endblock main_panel %}

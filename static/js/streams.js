@@ -66,10 +66,10 @@ let joinAndDisplayLocalStream = async () => {
 
     let player = `<div  class="video-container" id="user-container-${USER_ID}">
                     <div class="video-player" id="user-${USER_ID}"></div>
-                    <div class="video-player-user-name id="name-user-${USER_ID}">${USER_USERNAME}</div>
+                    <div class="video-player-user-name id="name-user-${USER_ID}">${USER_PROFILENAME}</div>
                 </div>`
 
-    document.getElementById('video-streams').insertAdjacentHTML("beforeend", player)
+    document.getElementById('streams_store').insertAdjacentHTML("beforeend", player)
     localTracks[1].play(`user-${USER_ID}`)
 
     await client.publish([localTracks[0], localTracks[1]])
@@ -94,12 +94,12 @@ let handleUserJoined = async (user, mediaType) => {
             member = {name: 'Undefined'}
         }
 
-        player = `<div  class="video-container" id="user-container-${user.uid}">
+        player = `<div class="videostream" id="user-container-${user.uid}">
             <div class="video-player" id="user-${user.uid}" name="${member.name}"></div>
             <div class="video-player-user-name">${member.name}</div>
         </div>`
 
-        document.getElementById('video-streams').insertAdjacentHTML('beforeend', player)
+        document.getElementById('streams_store').insertAdjacentHTML('beforeend', player)
         user.videoTrack.play(`user-${user.uid}`)
     }
 
@@ -151,14 +151,11 @@ let toggleMicrophone = async (e) => {
     }
 }
 
-var isSharingEnabled = false
-var screenTrack = []
-
 let toggleSharing = async (e) => {
     if (!isSharingEnabled){
-        let withAudio = true
+        let withAudio = "enable"
         let defaultConfig = {}
-        screenTrack = AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
+        screenTrack = await AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
 
         await share_client.publish([screenTrack[0], screenTrack[1]])
         e.target.style.backgroundColor = 'green'
@@ -171,7 +168,7 @@ let toggleSharing = async (e) => {
         }
 
         await share_client.unpublish([screenTrack[0], screenTrack[1]])
-        document.getElementById(`user-container-${stream_UID}`).remove()
+        document.getElementById(`user-container-${STREAM_ID}`).remove()
         e.target.style.backgroundColor = 'blue'
         isSharingEnabled = false
     }
@@ -188,6 +185,9 @@ curr_user = getSessionUserData()
 
 let USER_USERNAME = curr_user.user_username
 let USER_PROFILENAME = curr_user.user_profilename
+
+var isSharingEnabled = false
+var screenTrack = []
 
 getAgoraSDKData().then(data => {
     APP_ID = data.app_id
