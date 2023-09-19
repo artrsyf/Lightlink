@@ -24,6 +24,14 @@ class RegisterUserForm(UserCreationForm):
         model = User
         fields = ['username', 'email', 'password1', 'password2']
     
+    def clean(self):
+        cleaned_data = super().clean()
+        if User.objects.filter(email=cleaned_data.get('email')).exists():
+            #** Вынести сообщение об ошибке наружу
+            NOT_UNIQUE_EMAIL_MESSAGE = "Данная почта уже используется"
+            self.add_error('email', NOT_UNIQUE_EMAIL_MESSAGE)
+        return cleaned_data
+    
 class LoginUserForm(AuthenticationForm):
     username = forms.CharField(label='Username',
                                max_length=20,
