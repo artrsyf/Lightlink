@@ -19,14 +19,25 @@ def delete_profile(sender, instance, **kwargs):
 @receiver(user_logged_in)
 def set_logged_user_settings(sender, request, user, **kwargs):
     if user.is_authenticated:
-        print('SERVER RESPONSE: SESSION BEGINS AND USER DATA SAVED')
+        print('*SERVER RESPONSE: Session begins and user data saved')
         user = request.user
         user_id = user.id
         user_username = user.username
-        user_profile = Profile.objects.get(user=user)
-        user_profilename = user_profile.profile_name
         request.session['user_id'] = user_id
         request.session['user_username'] = user_username
-        request.session['user_profilename'] = user_profilename
+        try:
+            user_profile = Profile.objects.get(user=user)
+            user_profilename = user_profile.profile_name
+            request.session['user_profilename'] = user_profilename
+        except Exception:
+            if user.is_superuser & user.is_staff:
+                request.session['user_profilename'] = 'admin'
+                print('*SERVER RESPONSE: Admin logged in')
+            elif not user.is_superuser & user.is_staff:
+                request.session['user_profilename'] = f'staff-{user_username}'
+                print('*SERVER RESPONSE: Staff logged in')
+            else:
+                raise Exception(f'*SERVER RESPONSE: Could not match profile for logged user: {user_username}')
+
     else:
-        print('SERVER RESPONSE: SESSION BEGINS AND IMMEDIATELY CLOSES')
+        print('*SERVER RESPONSE: Session begins and immediately closes')
