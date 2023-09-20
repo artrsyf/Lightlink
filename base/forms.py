@@ -2,6 +2,8 @@ from django import forms
 from django.forms import ModelForm, TextInput
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
+from captcha.fields import ReCaptchaField
+from captcha.widgets import ReCaptchaV2Checkbox
 
 class RegisterUserForm(UserCreationForm):
     username = forms.CharField(label='Login',
@@ -41,3 +43,9 @@ class LoginUserForm(AuthenticationForm):
                                max_length=20,
                                required=True,
                                widget=forms.PasswordInput(attrs={}))
+    captcha = ReCaptchaField(label='Captcha',
+                             widget=ReCaptchaV2Checkbox(),
+                             error_messages={
+                                'required': 'Please complete the captcha.',
+                                'invalid': 'Invalid captcha. Please try again.'
+                            })

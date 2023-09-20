@@ -41,6 +41,12 @@ EMAIL_PORT = env("EMAIL_PORT")
 EMAIL_USE_TLS = True
 PASSWORD_RESET_TIMEOUT = int(env("PASSWORD_RESET_TIMEOUT"))
 
+# reCAPTCHA settings
+RECAPTCHA_PUBLIC_KEY = env("SITE_RECAPTCHA_KEY")
+RECAPTCHA_PRIVATE_KEY = env("SECRET_SITE_RECAPTCHA_KEY")
+#** For local development and functional testing
+SILENCED_SYSTEM_CHECKS = ['captcha.recaptcha_test_key_error']
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -52,7 +58,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'base.apps.BaseConfig',
     'video_chat.apps.VideoChatConfig',
-    'django_extensions'
+    'django_extensions',
+    'captcha'
 ]
 
 MIDDLEWARE = [
