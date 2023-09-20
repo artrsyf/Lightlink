@@ -29,8 +29,17 @@ SECRET_KEY = env("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.1.68']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', env("LOCAL_PC_IP")]
 
+# Emailing settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_FROM = env("EMAIL_FROM")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+EMAIL_PORT = env("EMAIL_PORT")
+EMAIL_USE_TLS = True
+PASSWORD_RESET_TIMEOUT = int(env("PASSWORD_RESET_TIMEOUT"))
 
 # Application definition
 

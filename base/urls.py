@@ -6,5 +6,6 @@ urlpatterns = [
     path('', index, name="Home"),
     path('login/', LoginUser.as_view(), name='Login'),
     path('sign-up/', RegisterUser.as_view(), name='Signup'),
-    path('logout/', LogoutView.as_view(next_page=LOGOUT_REDIRECT_URL), name='Logout')
+    path('logout/', LogoutView.as_view(next_page=LOGOUT_REDIRECT_URL), name='Logout'),
+    path('activate/<uidb64>/<token>', activate, name='activate')
 ]

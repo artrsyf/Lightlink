@@ -9,7 +9,7 @@ class RegisterUserForm(UserCreationForm):
                                required=True,
                                widget=forms.TextInput(attrs={}))
     email = forms.EmailField(label='Email',
-                               max_length=20,
+                               max_length=30,
                                required=True,
                                widget=forms.TextInput(attrs={}))
     password1 = forms.CharField(label='Password',
