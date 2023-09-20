@@ -49,6 +49,7 @@ SILENCED_SYSTEM_CHECKS = ['captcha.recaptcha_test_key_error']
 
 #** Отвечает за выбор домена в django_site
 # SITE_ID = 1
+
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 AUTHENTICATION_BACKENDS = [
@@ -57,15 +58,27 @@ AUTHENTICATION_BACKENDS = [
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
+        'SOCIALACCOUNT_EMAIL_AUTHENTICATION': True,
         'SCOPE': [
             'profile',
             'email',
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
-        }
+        },
     }
 }
+
+# ACCOUNT_AUTHENTICATION_METHOD = "email" # Defaults to username_email
+# ACCOUNT_USERNAME_REQUIRED = False       # Defaults to True
+# ACCOUNT_EMAIL_REQUIRED = True           # Defaults to False
+# SOCIALACCOUNT_QUERY_EMAIL = ACCOUNT_EMAIL_REQUIRED
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_ADAPTER = "base.adapter.MyLoginAccountAdapter"
+SOCIALACCOUNT_ADAPTER = 'base.adapter.MySocialAccountAdapter'
+LOGIN_URL = "/"
+LOGIN_REDIRECT_URL = "/"
 
 # Application definition
 INSTALLED_APPS = [

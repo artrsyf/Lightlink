@@ -16,6 +16,8 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 
+from allauth.account.models import EmailAddress
+
 def index(request):
     # print('huy', get_current_site(request).domain, 'huy')
     # User.objects.create(password='11223344', is_superuser=False, email='rom.fadeev2017@yandex.ru', is_staff=False, is_active=True, username='eeQeq')
@@ -32,6 +34,9 @@ def activate(request, uidb64, token):
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
+
+        email = user.email
+        EmailAddress.objects.create(user=user, email=email, verified=True, primary=True)
 
         messages.success(request, "Thank you for your email confirmation.")
         django_login(request, user)

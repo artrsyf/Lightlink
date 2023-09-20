@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 
 User = get_user_model()
+User._meta.get_field('email')._unique = True
 
 class ChannelType(models.Model):
     type = models.CharField(null=False)
