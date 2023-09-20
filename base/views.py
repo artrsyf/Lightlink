@@ -17,6 +17,8 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 
 def index(request):
+    # print('huy', get_current_site(request).domain, 'huy')
+    # User.objects.create(password='11223344', is_superuser=False, email='rom.fadeev2017@yandex.ru', is_staff=False, is_active=True, username='eeQeq')
     return render(request, 'base/index.html')
 
 def activate(request, uidb64, token):
@@ -41,8 +43,12 @@ def activate(request, uidb64, token):
 
 def activateEmail(request, user, to_email):
     mail_subject = "Activate your user account."
+    domain = get_current_site(request).domain
+    #** for local
+    if domain == 'localhost':
+        domain = 'localhost:8000'
     message_context = {'user': user.username,
-                       'domain': get_current_site(request).domain,
+                       'domain': domain,
                        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                        'token': account_activation_token.make_token(user),
                        "protocol": 'https' if request.is_secure() else 'http'

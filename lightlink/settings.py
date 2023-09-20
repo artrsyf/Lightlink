@@ -47,8 +47,27 @@ RECAPTCHA_PRIVATE_KEY = env("SECRET_SITE_RECAPTCHA_KEY")
 #** For local development and functional testing
 SILENCED_SYSTEM_CHECKS = ['captcha.recaptcha_test_key_error']
 
-# Application definition
+#** Отвечает за выбор домена в django_site
+# SITE_ID = 1
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
+AUTHENTICATION_BACKENDS = [
+    'allauth.account.auth_backends.AuthenticationBackend'
+    ]
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
+
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -59,7 +78,12 @@ INSTALLED_APPS = [
     'base.apps.BaseConfig',
     'video_chat.apps.VideoChatConfig',
     'django_extensions',
-    'captcha'
+    'captcha',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google'
 ]
 
 MIDDLEWARE = [
@@ -70,6 +94,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware'
 ]
 
 ROOT_URLCONF = 'lightlink.urls'
