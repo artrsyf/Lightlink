@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.db.models import Q
 from .models import User, Profile, Channel, ChannelInfo, ChannelType
@@ -7,6 +7,7 @@ from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
 from .utils import find_friend_list
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from .forms import FriendshipForm
 
 env = environ.Env()
 environ.Env().read_env('../lightlink/')
@@ -136,3 +137,23 @@ def get_member(request):
         except ObjectDoesNotExist:
             print(f'*SERVER RESPONSE: Requested user does not exist')
             return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Requested user does not exist'}}, status=400)
+
+def friendRequest(request):
+    print('friendrequest ', request.method)
+    error = ''
+    if request.method == 'POST':
+        form = FriendshipForm(request.POST, sender=request.user)
+        print(form.errors)
+        if form.is_valid():
+            print('form is valid')
+            form.save()
+            # return redirect('Home')
+        else:
+            print('form is invalid')
+            error = 'Error in friend request form'
+    form = FriendshipForm(sender=request.user)
+    context = {
+        'form': form,
+        'error': error
+    }
+    return render(request, 'video_chat/friend_request.html', context)

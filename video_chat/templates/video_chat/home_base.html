@@ -262,6 +262,17 @@
         .login_more_info{
 
         }
+        .main_panel_bar_wrapper{
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            justify-content: flex-start;
+            padding: 0 30px 0 30px;
+        }
+        .friends_bar_header{
+            display: flex;
+            flex-direction: row;
+        }
     </style>
 </head>
 <body>
@@ -358,6 +369,7 @@
             success: function(data){
                 main_conversation_panel = document.getElementById('main_conversation_panel')
                 main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
+                // main_conversation_panel.innerHTML += `<button onclick="friend_request(${id})" class="friend_request_button" id = "friend_request_button_to_${id}" >Добавить в друзья</button>`
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -410,6 +422,49 @@
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
             }
+        })
+    }
+
+    {% comment %} show_friend_request_field = () => {
+        $.ajax({
+            url: '',
+            method: 'GET',
+            success: function(data){
+                main_conversation_panel = document.getElementById('main_conversation_panel')
+                main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
+                // main_conversation_panel.innerHTML += `<button onclick="friend_request(${id})" class="friend_request_button" id = "friend_request_button_to_${id}" >Добавить в друзья</button>`
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
+        })
+    } {% endcomment %}
+    function MultipleMainPanelException(message){
+        this.message = message
+        this.name = `*CLIENT RESPONSE: Multiple main panel error: count = ${message}`
+    }
+    show_friend_request_field = () => {
+        fetch('add-friend/')
+        .then(response => response.text())
+        .then((data) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, 'text/html');
+            const sendRequestPanel = doc.querySelector('.send_request_panel_wrapper');
+            if (sendRequestPanel) {
+                let main_panels = document.getElementsByClassName('main_panel')
+                if (main_panels.length > 1){
+                    throw new MultipleMainPanelException(main_panels.length)
+                }
+                let main_panel = main_panels[0]
+                let main_conversation_panel = document.getElementById('main_conversation_panel')
+                main_panel.removeChild(main_conversation_panel)
+                main_panel.appendChild(sendRequestPanel)
+            } else {
+                error('*CLIENT RESPONSE: Could not find friend request panel from template');
+            }
+        })
+        .catch(error => {
+            console.error('*CLIENT RESPONSE: Unprocessed exception', error);
         })
     }
 </script>
