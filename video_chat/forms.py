@@ -26,6 +26,7 @@ class FriendshipForm(ModelForm):
     def clean(self):
         self.cleaned_data = super().clean()
         receiver_username = self.cleaned_data.get('receiver_username')
+        print('rcusr', receiver_username)
         try:
             user = User.objects.get(username=receiver_username)
             profile = Profile.objects.get(user=user)

@@ -459,12 +459,43 @@
                 let main_conversation_panel = document.getElementById('main_conversation_panel')
                 main_panel.removeChild(main_conversation_panel)
                 main_panel.appendChild(sendRequestPanel)
+                document.getElementById('send_friend_request_form').addEventListener('submit', post_friend_request_ajax)
             } else {
                 error('*CLIENT RESPONSE: Could not find friend request panel from template');
             }
         })
         .catch(error => {
             console.error('*CLIENT RESPONSE: Unprocessed exception', error);
+        })
+    }
+
+    post_friend_request_ajax = (e) => {
+        e.preventDefault(); // Предотвращаем обычную отправку формы
+        const formElement = document.getElementById('send_friend_request_form'); // Получаем элемент формы
+        const formData = new FormData(formElement);
+        receiver_data = {
+            receiver_username: document.querySelector('input[name="receiver_username"]').value
+        }
+        json_receiver_data = JSON.stringify(receiver_data)
+        $.ajax({
+            url: '/vw/add-friend/',
+            dataType: 'json',
+            data: formData,
+            method: 'POST',
+            processData: false, // Не обрабатываем данные
+            contentType: false, // Не устанавливаем Content-Type, браузер сам определит его как multipart/form-data
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+                //console.log('AJAX Notice: Successfully send request to server to start call')
+                //console.log('TEST LOG: Testing fetching channel data after attempt to create or use existing channel:', data)
+                const resultElement = document.getElementById('friend_request_form_errors');
+                resultElement.innerHTML = data.result;
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
         })
     }
 </script>

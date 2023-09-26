@@ -9,11 +9,11 @@
             Вы можете добавить в друзья с помощью имени пользователя
         </div>
         <div class="send_request_input_wrapper">
-            <form method="post" action="{% url 'friend-request' %}">
+            <form method="post" action="" id="send_friend_request_form">
                 {% csrf_token %}
                 {{ form.receiver_username }}
                 <button type="submit" class="btn btn-success">Отправить запрос на добавление в друзья</button>
-                <span>{{ error }}</span>
+                <span id="friend_request_form_errors">{{ error }}</span>
             </form>
             {% comment %} <div class="send_requset_search">
                 <input type="text_field" class="friend_request_field" placeholder="Добавить в друзья">

@@ -150,7 +150,9 @@ def friendRequest(request):
             # return redirect('Home')
         else:
             print('form is invalid')
+
             error = 'Error in friend request form'
+            return JsonResponse({'result': str(form.errors)})
     form = FriendshipForm(sender=request.user)
     context = {
         'form': form,
