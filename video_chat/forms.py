@@ -21,16 +21,14 @@ class FriendshipForm(ModelForm):
         super().__init__(*args, **kwargs)
         user = User.objects.get(username=sender)
         self.sender = Profile.objects.get(user=user)
-        print('init', sender)
+        # print('init', sender)
 
     def clean(self):
         self.cleaned_data = super().clean()
         receiver_username = self.cleaned_data.get('receiver_username')
-        print('rcusr', receiver_username)
         try:
             user = User.objects.get(username=receiver_username)
             profile = Profile.objects.get(user=user)
-            print('qqqxxx', profile)
         except User.DoesNotExist:
             self.add_error('receiver_username', 'User with this username does not exist')
             return

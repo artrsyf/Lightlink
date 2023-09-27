@@ -140,22 +140,20 @@ def get_member(request):
 
 def friendRequest(request):
     print('friendrequest ', request.method)
-    error = ''
+    error_default_message = ''
     if request.method == 'POST':
         form = FriendshipForm(request.POST, sender=request.user)
         print(form.errors)
         if form.is_valid():
-            print('form is valid')
             form.save()
-            # return redirect('Home')
+            return JsonResponse({'result': 'Successfully sent request'})
         else:
-            print('form is invalid')
-
-            error = 'Error in friend request form'
-            return JsonResponse({'result': str(form.errors)})
+            error_default_message = 'Something went wrong'
+            error_messages = [str(error) for field, errors in form.errors.items() for error in errors]
+            return JsonResponse({'result': error_messages})
     form = FriendshipForm(sender=request.user)
     context = {
         'form': form,
-        'error': error
+        'error': error_default_message
     }
     return render(request, 'video_chat/friend_request.html', context)

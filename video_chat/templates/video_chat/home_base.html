@@ -425,24 +425,11 @@
         })
     }
 
-    {% comment %} show_friend_request_field = () => {
-        $.ajax({
-            url: '',
-            method: 'GET',
-            success: function(data){
-                main_conversation_panel = document.getElementById('main_conversation_panel')
-                main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
-                // main_conversation_panel.innerHTML += `<button onclick="friend_request(${id})" class="friend_request_button" id = "friend_request_button_to_${id}" >Добавить в друзья</button>`
-            },
-            error: function(xhr, status, error){
-                console.error('AJAX Error: ', error)
-            }
-        })
-    } {% endcomment %}
     function MultipleMainPanelException(message){
         this.message = message
         this.name = `*CLIENT RESPONSE: Multiple main panel error: count = ${message}`
     }
+
     show_friend_request_field = () => {
         fetch('add-friend/')
         .then(response => response.text())
@@ -470,8 +457,8 @@
     }
 
     post_friend_request_ajax = (e) => {
-        e.preventDefault(); // Предотвращаем обычную отправку формы
-        const formElement = document.getElementById('send_friend_request_form'); // Получаем элемент формы
+        e.preventDefault();
+        const formElement = document.getElementById('send_friend_request_form');
         const formData = new FormData(formElement);
         receiver_data = {
             receiver_username: document.querySelector('input[name="receiver_username"]').value
@@ -488,10 +475,12 @@
                 'X-CSRFToken': '{{ csrf_token }}'
             },
             success: function(data){
-                //console.log('AJAX Notice: Successfully send request to server to start call')
-                //console.log('TEST LOG: Testing fetching channel data after attempt to create or use existing channel:', data)
                 const resultElement = document.getElementById('friend_request_form_errors');
-                resultElement.innerHTML = data.result;
+                let error_messages = data.result
+                resultElement.innerHTML = ''
+                for (let error_message_index in error_messages){
+                    resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-${error_message_index}" >${error_messages[error_message_index]}</div>`;
+                }
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)

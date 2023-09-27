@@ -13,14 +13,8 @@
                 {% csrf_token %}
                 {{ form.receiver_username }}
                 <button type="submit" class="btn btn-success">Отправить запрос на добавление в друзья</button>
-                <span id="friend_request_form_errors">{{ error }}</span>
             </form>
-            {% comment %} <div class="send_requset_search">
-                <input type="text_field" class="friend_request_field" placeholder="Добавить в друзья">
-            </div>
-            <div class="send_request_button">
-                <button role="button" class="friend_request_button">Отправить запрос</button>
-            </div> {% endcomment %}
+            <div id="friend_request_form_errors">{{ error }}</div>
         </div>
     </div>
     <div class="send_request_show_panel_wrapper">
