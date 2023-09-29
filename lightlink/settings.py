@@ -130,7 +130,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'lightlink.wsgi.application'
-ASGI_APPLICATION = "lightlink.asgi.application"
+ASGI_APPLICATION = 'lightlink.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 
 # Database
