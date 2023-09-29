@@ -82,6 +82,7 @@ LOGIN_REDIRECT_URL = "/"
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -129,6 +130,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'lightlink.wsgi.application'
+ASGI_APPLICATION = "lightlink.asgi.application"
 
 
 # Database
