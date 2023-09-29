@@ -31,7 +31,6 @@ class FriendRequestType(models.Model):
     def __str__(self) -> str:
         return f"Request type: {self.type}"
     
-
 class Friendship(models.Model):
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='s_friendships')
     receiver = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='r_friendships')
@@ -40,10 +39,13 @@ class Friendship(models.Model):
     def __str__(self) -> str:
         return f"Sender: {self.sender} to Receiver: {self.receiver} with Status: {self.status_type}"
     
-
-    
-
-
 class ChannelInfo(models.Model):
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE, null=False, related_name='channel_infos')
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='channel_infos')
+
+class Message(models.Model):
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, null=False, related_name='all_messages')
+    profile = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, related_name='all_messages')
+    content = models.TextField(null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
