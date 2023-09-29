@@ -1,5 +1,6 @@
-const csrf_token = document.getElementById('channel-meta').getAttribute('data-csrf-token')
-const channel_id = document.getElementById('channel-meta').getAttribute('channel-id')
+// data from channel.html
+const csrf_token =  CSRF_TOKEN
+const channel_id = CHANNEL_ID
 
 const client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
 const share_client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'})

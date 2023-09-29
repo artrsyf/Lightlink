@@ -358,7 +358,7 @@
                </div> -->
            </div>
            <div class="message_input_wrapper">
-                <input type="text" id="textchat_onput_message" placeholder="Write">
+                <input type="text" id="textchat_input_message" placeholder="Write">
            </div>
        </div>
     </div>
@@ -366,6 +366,39 @@
 <div id="channel-meta" data-csrf-token="{{ csrf_token }}" channel-id="{{ channel_id }}"></div>
 <script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
 <script>
+    const CSRF_TOKEN = '{{ csrf_token }}'
+    const CHANNEL_ID = {{ channel_id }}
+
+    const channelSocket = new WebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/chat/'
+        + CHANNEL_ID
+        + '/'
+    )
+
+    channelSocket.onmessage = function(e){
+        const data = JSON.parse(e.data)
+        const messages_area = document.querySelector('.messages_area_wrapper')
+        const message = `<div class="message">${data.message}</div>`
+        messages_area.innerHTML += message
+    }
+
+    channelSocket.onclose = function(e){
+        console.error('Chat socket closed unexpectedly');
+    }
+
+    document.querySelector('#textchat_input_message').onkeyup = function(e) {
+        if (e.key === 'Enter'){
+            message_input_field = document.querySelector('#textchat_input_message')
+            const message = message_input_field.value
+            channelSocket.send(JSON.stringify({
+                'message': message
+            }))
+            message_input_field.value = ''
+        }
+    };
+
     const videostreams = document.getElementById('streams_store')
     var defaultStreamWidth = 0
     const observerOptions = {
