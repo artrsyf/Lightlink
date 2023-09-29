@@ -371,13 +371,19 @@
     </div>
 </div>
 <div id="channel-meta" data-csrf-token="{{ csrf_token }}" channel-id="{{ channel_id }}"></div>
-<script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
+
 <script>
     const CSRF_TOKEN = '{{ csrf_token }}'
     const CHANNEL_ID = {{ channel_id }}
+</script>
 
+<script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
+
+<script>
+    const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
+    console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
     const channelSocket = new WebSocket(
-        'ws://'
+        ws_scheme
         + window.location.host
         + '/ws/chat/'
         + CHANNEL_ID

@@ -181,7 +181,7 @@ var USER_ID
 var TOKEN
 var STREAM_ID
 var STREAM_TOKEN
-let CHANNEL = channel_id
+let CHANNEL = channel_id.toString()
 curr_user = getSessionUserData()
 
 let USER_USERNAME = curr_user.user_username
