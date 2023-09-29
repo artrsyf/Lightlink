@@ -8,4 +8,5 @@ def find_friend_list(user_id):
     for relation in friendship:
         friends.append(relation.receiver if relation.sender.id == current_profile.id \
                               else relation.sender)
+    friends = list(set(friends))
     return friends
