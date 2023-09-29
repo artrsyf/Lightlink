@@ -85,10 +85,13 @@ def channel(request, channel_id):
     current_user_id = request.user.id
     current_profile = Profile.objects.get(user=request.user)
     friends = find_friend_list(current_user_id)
+    channel = Channel.objects.get(id=channel_id)
+    channel_messages = channel.all_messages.all()
     context = {
         'current_profile': current_profile,
         'friends': friends,
-        'channel_id': channel_id
+        'channel_id': channel_id,
+        'channel_messages': channel_messages
     }
     return render(request, 'video_chat/channel.html', context)
 

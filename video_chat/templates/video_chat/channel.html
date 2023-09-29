@@ -350,6 +350,13 @@
     <div class="textchat_wrapper">
        <div class="textchat_content">
            <div class="messages_area_wrapper">
+                {% if channel_messages %}
+                    {% for message in channel_messages %}
+                        <div class="message">
+                            {{ message.profile.profile_name }}||{{ message.content }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
                <!-- <div class="message">
 
                </div>
@@ -379,8 +386,10 @@
 
     channelSocket.onmessage = function(e){
         const data = JSON.parse(e.data)
+        const profile = data.profile_name
+        const message_data = data.message
         const messages_area = document.querySelector('.messages_area_wrapper')
-        const message = `<div class="message">${data.message}</div>`
+        const message = `<div class="message">${profile}||${message_data}</div>`
         messages_area.innerHTML += message
     }
 
@@ -393,6 +402,8 @@
             message_input_field = document.querySelector('#textchat_input_message')
             const message = message_input_field.value
             channelSocket.send(JSON.stringify({
+                'user_id': USER_ID,
+                'channel_id': CHANNEL_ID,
                 'message': message
             }))
             message_input_field.value = ''
