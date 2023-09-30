@@ -66,14 +66,34 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         self.target = event["target"]
         print(f"verified target - {self.target}")
 
+    @database_sync_to_async
+    def get_profiles_data(self, sender_username, friend_username):
+        sender_user = User.objects.get(username=sender_username)
+        sender_profile = Profile.objects.get(user = sender_user)
+        sender_profilename = sender_profile.profile_name
+
+        friend_user = User.objects.get(username=friend_username)
+        friend_profile = Profile.objects.get(user=friend_user)
+        friend_profilename = friend_profile.profile_name
+
+        return {'sender_profilename': sender_profilename, 'friend_profilename': friend_profilename}
+
     # Если получилось установить таргет - значит, это получатель запроса на добавление в друзья.
     # В противном случае возникнет управляемое исключение об отсутствии атрибута self.target
     async def friendrequest_sendrequest(self, event):
-        sender_id = event["sender_id"]
-        friend_id = event["friend_id"]
+        sender_username = event["sender_username"]
+        friend_username = event["friend_username"]
         try:
-            if (self.target == friend_id):
-                print(f"sent request only to {self.target}")
-                await self.send(text_data=json.dumps({"sender_id": sender_id, "friend_id": friend_id}))
+            if (self.target == friend_username):
+                print(f"Sent request only to {self.target}")
+                profiles_data = await self.get_profiles_data(sender_username, friend_username)
+                sender_profilename = profiles_data['sender_profilename']
+                friend_profilename = profiles_data['friend_profilename']
+
+                await self.send(text_data=json.dumps({"sender_username": sender_username,
+                                                      "sender_profilename": sender_profilename,
+                                                      "friend_username": friend_username,
+                                                      "friend_profilename": friend_profilename
+                                                      }))
         except AttributeError:
-            print(f'deny request for none target: {sender_id}, when the target: {friend_id}')
+            print(f'Deny request for none target: {sender_username}, when the target: {friend_username}')

@@ -402,6 +402,15 @@
             'type': 'friendrequest.verif',
             'target': '{{ current_user }}'
         }))
+
+        myFriendSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data)
+            let sender_profilename = data.sender_profilename
+            let friend_profilename = data.friend_profilename
+            console.log(`Caught friend request from '${sender_profilename}' to '${friend_profilename}'`)
+            // Just for assessment
+            alert(`You have acquired friend request from ${sender_profilename}`)
+        }
     }
 
     {% comment %} Обработка нажатия на юзера в диалогах {% endcomment %}
@@ -523,8 +532,13 @@
                 const resultElement = document.getElementById('friend_request_form_errors');
                 let messages = data.result
                 resultElement.innerHTML = ''
-                for (let message_index in messages){
-                    resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-${message_index}" >${messages[message_index]}</div>`;
+                if (Array.isArray(messages)){
+                    for (let message_index in messages){
+                        resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-${message_index}" >${messages[message_index]}</div>`;
+                    }
+                }
+                else{
+                    resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-0" >${messages}</div>`;
                 }
                 let status = data.status
                 if (status == 'success'){
@@ -538,8 +552,8 @@
                     friendRequestSocket.onopen = () => {
                         friendRequestSocket.send(JSON.stringify({
                             'type': 'friendrequest.sendrequest',
-                            'sender_id': '{{ current_user }}',
-                            'friend_id': `${receiver_username_value}`
+                            'sender_username': '{{ current_user }}',
+                            'friend_username': `${receiver_username_value}`
                         }))
                     }
                 }
