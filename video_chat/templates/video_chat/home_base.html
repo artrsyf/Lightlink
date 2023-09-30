@@ -386,6 +386,24 @@
 </html>
 
 <script>
+    const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
+    console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
+
+    const myFriendSocket = new WebSocket(
+        ws_scheme
+        + window.location.host
+        + '/ws/service/friend-request/'
+        + '{{ current_user }}'
+        + '/'
+    )
+
+    myFriendSocket.onopen = () => {
+        myFriendSocket.send(JSON.stringify({
+            'type': 'friendrequest.verif',
+            'target': '{{ current_user }}'
+        }))
+    }
+
     {% comment %} Обработка нажатия на юзера в диалогах {% endcomment %}
     handleFriendClick = (id) => {
         $.ajax({
@@ -486,8 +504,9 @@
         e.preventDefault();
         const formElement = document.getElementById('send_friend_request_form');
         const formData = new FormData(formElement);
+        const receiver_username_value = document.querySelector('input[name="receiver_username"]').value
         receiver_data = {
-            receiver_username: document.querySelector('input[name="receiver_username"]').value
+            receiver_username: receiver_username_value
         }
         json_receiver_data = JSON.stringify(receiver_data)
         $.ajax({
@@ -502,10 +521,27 @@
             },
             success: function(data){
                 const resultElement = document.getElementById('friend_request_form_errors');
-                let error_messages = data.result
+                let messages = data.result
                 resultElement.innerHTML = ''
-                for (let error_message_index in error_messages){
-                    resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-${error_message_index}" >${error_messages[error_message_index]}</div>`;
+                for (let message_index in messages){
+                    resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-${message_index}" >${messages[message_index]}</div>`;
+                }
+                let status = data.status
+                if (status == 'success'){
+                    const friendRequestSocket = new WebSocket(
+                        ws_scheme
+                        + window.location.host
+                        + '/ws/service/friend-request/'
+                        + `${receiver_username_value}`
+                        + '/'
+                    )
+                    friendRequestSocket.onopen = () => {
+                        friendRequestSocket.send(JSON.stringify({
+                            'type': 'friendrequest.sendrequest',
+                            'sender_id': '{{ current_user }}',
+                            'friend_id': `${receiver_username_value}`
+                        }))
+                    }
                 }
             },
             error: function(xhr, status, error){

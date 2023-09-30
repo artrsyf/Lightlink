@@ -17,6 +17,7 @@ def index(request):
     friends = find_friend_list(current_user_id)
     current_profile = Profile.objects.get(user=request.user)
     context = {
+        'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends
     }
@@ -149,13 +150,14 @@ def friendRequest(request):
         print(form.errors)
         if form.is_valid():
             form.save()
-            return JsonResponse({'result': 'Successfully sent request'})
+            return JsonResponse({'result': 'Successfully sent request', 'status': 'success'})
         else:
             error_default_message = 'Something went wrong'
             error_messages = [str(error) for field, errors in form.errors.items() for error in errors]
-            return JsonResponse({'result': error_messages})
+            return JsonResponse({'result': error_messages, 'status': 'failure'})
     form = FriendshipForm(sender=request.user)
     context = {
+        'current_user': request.user,
         'form': form,
         'error': error_default_message
     }

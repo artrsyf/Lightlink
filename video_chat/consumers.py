@@ -40,3 +40,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = event["message"]
 
         await self.send(text_data=json.dumps({"profile_name": profile_name, "message": message}))
+
+class FriendRequestConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope["url_route"]["kwargs"]["friend_username"]
+        self.room_group_name = f"friend_request_{self.room_name}"
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        
+        await self.channel_layer.group_send(
+            self.room_group_name, text_data_json
+        )
+
+    # Метод для верификации таргета запроса
+    async def friendrequest_verif(self, event):
+        self.target = event["target"]
+        print(f"verified target - {self.target}")
+
+    # Если получилось установить таргет - значит, это получатель запроса на добавление в друзья.
+    # В противном случае возникнет управляемое исключение об отсутствии атрибута self.target
+    async def friendrequest_sendrequest(self, event):
+        sender_id = event["sender_id"]
+        friend_id = event["friend_id"]
+        try:
+            if (self.target == friend_id):
+                print(f"sent request only to {self.target}")
+                await self.send(text_data=json.dumps({"sender_id": sender_id, "friend_id": friend_id}))
+        except AttributeError:
+            print(f'deny request for none target: {sender_id}, when the target: {friend_id}')
