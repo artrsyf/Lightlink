@@ -449,13 +449,8 @@
 </html>
 
 <script>
-    try{
-        const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
-        console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
-    }
-    catch{
-        console.log('ws_scheme is already used')
-    }
+    const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
+    console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
 
     const myFriendSocket = new WebSocket(
         ws_scheme
@@ -465,6 +460,10 @@
         + '/'
     )
     permitFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
+        control_buttons = document.getElementsByClassName('friend_request_modal_control_button')
+        for (control_button of control_buttons){
+            control_button.disabled = true
+        }
         if (myFriendSocket.readyState === WebSocket.OPEN) {
             myFriendSocket.send(JSON.stringify({
                 'type': 'friendrequest.permit',
@@ -478,6 +477,10 @@
     }
 
     declineFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
+        control_buttons = document.getElementsByClassName('friend_request_modal_control_button')
+        for (control_button of control_buttons){
+            control_button.disabled = true
+        }
         if (myFriendSocket.readyState === WebSocket.OPEN) {
             console.log('sentttttttt')
             myFriendSocket.send(JSON.stringify({
@@ -541,9 +544,9 @@
                 status = data.status
                 if (status == 'success'){
                     console.log('successfully added friend')
-                    // ...
+                    // Выполняем финальный действия для пользователя, получившего запрос на добавление в друзья
                     console.log('finalization')
-
+                    refresh_page_after_friend_permission({{ current_user.id }})
                 }
                 else if (status == 'failure'){
                     console.error('got error in permitting friend request')
@@ -720,15 +723,15 @@
                     friendRequestSocket.onmessage = (e) => {
                         const data = JSON.parse(e.data)
                         console.log('Finalization after permitted friend request')
-                        if (data["state"] == "ok"){
-                            // ...
-                            console.log('finalization')
-                            
+                        if (data["state"] == "success" && data["sender_username"] == '{{ current_user }}'){
+                            // Выполняем финальные действия для пользователя, отправившего запрос в друзья
+                            console.log('finalization_for')
+                            refresh_page_after_friend_permission({{ current_user.id }})
 
-                            if (friendRequestSocket.readyState === WebSocket.OPEN){
+                            {% comment %} if (friendRequestSocket.readyState === WebSocket.OPEN){
                                 friendRequestSocket.close()
                                 print(`close ws: ${friendRequestSocket.readyState}`)
-                            }
+                            } {% endcomment %}
                         }
                     }
                 }
@@ -749,42 +752,34 @@
         });
     }
 
-    refresh_page_after_friend_permission = () => {
-        fetch('vw/Home/')
-        .then(response => response.text())
+    // Сырой метод асинхронного обновления данных, нужно пересмотреть
+    refresh_page_after_friend_permission = (user_id) => {
+        fetch(`/vw/get-member-friends/${user_id}`)
+        .then(response => response.json())
         .then((data) => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data, 'text/html');
-            const friendPanel = doc.querySelector('.frfrfrfrfrf')
-            if (friendPanel){
-
-            }
-        })
-    }
-
-    show_friend_request_field = () => {
-        fetch('add-friend/')
-        .then(response => response.text())
-        .then((data) => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data, 'text/html');
-            const sendRequestPanel = doc.querySelector('.send_request_panel_wrapper');
-            if (sendRequestPanel) {
-                let main_panels = document.getElementsByClassName('main_panel')
-                if (main_panels.length > 1){
-                    throw new MultipleMainPanelException(main_panels.length)
-                }
-                let main_panel = main_panels[0]
-                let main_conversation_panel = document.getElementById('main_conversation_panel')
-                main_panel.removeChild(main_conversation_panel)
-                main_panel.appendChild(sendRequestPanel)
-                document.getElementById('send_friend_request_form').addEventListener('submit', post_friend_request_ajax)
-            } else {
-                error('*CLIENT RESPONSE: Could not find friend request panel from template');
-            }
-        })
-        .catch(error => {
-            console.error('*CLIENT RESPONSE: Unprocessed exception', error);
+            let messages_label = document.querySelector('.messages_label')
+            if (messages_label && messages_label.innerHTML == "Друзья"){
+                let friends = data.fresh_friends
+                let messages_wrapper = document.querySelector('.messages_wrapper')
+                messages_wrapper.innerHTML = '';
+                let friends_html_element = ''
+                for (let i = 0; i < friends.length; i++){
+                    friends_html_element = `<div class="message_item" onclick="handleFriendClick(${friends[i].id})">
+                        <div class="user_avatar">
+                            <img class="messages_users_avatar" src="logo.png" alt="User avatar">
+                        </div>
+                        <div class="message_info">
+                            <div class="nickname_data">
+                                <div class="conv_user_nickname">
+                                    ${friends[i].profile_name}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`
+                    
+                    messages_wrapper.innerHTML = friends_html_element
+                } 
+            } 
         })
     }
 
@@ -833,22 +828,9 @@
         side_panel.innerHTML =
         `<div class="messages_label">Друзья</div>
             <div class="messages_wrapper">
-                {% for friend in friends %}
-                <div class="message_item" onclick="handleFriendClick({{ friend.id }})">
-                    <div class="user_avatar">
-                        <img class="messages_users_avatar" src="logo.png" alt="User avatar">
-                    </div>
-                    <div class="message_info">
-                        <div class="nickname_data">
-                            <div class="conv_user_nickname">
-                                {{ friend.profile_name }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
             </div>
         </div>`
+        refresh_page_after_friend_permission({{ current_user.id }})
     }
 
     switch_on_notifications = () => {

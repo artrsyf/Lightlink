@@ -380,7 +380,6 @@
 <script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
 
 <script>
-    const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
     console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
     const channelSocket = new WebSocket(
         ws_scheme

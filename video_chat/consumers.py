@@ -2,6 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Profile, User, Channel, Message, Friendship, FriendRequestType
 from channels.db import database_sync_to_async
+from time import sleep
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -157,24 +158,32 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend_username = event["friend_username"]
         sender_profilename = event['sender_profilename']
         friend_profilename = event['friend_profilename']
+        isTarget = True
         try:
             if (self.target == friend_username):
                 print('processed only from target')
         except AttributeError:
             print(f'Deny processing for none target: {sender_username}, when the target: {friend_username}')
-            return
-        try:
-            status = await self.permit_friend_request(sender_username, friend_username)
-        except:
-            status = 'failure'
+            isTarget = False
 
-        await self.send(text_data=json.dumps({"type": 'permitted',
-                                              "status": status,
-                                              "sender_username": sender_username,
-                                              "friend_username": friend_username,
-                                              "sender_profilename": sender_profilename,
-                                              "friend_profilename": friend_profilename
-                                              }))
+        if (isTarget):
+            try:
+                status = await self.permit_friend_request(sender_username, friend_username)
+            except:
+                status = 'failure'
+
+            await self.send(text_data=json.dumps({"type": 'permitted',
+                                                "status": status,
+                                                "sender_username": sender_username,
+                                                "friend_username": friend_username,
+                                                "sender_profilename": sender_profilename,
+                                                "friend_profilename": friend_profilename
+                                                }))
+        else:
+            print('Sending signal to non target')
+            await self.send(text_data=json.dumps({"state": 'success',
+                                                  'sender_username': sender_username
+                                                }))
     
     async def friendrequest_decline(self, event):
         sender_username = event["sender_username"]

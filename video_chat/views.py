@@ -167,3 +167,13 @@ def friendRequest(request):
         'error': error_default_message
     }
     return render(request, 'video_chat/friend_request.html', context)
+
+# Проверить работу на большом количестве пользователей
+def getMemberFriends(request, user_id):
+    friends = find_friend_list(user_id)
+    friends_dict = []
+    for friend in friends:
+        friend_info = friend.__dict__
+        del friend_info['_state']
+        friends_dict.append(friend_info)
+    return JsonResponse({'fresh_friends': friends_dict})

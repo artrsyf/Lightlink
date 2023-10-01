@@ -1,8 +1,9 @@
-from .models import Profile, Friendship, Channel
+from .models import Profile, Friendship, Channel, User
 from django.db.models import Q
 
 def find_private_messages_list(user_id):
-    current_profile = Profile.objects.get(user=user_id)
+    current_user = User.objects.get(id=user_id)
+    current_profile = Profile.objects.get(user=current_user)
     friendship = Friendship.objects.filter(Q(sender=current_profile, status_type=3) \
                                            | Q(receiver=current_profile, status_type=3))
     private_messages = []
@@ -18,7 +19,8 @@ def find_private_messages_list(user_id):
     return private_messages
 
 def find_friend_list(user_id):
-    current_profile = Profile.objects.get(user=user_id)
+    current_user = User.objects.get(id=user_id)
+    current_profile = Profile.objects.get(user=current_user)
     friendship = Friendship.objects.filter(Q(sender=current_profile, status_type=3) \
                                            | Q(receiver=current_profile, status_type=3))
     friends = []
