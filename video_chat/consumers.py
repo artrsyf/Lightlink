@@ -1,6 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Profile, User, Channel, Message
+from .models import Profile, User, Channel, Message, Friendship, FriendRequestType
 from channels.db import database_sync_to_async
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -77,6 +77,27 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend_profilename = friend_profile.profile_name
 
         return {'sender_profilename': sender_profilename, 'friend_profilename': friend_profilename}
+    
+    @database_sync_to_async
+    def permit_friend_request(self, sender_username, friend_username):
+        sender_user = User.objects.get(username=sender_username)
+        sender_profile = Profile.objects.get(user = sender_user)
+
+        friend_user = User.objects.get(username=friend_username)
+        friend_profile = Profile.objects.get(user=friend_user)
+
+        straight_friendship = Friendship.objects.get(sender=sender_profile, receiver=friend_profile)
+        permitted_status_type = FriendRequestType.objects.get(id=3)
+        print("before if")
+        if (straight_friendship.status_type != permitted_status_type):
+            print("after if")
+            straight_friendship.status_type = permitted_status_type
+            straight_friendship.save()
+            print('Successfully permitted friend request')
+            return 'success'
+        else:
+            print('Error while permitting friend request')
+            raise Exception("Already permitted, check consumers.py")
 
     # Если получилось установить таргет - значит, это получатель запроса на добавление в друзья.
     # В противном случае возникнет управляемое исключение об отсутствии атрибута self.target
@@ -90,10 +111,29 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                 sender_profilename = profiles_data['sender_profilename']
                 friend_profilename = profiles_data['friend_profilename']
 
-                await self.send(text_data=json.dumps({"sender_username": sender_username,
+                await self.send(text_data=json.dumps({"type": 'request',
+                                                      "sender_username": sender_username,
                                                       "sender_profilename": sender_profilename,
                                                       "friend_username": friend_username,
                                                       "friend_profilename": friend_profilename
                                                       }))
         except AttributeError:
             print(f'Deny request for none target: {sender_username}, when the target: {friend_username}')
+    
+    async def friendrequest_permit(self, event):
+        sender_username = event["sender_username"]
+        friend_username = event["friend_username"]
+        sender_profilename = event['sender_profilename']
+        friend_profilename = event['friend_profilename']
+        try:
+            status = await self.permit_friend_request(sender_username, friend_username)
+        except:
+            status = 'failure'
+
+        await self.send(text_data=json.dumps({"type": 'permitted',
+                                              "status": status,
+                                              "sender_username": sender_username,
+                                              "friend_username": friend_username,
+                                              "sender_profilename": sender_profilename,
+                                              "friend_profilename": friend_profilename
+                                              }))

@@ -299,6 +299,63 @@
             width: 100%;
             height: 75%;
         }
+
+        .friend_request_notification_modal_wrapper{
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            padding: 10px;
+            opacity: 1;
+            z-index: 1;
+            transition: opacity 0.2s ease-out;
+        }
+        .friend_request_notification_modal_content{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: aquamarine;
+        }
+        .friend_request_notification_modal_header{
+            width: 100%;
+            background-color: thistle;
+            padding: 5px 15px 5px 15px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+        .friend_request_notification_text{
+
+        }
+        .friend_request_notification_exit_button{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .friend_request_notification_modal_body{
+            padding: 0 15px 8px 15px;
+        }
+        .friend_request_notification_modal_body_info{
+            padding: 5px 0 5px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .friend_request_notification_modal_body_message{
+            font-size: 1rem;
+        }
+        .friend_request_notification_modal_body_date{
+            font-size: 0.8rem;
+        }
+        .friend_request_notification_modal_body_controls{
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+        .friend_request_modal_control_button{
+            width: 40%;
+        }
     </style>
 </head>
 <body>
@@ -396,6 +453,31 @@
         + '{{ current_user }}'
         + '/'
     )
+    permitFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
+        if (myFriendSocket.readyState == 1) {
+            myFriendSocket.send(JSON.stringify({
+                'type': 'friendrequest.permit',
+                'sender_username': sender_username,
+                'friend_username': friend_username,
+                'sender_profilename': sender_profilename,
+                'friend_profilename': friend_profilename
+            }))
+            console.log('Permitted friend request')
+        }
+    }
+
+    declineFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
+        if (myFriendSocket.readyState == 1) {
+            myFriendSocket.send(JSON.stringify({
+                'type': 'friendrequest.decline',
+                'sender_username': sender_username,
+                'friend_username': friend_username,
+                'sender_profilename': sender_profilename,
+                'friend_profilename': friend_profilename
+            }))
+            console.log('Declined friend request')
+        }  
+    }
 
     myFriendSocket.onopen = () => {
         myFriendSocket.send(JSON.stringify({
@@ -405,11 +487,57 @@
 
         myFriendSocket.onmessage = (e) => {
             const data = JSON.parse(e.data)
-            let sender_profilename = data.sender_profilename
-            let friend_profilename = data.friend_profilename
-            console.log(`Caught friend request from '${sender_profilename}' to '${friend_profilename}'`)
-            // Just for assessment
-            alert(`You have acquired friend request from ${sender_profilename}`)
+            let main_panel_element = document.getElementsByClassName('main_panel')[0]
+            if (data.type == 'request'){
+                let sender_profilename = data.sender_profilename
+                let friend_profilename = data.friend_profilename
+                let sender_username = data.sender_username
+                let friend_username = data.friend_username
+                console.log(`Caught friend request from '${sender_profilename}' to '${friend_profilename}'`)
+                console.log(`You have acquired friend request from ${sender_profilename}`)
+                let friend_request_notification = document.createElement('div')
+                friend_request_notification.className = 'friend_request_notification_modal_wrapper'
+                friend_request_notification.innerHTML = 
+                    `<div class="friend_request_notification_modal_content">
+                        <div class="friend_request_notification_modal_header">
+                            <div class="friend_request_notification_text">
+                                New friend request!
+                            </div>
+                            <div class="friend_request_notification_exit_button" onclick="closeFriendRequestModal()">
+                                <i class="fa-solid fa-xmark"></i>
+                            </div>
+                        </div>
+                        <div class="friend_request_notification_modal_body">
+                            <div class="friend_request_notification_modal_body_info">
+                                <div class="friend_request_notification_modal_body_message">
+                                    ${sender_profilename} sent you a friend request
+                                </div>
+                                <div class="friend_request_notification_modal_body_date">
+                                    19.01.2023|7:51 AM
+                                </div>
+                            </div>
+                            <div class="friend_request_notification_modal_body_controls">
+                                <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Accept</button>
+                                <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Ignore</button>
+                            </div>
+                        </div>
+                    </div>`
+
+                main_panel_element.appendChild(friend_request_notification)
+            }
+            else if (data.type == 'permitted'){
+                status = data.status
+                if (status == 'success'){
+                    console.log('successfully added friend')
+                }
+                else if (status == 'failure'){
+                    console.error('got error in permitting friend request')
+                }
+                else{
+                    console.error('Unexpected error')
+                }
+                closeFriendRequestModal()
+            }
         }
     }
 
@@ -562,5 +690,15 @@
                 console.error('AJAX Error: ', error)
             }
         })
+    }
+
+    closeFriendRequestModal = () => {
+        main_panel = document.getElementsByClassName('main_panel')[0]
+        modal = document.getElementsByClassName('friend_request_notification_modal_wrapper')[0]
+        modal.style["opacity"] = "0"
+        modal.addEventListener('transitionend', () => {
+            modal.style["display"] = "none"
+            main_panel.removeChild(modal)
+        });
     }
 </script>
