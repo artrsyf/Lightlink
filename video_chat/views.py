@@ -92,6 +92,7 @@ def channel(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
     channel_messages = channel.all_messages.all()
     context = {
+        'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
         'private_messages': private_messages,
