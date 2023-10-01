@@ -468,6 +468,7 @@
 
     declineFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
         if (myFriendSocket.readyState == 1) {
+            console.log('sentttttttt')
             myFriendSocket.send(JSON.stringify({
                 'type': 'friendrequest.decline',
                 'sender_username': sender_username,
@@ -537,6 +538,22 @@
                     console.error('Unexpected error')
                 }
                 closeFriendRequestModal()
+            }
+            else if (data.type = 'declined'){
+                status = data.status
+                if (status == 'success'){
+                    console.log('successfully declined friend')
+                }
+                else if (status == 'failure'){
+                    console.error('got error in declining friend request')
+                }
+                else{
+                    console.error('Unexpected error')
+                }
+                closeFriendRequestModal()
+            }
+            else{
+                console.error('Unexpeceted data type taken from FriendRequestConsumer(AsyncWebsocketConsumer)')
             }
         }
     }

@@ -87,17 +87,49 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend_profile = Profile.objects.get(user=friend_user)
 
         straight_friendship = Friendship.objects.get(sender=sender_profile, receiver=friend_profile)
+        try:
+            reverse_friendship = Friendship.objects.get(sender=friend_profile, receiver=sender_profile)
+        except Friendship.DoesNotExist:
+            reverse_friendship = None
+
         permitted_status_type = FriendRequestType.objects.get(id=3)
-        print("before if")
+
         if (straight_friendship.status_type != permitted_status_type):
-            print("after if")
             straight_friendship.status_type = permitted_status_type
             straight_friendship.save()
+            if (reverse_friendship):
+                if (reverse_friendship.status_type != permitted_status_type):
+                    reverse_friendship.status_type = permitted_status_type
+                    reverse_friendship.save()
+                else:
+                    print('Error while permitting friend request')
+                    raise Exception("Already permitted by other user, check consumers.py")
+                
             print('Successfully permitted friend request')
             return 'success'
         else:
             print('Error while permitting friend request')
             raise Exception("Already permitted, check consumers.py")
+        
+    @database_sync_to_async
+    def decline_friend_request(self, sender_username, friend_username):
+        sender_user = User.objects.get(username=sender_username)
+        sender_profile = Profile.objects.get(user = sender_user)
+
+        friend_user = User.objects.get(username=friend_username)
+        friend_profile = Profile.objects.get(user=friend_user)
+
+        straight_friendship = Friendship.objects.get(sender=sender_profile, receiver=friend_profile)
+        declined_status_type = FriendRequestType.objects.get(id=2)
+        if (straight_friendship.status_type != declined_status_type):
+            straight_friendship.status_type = declined_status_type
+            straight_friendship.save()
+
+            print('Successfully declined friend request')
+            return 'success'
+        else:
+            print('Error while declining friend request')
+            raise Exception("Already declined, check consumers.py")
 
     # Если получилось установить таргет - значит, это получатель запроса на добавление в друзья.
     # В противном случае возникнет управляемое исключение об отсутствии атрибута self.target
@@ -126,11 +158,41 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         sender_profilename = event['sender_profilename']
         friend_profilename = event['friend_profilename']
         try:
+            if (self.target == friend_username):
+                print('processed only from target')
+        except AttributeError:
+            print(f'Deny processing for none target: {sender_username}, when the target: {friend_username}')
+            return
+        try:
             status = await self.permit_friend_request(sender_username, friend_username)
         except:
             status = 'failure'
 
         await self.send(text_data=json.dumps({"type": 'permitted',
+                                              "status": status,
+                                              "sender_username": sender_username,
+                                              "friend_username": friend_username,
+                                              "sender_profilename": sender_profilename,
+                                              "friend_profilename": friend_profilename
+                                              }))
+    
+    async def friendrequest_decline(self, event):
+        sender_username = event["sender_username"]
+        friend_username = event["friend_username"]
+        sender_profilename = event['sender_profilename']
+        friend_profilename = event['friend_profilename']
+        try:
+            if (self.target == friend_username):
+                print('processed only from target')
+        except AttributeError:
+            print(f'Deny processing for none target: {sender_username}, when the target: {friend_username}')
+            return
+        try:
+            status = await self.decline_friend_request(sender_username, friend_username)
+        except:
+            status = 'failure'
+
+        await self.send(text_data=json.dumps({"type": 'declined',
                                               "status": status,
                                               "sender_username": sender_username,
                                               "friend_username": friend_username,
