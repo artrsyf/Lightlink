@@ -5,7 +5,7 @@ from .models import User, Profile, Channel, ChannelInfo, ChannelType
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
-from .utils import find_friend_list
+from .utils import find_private_messages_list
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm
 
@@ -14,12 +14,12 @@ environ.Env().read_env('../lightlink/')
 
 def index(request):
     current_user_id = request.user.id
-    friends = find_friend_list(current_user_id)
+    private_messages = find_private_messages_list(current_user_id)
     current_profile = Profile.objects.get(user=request.user)
     context = {
         'current_user': request.user,
         'current_profile': current_profile,
-        'friends': friends
+        'private_messages': private_messages
     }
     return render(request, 'video_chat/index.html', context)
 
@@ -85,12 +85,12 @@ def get_token(request):
 def channel(request, channel_id):
     current_user_id = request.user.id
     current_profile = Profile.objects.get(user=request.user)
-    friends = find_friend_list(current_user_id)
+    private_messages = find_private_messages_list(current_user_id)
     channel = Channel.objects.get(id=channel_id)
     channel_messages = channel.all_messages.all()
     context = {
         'current_profile': current_profile,
-        'friends': friends,
+        'private_messages': private_messages,
         'channel_id': channel_id,
         'channel_messages': channel_messages
     }

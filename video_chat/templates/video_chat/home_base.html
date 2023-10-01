@@ -382,8 +382,8 @@
                         <div class="messages_label">Личные сообщения</div>
                         <div class="messages_wrapper">
                             {% comment %} friend_dialog starts {% endcomment %}
-                            {% for friend in friends %}
-                            <div class="message_item" onclick="handleFriendClick({{ friend.id }})">
+                            {% for private_message in private_messages %}
+                            <div class="message_item" onclick="handleFriendClick({{ private_message.0.id }})">
                                 <div class="user_avatar">
                                     <img class="messages_users_avatar" src="logo.png" alt="User avatar">
                                 </div>
@@ -391,14 +391,14 @@
                                     <div class="nickname_data">
                                         <div class="conv_user_nickname">
                                             {% comment %} User_Nickname {% endcomment %}
-                                            {{ friend.profile_name }}
+                                            {{ private_message.0.profile_name }}
                                         </div>
                                         <div class="message_data">
-                                            04.04.2023
+                                            {{ private_message.1.updated_at }}
                                         </div>
                                     </div>
                                     <div class="conversation_status">
-                                        Some message from user
+                                        {{ private_message.1.content }}
                                     </div>
                                 </div>
                                 
