@@ -503,6 +503,7 @@
         myFriendSocket.onmessage = (e) => {
             const data = JSON.parse(e.data)
             let main_panel_element = document.getElementsByClassName('main_panel')[0]
+            console.log(data.type)
             if (data.type == 'request'){
                 let sender_profilename = data.sender_profilename
                 let friend_profilename = data.friend_profilename
@@ -556,7 +557,7 @@
                 }
                 closeFriendRequestModal()
             }
-            else if (data.type = 'declined'){
+            else if (data.type == 'declined'){
                 status = data.status
                 if (status == 'success'){
                     console.log('successfully declined friend')
@@ -569,8 +570,17 @@
                 }
                 closeFriendRequestModal()
             }
+            else if (data.type == 'refreshready'){
+                console.log("data is ready")
+                let sender_username = data.sender_username
+                myFriendSocket.send(JSON.stringify({
+                    'type': 'friendrequest.dataready',
+                    'friend_username': '{{ current_user }}',
+                    'sender_username': `${sender_username}`
+                }))
+            }
             else{
-                console.error('Unexpeceted data type taken from FriendRequestConsumer(AsyncWebsocketConsumer)')
+                console.error(`Unexpeceted data type taken from FriendRequestConsumer(AsyncWebsocketConsumer): ${data.type}`)
             }
         }
     }
@@ -723,15 +733,25 @@
                     friendRequestSocket.onmessage = (e) => {
                         const data = JSON.parse(e.data)
                         console.log('Finalization after permitted friend request')
-                        if (data["state"] == "success" && data["sender_username"] == '{{ current_user }}'){
+                        if (data["type"] == "permitted" && data["state"] == "success" && data["sender_username"] == '{{ current_user }}'){
                             // Выполняем финальные действия для пользователя, отправившего запрос в друзья
-                            console.log('finalization_for')
-                            refresh_page_after_friend_permission({{ current_user.id }})
+                            console.log('finalization_for_sender_begins')
+                            friendRequestSocket.send(JSON.stringify({
+                                'type': 'friendrequest.readytorefresh',
+                                'sender_username': '{{ current_user }}',
+                                'friend_username': `${receiver_username_value}`
+                            }))
+                            // Нужно делать еще ws запрос для подтверждения, что другой пользователь сохранил данные...
+                            // refresh_page_after_friend_permission({{ current_user.id }})
 
                             {% comment %} if (friendRequestSocket.readyState === WebSocket.OPEN){
                                 friendRequestSocket.close()
                                 print(`close ws: ${friendRequestSocket.readyState}`)
                             } {% endcomment %}
+                        }
+                        if (data["type"] == "data_ready" && data["sender_username"] == '{{ current_user }}'){
+                            console.log('!!!!!!!!!!!!!1')
+                            refresh_page_after_friend_permission({{ current_user.id }})
                         }
                     }
                 }

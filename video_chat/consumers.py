@@ -180,10 +180,49 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                                                 "friend_profilename": friend_profilename
                                                 }))
         else:
-            print('Sending signal to non target')
-            await self.send(text_data=json.dumps({"state": 'success',
+            print('Sending signal about successfull permitting friend request to non target')
+            await self.send(text_data=json.dumps({"type": 'permitted',
+                                                  "state": 'success',
                                                   'sender_username': sender_username
                                                 }))
+            
+    async def friendrequest_readytorefresh(self, event):
+        print('Sending signal about reqdy state to parse ne friend list data')
+        sender_username = event["sender_username"]
+        friend_username = event["friend_username"]
+        isTarget = True
+        try:
+            if (self.target == friend_username):
+                print('processed only from targetqq')
+        except AttributeError:
+            # print(f'Deny processing for none target: {sender_username}, when the target: {friend_username}')
+            isTarget = False
+
+        if (isTarget):
+            await self.send(text_data=json.dumps({"type": "refreshready",
+                                              "state": 'success',
+                                              'sender_username': sender_username}))
+    
+    async def friendrequest_dataready(self, event):
+        print('sending to sender, resources are load')
+        sender_username = event["sender_username"]
+        friend_username = event["friend_username"]
+        isTarget = True
+        try:
+            if (self.target == friend_username):
+                print('processed only from targetqq')
+        except AttributeError:
+            # print(f'Deny processing for none target: {sender_username}, when the target: {friend_username}')
+            isTarget = False
+
+        if (not isTarget):
+            await self.send(text_data=json.dumps({"type": 'data_ready',
+                                                    # "status": status,
+                                                    "sender_username": sender_username,
+                                                    "friend_username": friend_username
+                                                    # "sender_profilename": sender_profilename,
+                                                    # "friend_profilename": friend_profilename
+                                                    }))
     
     async def friendrequest_decline(self, event):
         sender_username = event["sender_username"]
