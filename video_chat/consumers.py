@@ -229,21 +229,31 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend_username = event["friend_username"]
         sender_profilename = event['sender_profilename']
         friend_profilename = event['friend_profilename']
+        isTarget = True
+
         try:
             if (self.target == friend_username):
                 print('processed only from target')
         except AttributeError:
             print(f'Deny processing for none target: {sender_username}, when the target: {friend_username}')
-            return
-        try:
-            status = await self.decline_friend_request(sender_username, friend_username)
-        except:
-            status = 'failure'
+            isTarget = False
+        
+        if isTarget:
+            try:
+                status = await self.decline_friend_request(sender_username, friend_username)
+            except:
+                status = 'failure'
 
-        await self.send(text_data=json.dumps({"type": 'declined',
-                                              "status": status,
-                                              "sender_username": sender_username,
-                                              "friend_username": friend_username,
-                                              "sender_profilename": sender_profilename,
-                                              "friend_profilename": friend_profilename
-                                              }))
+            await self.send(text_data=json.dumps({"type": 'declined',
+                                                "status": status,
+                                                "sender_username": sender_username,
+                                                "friend_username": friend_username,
+                                                "sender_profilename": sender_profilename,
+                                                "friend_profilename": friend_profilename
+                                                }))
+        else:
+            print('Sending signal about successfull declining friend request to non target')
+            await self.send(text_data=json.dumps({"type": 'declined',
+                                                  "state": 'success',
+                                                  'sender_username': sender_username
+                                                }))

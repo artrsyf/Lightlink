@@ -749,9 +749,15 @@
                                 print(`close ws: ${friendRequestSocket.readyState}`)
                             } {% endcomment %}
                         }
-                        if (data["type"] == "data_ready" && data["sender_username"] == '{{ current_user }}'){
+                        else if (data["type"] == "data_ready" && data["sender_username"] == '{{ current_user }}'){
                             console.log('!!!!!!!!!!!!!1')
                             refresh_page_after_friend_permission({{ current_user.id }})
+                        }
+                        else if (data["type"] == "declined" && data["state"] == 'success' && data["sender_username"] == '{{ current_user }}'){
+                            console.log('!!!!!!!!! after request declined')
+                        }
+                        else{
+                            console.error(`Unexpeceted data type taken from FriendRequestConsumer(AsyncWebsocketConsumer): ${data["type"]}`)
                         }
                     }
                 }
