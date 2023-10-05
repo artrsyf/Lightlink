@@ -732,8 +732,14 @@
 
                     friendRequestSocket.onmessage = (e) => {
                         const data = JSON.parse(e.data)
+
+                        if (data["sender_username"] != '{{ current_user }}'){
+                            return
+                        }
+
                         console.log('Finalization after permitted friend request')
-                        if (data["type"] == "permitted" && data["state"] == "success" && data["sender_username"] == '{{ current_user }}'){
+
+                        if (data["type"] == "permitted" && data["state"] == "success"){
                             // Выполняем финальные действия для пользователя, отправившего запрос в друзья
                             console.log('finalization_for_sender_begins')
                             friendRequestSocket.send(JSON.stringify({
@@ -749,11 +755,11 @@
                                 print(`close ws: ${friendRequestSocket.readyState}`)
                             } {% endcomment %}
                         }
-                        else if (data["type"] == "data_ready" && data["sender_username"] == '{{ current_user }}'){
+                        else if (data["type"] == "data_ready"){
                             console.log('!!!!!!!!!!!!!1')
                             refresh_page_after_friend_permission({{ current_user.id }})
                         }
-                        else if (data["type"] == "declined" && data["state"] == 'success' && data["sender_username"] == '{{ current_user }}'){
+                        else if (data["type"] == "declined" && data["state"] == 'success'){
                             console.log('!!!!!!!!! after request declined')
                         }
                         else{
