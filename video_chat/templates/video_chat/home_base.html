@@ -427,10 +427,10 @@
                             </div>
                             <div class="profile_nicknames">
                                 <div class="profile_nickname">
-                                    My nickname
+                                    {{ current_profile.profile_name }}
                                 </div>
                                 <div class="user_nickname">
-                                    My User Nickname
+                                    {{ current_user.username }}
                                 </div>
                             </div>
                         </div>
@@ -521,6 +521,8 @@
     
                     closeFriendRequestModal()
                 }
+
+                let date = new Date()
                 
                 let friend_request_notification = document.createElement('div')
                 friend_request_notification.className = 'notification_modal_wrapper'
@@ -540,7 +542,7 @@
                                     ${sender_profilename} sent you a friend request
                                 </div>
                                 <div class="friend_request_notification_modal_body_date">
-                                    19.01.2023|7:51 AM
+                                    ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
                                 </div>
                             </div>
                             <div class="friend_request_notification_modal_body_controls">

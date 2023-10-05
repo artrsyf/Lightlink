@@ -7,14 +7,19 @@ def find_private_messages_list(user_id):
     friendship = Friendship.objects.filter(Q(sender=current_profile, status_type=3) \
                                            | Q(receiver=current_profile, status_type=3))
     private_messages = []
-    for relation in friendship:
-        friend = relation.receiver if relation.sender.id == current_profile.id else relation.sender
-        channel = Channel.objects \
-                .filter(channel_infos__profile=current_profile, channel_type=2)\
-                .get(channel_infos__profile=friend)
-        last_message = channel.all_messages.last()
-        if (last_message != None):
-            private_messages.append((friend, last_message))
+
+    try:
+        for relation in friendship:
+            friend = relation.receiver if relation.sender.id == current_profile.id else relation.sender
+            channel = Channel.objects \
+                    .filter(channel_infos__profile=current_profile, channel_type=2)\
+                    .get(channel_infos__profile=friend)
+            last_message = channel.all_messages.last()
+            if (last_message != None):
+                private_messages.append((friend, last_message))
+    except Channel.DoesNotExist:
+        print(f'*SERVER RESPONSE: User with username {current_user.username} has no channels')
+        return []
     private_messages = list(set(private_messages))
     return private_messages
 
