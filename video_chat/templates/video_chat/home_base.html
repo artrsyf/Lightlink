@@ -300,7 +300,7 @@
             height: 75%;
         }
 
-        .friend_request_notification_modal_wrapper{
+        .notification_modal_wrapper{
             position: absolute;
             right: 0;
             bottom: 0;
@@ -511,8 +511,19 @@
                 let friend_username = data.friend_username
                 console.log(`Caught friend request from '${sender_profilename}' to '${friend_profilename}'`)
                 console.log(`You have acquired friend request from ${sender_profilename}`)
+
+                // previous notification check
+                let previous_notifications = document.querySelector('.notification_modal_wrapper')
+                if (previous_notifications){
+                    if (previous_notifications.length > 1){
+                        throw new MultipleNotificationException(previous_notifications.length)
+                    }
+    
+                    closeFriendRequestModal()
+                }
+                
                 let friend_request_notification = document.createElement('div')
-                friend_request_notification.className = 'friend_request_notification_modal_wrapper'
+                friend_request_notification.className = 'notification_modal_wrapper'
                 friend_request_notification.innerHTML = 
                     `<div class="friend_request_notification_modal_content">
                         <div class="friend_request_notification_modal_header">
@@ -655,6 +666,11 @@
         this.name = `*CLIENT RESPONSE: Multiple main panel error: count = ${message}`
     }
 
+    function MultipleNotificationException(message){
+        this.message = messgae
+        this.name = `*CLIENT RESPONSE: Multiple notification error: count = ${message}`
+    }
+
     show_friend_request_field = () => {
         fetch('add-friend/')
         .then(response => response.text())
@@ -776,7 +792,7 @@
 
     closeFriendRequestModal = () => {
         main_panel = document.getElementsByClassName('main_panel')[0]
-        modal = document.getElementsByClassName('friend_request_notification_modal_wrapper')[0]
+        modal = document.getElementsByClassName('notification_modal_wrapper')[0]
         modal.style["opacity"] = "0"
         modal.addEventListener('transitionend', () => {
             modal.style["display"] = "none"
