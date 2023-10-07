@@ -391,6 +391,19 @@
         + '/'
     )
 
+    fix_scroll = () => {
+        let element = document.getElementsByClassName('messages_area_wrapper')[0]
+        if (element){
+            element.scrollTop = element.scrollHeight
+            element.style.visibility = 'visible'
+        }
+        else{
+            console.log('cant find textchat wrapper area')
+        }
+    }
+
+    fix_scroll()
+
     channelSocket.onmessage = function(e){
         const data = JSON.parse(e.data)
         const profile = data.profile_name
