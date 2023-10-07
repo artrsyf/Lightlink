@@ -459,6 +459,30 @@
         + '{{ current_user }}'
         + '/'
     )
+
+    let ids = {{ channels_ids }}
+
+    ids.forEach((channel_id) => {
+        const channel_socket = new WebSocket(
+            ws_scheme
+            + window.location.host
+            + '/ws/service/notification/'
+            + `${channel_id}`
+            + '/'
+        )
+
+        channel_socket.onopen = () => {
+            channel_socket.onmessage = (e) => {
+                const data = JSON.parse(e.data)
+                if (data.sender_username == '{{ current_user.username }}'){
+                    return 
+                }
+                console.log('got new notif')
+                console.log(data)
+            }
+        }
+    })
+
     permitFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
         control_buttons = document.getElementsByClassName('friend_request_modal_control_button')
         for (control_button of control_buttons){
@@ -887,3 +911,5 @@
 
     }
 </script>
+
+{% block aux_script %}{% endblock aux_script %}

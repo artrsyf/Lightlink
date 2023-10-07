@@ -34,3 +34,10 @@ def find_friend_list(user_id):
                               else relation.sender)
     friends = list(set(friends))
     return friends
+
+def find_channels_list(user_id):
+    current_user = User.objects.get(id=user_id)
+    current_profile = Profile.objects.get(user=current_user)
+    channels_info_list = list(current_profile.channels.all().values())
+    channels_ids_list = [i['id'] for i in channels_info_list]
+    return channels_ids_list

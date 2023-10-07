@@ -5,7 +5,7 @@ from .models import User, Profile, Channel, ChannelInfo, ChannelType
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
-from .utils import find_private_messages_list, find_friend_list
+from .utils import find_private_messages_list, find_friend_list, find_channels_list
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm
 
@@ -17,11 +17,13 @@ def index(request):
     private_messages = find_private_messages_list(current_user_id)
     current_profile = Profile.objects.get(user=request.user)
     friends = find_friend_list(current_user_id)
+    channels_ids = find_channels_list(current_user_id)
     context = {
         'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
-        'private_messages': private_messages
+        'private_messages': private_messages,
+        'channels_ids': channels_ids
     }
     return render(request, 'video_chat/index.html', context)
 
@@ -91,13 +93,15 @@ def channel(request, channel_id):
     friends = find_friend_list(current_user_id)
     channel = Channel.objects.get(id=channel_id)
     channel_messages = channel.all_messages.all()
+    channels_ids = find_channels_list(current_user_id)
     context = {
         'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
         'private_messages': private_messages,
         'channel_id': channel_id,
-        'channel_messages': channel_messages
+        'channel_messages': channel_messages,
+        'channels_ids': channels_ids
     }
     return render(request, 'video_chat/channel.html', context)
 

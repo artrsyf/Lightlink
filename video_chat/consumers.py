@@ -61,8 +61,26 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             self.room_group_name, text_data_json
         )
     
-    
+    async def notification_getmessage(self, event):
+        print('Get message from user, notificating others')
 
+        sender_username = event["sender_username"]
+        # sender_user = User.objects.get(username=sender_username)
+        # sender_profile = Profile.objects.get(user=sender_user)
+        # sender_profilename = sender_profile.profile_name
+        message = event["message"]
+        channel_id = event["channel_id"]
+        #** db request.....
+
+        await self.send(text_data=json.dumps({"type": 'incoming_notification',
+                                            #   "sender_profilename": sender_profilename,
+                                              "sender_username": sender_username,
+                                              "channel_id": channel_id,
+                                              "message": message
+                                              }))
+
+    
+    
 class FriendRequestConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["friend_username"]

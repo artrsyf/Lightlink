@@ -378,14 +378,16 @@
 </script>
 
 <script type="text/javascript" src="{% static 'js/streams.js' %}"></script>
+{% endblock main_panel %}
 
+{% block aux_script %}
 <script>
     console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
     const channelSocket = new WebSocket(
         ws_scheme
         + window.location.host
         + '/ws/chat/'
-        + CHANNEL_ID
+        + {{ channel_id }}
         + '/'
     )
 
@@ -411,6 +413,25 @@
                 'channel_id': CHANNEL_ID,
                 'message': message
             }))
+
+            let channelNotificationSocket = new WebSocket(
+                ws_scheme
+                + window.location.host
+                + '/ws/service/notification/'
+                + CHANNEL_ID
+                + '/'
+            )
+
+            channelNotificationSocket.onopen = () => {
+                channelNotificationSocket.send(JSON.stringify({
+                    'type': 'notification.getmessage',
+                    'sender_username': '{{ current_user.username }}',
+                    'channel_id': '{{ channel_id }}',
+                    'message': `${message}`
+                }))
+                channelNotificationSocket.close()
+            }
+
             message_input_field.value = ''
         }
     };
@@ -470,4 +491,4 @@
 
     optimizeVideostreamsWrapper()
 </script>
-{% endblock main_panel %}
+{% endblock aux_script %}
