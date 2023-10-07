@@ -11,5 +11,6 @@ urlpatterns = [
     path('get_agora_sdk_data', get_agora_sdk_data),
     path('get_member/', get_member),
     path('add-friend/', friendRequest, name='friend-request'),
-    path('get-member-friends/<int:user_id>', getMemberFriends)
+    path('get-member-friends/<int:user_id>', getMemberFriends),
+    path('get-member-channels-ids/<int:user_id>', getMemberChannelsIds)
 ]

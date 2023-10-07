@@ -460,7 +460,7 @@
         + '/'
     )
 
-    let ids = {{ channels_ids }}
+    var ids = {{ channels_ids }}
 
     ids.forEach((channel_id) => {
         const channel_socket = new WebSocket(
@@ -479,9 +479,65 @@
                 }
                 console.log('got new notif')
                 console.log(data)
+                if (data.type == 'message_notification'){
+                    let sender_profilename = data.sender_profilename
+                    let message = data.message
+                    
+                    // previous notification check
+                    let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
+                    if (previous_notifications.length > 1){
+                        throw new MultipleNotificationException(previous_notifications.length)
+                    }
+                    else if (previous_notifications.length == 1){
+                        closeNotificationModal()
+                    }
+                    mesages_area_wrappers = document.getElementsByClassName('messages_area_wrapper')
+                    if (mesages_area_wrappers.length > 1){
+                        throw MultipleMessagesWraperException(mesages_area_wrappers.length)
+                    }
+                    mesages_area_wrapper = mesages_area_wrappers[0]
+
+                    if (window.location.pathname != '/vw/channel/' + data.channel_id || mesages_area_wrapper.attributes.turned.value == "true"){
+                        create_new_message_notif(sender_profilename, message)
+                    }
+                    else{
+                        console.log('texchat is not turned')
+                    }
+                }
             }
         }
     })
+
+    create_new_message_notif = (sender_profilename, message) => {
+        let date = new Date()
+        
+        let main_panel_element = document.querySelector('.main_panel')
+        let friend_request_notification = document.createElement('div')
+        friend_request_notification.className = 'notification_modal_wrapper'
+        friend_request_notification.innerHTML = 
+            `<div class="friend_request_notification_modal_content">
+                <div class="friend_request_notification_modal_header">
+                    <div class="friend_request_notification_text">
+                        New message!
+                    </div>
+                    <div class="friend_request_notification_exit_button" onclick="closeNotificationModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </div>
+                </div>
+                <div class="friend_request_notification_modal_body">
+                    <div class="friend_request_notification_modal_body_info">
+                        <div class="friend_request_notification_modal_body_message">
+                            ${sender_profilename}: ${message}
+                        </div>
+                        <div class="friend_request_notification_modal_body_date">
+                            ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
+                        </div>
+                    </div>
+                </div>
+            </div>`
+
+        main_panel_element.appendChild(friend_request_notification)
+    }
 
     permitFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
         control_buttons = document.getElementsByClassName('friend_request_modal_control_button')
@@ -526,7 +582,7 @@
 
         myFriendSocket.onmessage = (e) => {
             const data = JSON.parse(e.data)
-            let main_panel_element = document.getElementsByClassName('main_panel')[0]
+            let main_panel_element = document.querySelector('.main_panel')
             console.log(data.type)
             if (data.type == 'request'){
                 let sender_profilename = data.sender_profilename
@@ -537,13 +593,12 @@
                 console.log(`You have acquired friend request from ${sender_profilename}`)
 
                 // previous notification check
-                let previous_notifications = document.querySelector('.notification_modal_wrapper')
-                if (previous_notifications){
-                    if (previous_notifications.length > 1){
-                        throw new MultipleNotificationException(previous_notifications.length)
-                    }
-    
-                    closeFriendRequestModal()
+                let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
+                if (previous_notifications.length > 1){
+                    throw new MultipleNotificationException(previous_notifications.length)
+                }
+                else if (previous_notifications.length == 1){
+                    closeNotificationModal()
                 }
 
                 let date = new Date()
@@ -556,7 +611,7 @@
                             <div class="friend_request_notification_text">
                                 New friend request!
                             </div>
-                            <div class="friend_request_notification_exit_button" onclick="closeFriendRequestModal()">
+                            <div class="friend_request_notification_exit_button" onclick="closeNotificationModal()">
                                 <i class="fa-solid fa-xmark"></i>
                             </div>
                         </div>
@@ -585,6 +640,56 @@
                     // Выполняем финальный действия для пользователя, получившего запрос на добавление в друзья
                     console.log('finalization')
                     refresh_page_after_friend_permission({{ current_user.id }})
+
+                    $.ajax({
+                        url: `/vw/get-member-channels-ids/{{ current_user.id }}`,
+                        dataType: "json",
+                        method: 'GET',
+                        success: function(data){
+                            ids = data.channels_ids
+                            console.log('new channels', ids)
+
+                            new_channel_socket = ids[ids.length - 1]
+
+                            const new_channel_socket = new WebSocket(
+                                ws_scheme
+                                + window.location.host
+                                + '/ws/service/notification/'
+                                + `${new_channel_socket}`
+                                + '/'
+                            )
+
+                            new_channel_socket.onopen = () => {
+                                new_channel_socket.onmessage = (e) => {
+                                    const data = JSON.parse(e.data)
+                                    if (data.sender_username == '{{ current_user.username }}'){
+                                        return 
+                                    }
+                                    console.log('got new notif')
+                                    console.log(data)
+                                    let main_panel_element = document.querySelector('.main_panel')
+                                    if (data.type == 'message_notification'){
+                                        let sender_profilename = data.sender_profilename
+                                        let message = data.message
+                                        
+                                        // previous notification check
+                                        let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
+                                        if (previous_notifications.length > 1){
+                                            throw new MultipleNotificationException(previous_notifications.length)
+                                        }
+                                        else if (previous_notifications.length == 1){
+                                            closeNotificationModal()
+                                        }
+
+                                        create_new_message_notif(sender_profilename, message)
+                                    }
+                                }
+                            }
+                        },
+                        error: function(xhr, status, error){
+                            console.error('AJAX Error: ', error)
+                        }
+                    })
                 }
                 else if (status == 'failure'){
                     console.error('got error in permitting friend request')
@@ -592,7 +697,7 @@
                 else{
                     console.error('Unexpected error')
                 }
-                closeFriendRequestModal()
+                closeNotificationModal()
             }
             else if (data.type == 'declined'){
                 status = data.status
@@ -605,7 +710,7 @@
                 else{
                     console.error('Unexpected error')
                 }
-                closeFriendRequestModal()
+                closeNotificationModal()
             }
             else if (data.type == 'refreshready'){
                 console.log("data is ready")
@@ -629,9 +734,9 @@
             dataType: "json",
             method: 'GET',
             success: function(data){
+                //** issues with main_conversation_panel dom object
                 main_conversation_panel = document.getElementById('main_conversation_panel')
                 main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
-                // main_conversation_panel.innerHTML += `<button onclick="friend_request(${id})" class="friend_request_button" id = "friend_request_button_to_${id}" >Добавить в друзья</button>`
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -816,7 +921,7 @@
         })
     }
 
-    closeFriendRequestModal = () => {
+    closeNotificationModal = () => {
         main_panel = document.getElementsByClassName('main_panel')[0]
         modal = document.getElementsByClassName('notification_modal_wrapper')[0]
         modal.style["opacity"] = "0"
@@ -851,7 +956,7 @@
                         </div>
                     </div>`
                     
-                    messages_wrapper.innerHTML = friends_html_element
+                    messages_wrapper.innerHTML += friends_html_element
                 } 
             } 
         })

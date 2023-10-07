@@ -65,15 +65,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         print('Get message from user, notificating others')
 
         sender_username = event["sender_username"]
-        # sender_user = User.objects.get(username=sender_username)
-        # sender_profile = Profile.objects.get(user=sender_user)
-        # sender_profilename = sender_profile.profile_name
+        sender_profilename = event["sender_profilename"]
         message = event["message"]
         channel_id = event["channel_id"]
         #** db request.....
 
-        await self.send(text_data=json.dumps({"type": 'incoming_notification',
-                                            #   "sender_profilename": sender_profilename,
+        await self.send(text_data=json.dumps({"type": 'message_notification',
+                                              "sender_profilename": sender_profilename,
                                               "sender_username": sender_username,
                                               "channel_id": channel_id,
                                               "message": message

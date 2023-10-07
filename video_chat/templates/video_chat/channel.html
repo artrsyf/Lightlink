@@ -349,7 +349,7 @@
     </div>
     <div class="textchat_wrapper">
        <div class="textchat_content">
-           <div class="messages_area_wrapper">
+           <div class="messages_area_wrapper" turned="false">
                 {% if channel_messages %}
                     {% for message in channel_messages %}
                         <div class="message">
@@ -426,6 +426,7 @@
                 channelNotificationSocket.send(JSON.stringify({
                     'type': 'notification.getmessage',
                     'sender_username': '{{ current_user.username }}',
+                    'sender_profilename': '{{ current_profile.profile_name }}',
                     'channel_id': '{{ channel_id }}',
                     'message': `${message}`
                 }))

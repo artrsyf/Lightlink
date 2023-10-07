@@ -181,3 +181,6 @@ def getMemberFriends(request, user_id):
         del friend_info['_state']
         friends_dict.append(friend_info)
     return JsonResponse({'fresh_friends': friends_dict})
+
+def getMemberChannelsIds(request, user_id):
+    return JsonResponse({'channels_ids': find_channels_list(user_id)})
