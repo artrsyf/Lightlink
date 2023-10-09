@@ -6,6 +6,11 @@ def find_current_profile(user_id: int) -> Profile:
     current_profile = Profile.objects.get(user=current_user)
     return current_profile
 
+def find_current_profile_with_username(username: str) -> Profile:
+    current_user = User.object.get(username=username)
+    current_profile = Profile.objects.get(user=current_user)
+    return current_profile
+
 def find_private_messages_list(user_id: int) -> list[tuple[Profile, Message]]:
     current_profile = find_current_profile(user_id)
     current_user = User.objects.get(id=user_id)
