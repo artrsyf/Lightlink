@@ -15,6 +15,7 @@ environ.Env().read_env('../lightlink/')
 def index(request):
     current_user_id = request.user.id
     private_messages = find_private_messages_list(current_user_id)
+    print(private_messages)
     current_profile = Profile.objects.get(user=request.user)
     friends = find_friend_list(current_user_id)
     channels_ids = find_channels_list(current_user_id)
@@ -22,7 +23,7 @@ def index(request):
         'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
-        'private_messages': private_messages,
+        'private_messages': private_messages.items(),
         'channels_ids': channels_ids
     }
     return render(request, 'video_chat/index.html', context)
@@ -98,7 +99,7 @@ def channel(request, channel_id):
         'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
-        'private_messages': private_messages,
+        'private_messages': private_messages.items(),
         'channel_id': channel_id,
         'channel_messages': channel_messages,
         'channels_ids': channels_ids
@@ -184,3 +185,18 @@ def getMemberFriends(request, user_id):
 
 def getMemberChannelsIds(request, user_id):
     return JsonResponse({'channels_ids': find_channels_list(user_id)})
+
+def getChannelLastMessageInfo(request, channel_id):
+    channel = Channel.objects.get(id=channel_id)
+    last_message = channel.all_messages.last()
+    sender_profile = last_message.profile
+    sender_profilename = sender_profile.profile_name
+    content = last_message.content
+    updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
+
+    return JsonResponse({'channel_id': channel_id,
+                         'sender_profilename': sender_profilename,
+                         'content': content,
+                         'updated_at': updated_at
+                         })
+

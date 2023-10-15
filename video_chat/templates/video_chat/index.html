@@ -2,41 +2,43 @@
 {% block main_panel %}
 <div class="main_panel">
     {% include 'video_chat/main_panel_bar.html' %}
-    <div class="main_panel_wrapper" id="main_conversation_panel">
-        <div class="big_profile_info profile_info">
-            <div class="pure_profile_img_wrapper">
-                <img class="big_profile_img" src="logo.svg" alt="Profile_pic">
-            </div>
-            <div class="profile_nicknames">
-                <div class="welcome_message">
-                    Добро пожаловать!
+    <div class="content_wrapper">
+        <div class="main_panel_wrapper" id="main_conversation_panel">
+            <div class="big_profile_info profile_info">
+                <div class="pure_profile_img_wrapper">
+                    <img class="big_profile_img" src="logo.svg" alt="Profile_pic">
                 </div>
-                <div class="pure_page_user_nickname">
-                    {{ current_profile.profile_name }}
+                <div class="profile_nicknames">
+                    <div class="welcome_message">
+                        Добро пожаловать!
+                    </div>
+                    <div class="pure_page_user_nickname">
+                        {{ current_profile.profile_name }}
+                    </div>
+                </div>
+                <div class="share_profile_button">
+                    <button role="button" title="Поделиться профилем" aria-label="Поделиться профилем">Поделиться профилем</button>
                 </div>
             </div>
-            <div class="share_profile_button">
-                <button role="button" title="Поделиться профилем" aria-label="Поделиться профилем">Поделиться профилем</button>
+            <div class="widgets_wrapper">
+                <div class="hint">
+                    Вот что можно попробовать для начала
+                </div>
+                <div class="widgets">
+                    <div class="widget" id="widget1"></div>
+                    <div class="widget" id="widget2"></div>
+                </div>
             </div>
-        </div>
-        <div class="widgets_wrapper">
-            <div class="hint">
-                Вот что можно попробовать для начала
-            </div>
-            <div class="widgets">
-                <div class="widget" id="widget1"></div>
-                <div class="widget" id="widget2"></div>
-            </div>
-        </div>
-        <div class="login_info">
-            <div class="login_status">
-                Вы вошли как {{ current_user.username }}
-            </div>
-            <div class="login_hint">
-                Попробуйте переключить учетную запись, если вы не видете свои контакты или журнал бесед.
-            </div>
-            <div class="login_more_info">
-                Подробнее
+            <div class="login_info">
+                <div class="login_status">
+                    Вы вошли как {{ current_user.username }}
+                </div>
+                <div class="login_hint">
+                    Попробуйте переключить учетную запись, если вы не видете свои контакты или журнал бесед.
+                </div>
+                <div class="login_more_info">
+                    Подробнее
+                </div>
             </div>
         </div>
     </div>

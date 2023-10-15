@@ -358,6 +358,14 @@
         .friend_request_modal_control_button{
             width: 40%;
         }
+        .content_wrapper{
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            jistify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -385,7 +393,7 @@
                         <div class="messages_wrapper">
                             {% comment %} friend_dialog starts {% endcomment %}
                             {% for private_message in private_messages %}
-                            <div class="message_item" onclick="handleFriendClick({{ private_message.0.id }})">
+                            <div class="message_item" id="message_item_{{ private_message.1.channel.id }}" onclick="handleFriendClick({{ private_message.0.id }})">
                                 <div class="user_avatar">
                                     <img class="messages_users_avatar" src="logo.png" alt="User avatar">
                                 </div>
@@ -493,18 +501,17 @@
                     else if (previous_notifications.length == 1){
                         closeNotificationModal()
                     }
-                    mesages_area_wrappers = document.getElementsByClassName('messages_area_wrapper')
-                    if (mesages_area_wrappers.length > 1){
-                        throw MultipleMessagesWraperException(mesages_area_wrappers.length)
-                    }
-                    mesages_area_wrapper = mesages_area_wrappers[0]
+                    messages_area_wrapper = document.querySelector('.messages_area_wrapper')
 
-                    if (window.location.pathname != '/vw/channel/' + data.channel_id || mesages_area_wrapper.attributes.turned.value == "true"){
+                    if (!messages_area_wrapper || messages_area_wrapper.attributes.turned.value == "true"){
                         create_new_message_notif(sender_profilename, message)
                     }
                     else{
                         console.log('texchat is not turned')
                     }
+                    
+                    // refresh messages_list
+                    refresh_private_message(data.channel_id)
                 }
             }
         }
@@ -736,9 +743,12 @@
             dataType: "json",
             method: 'GET',
             success: function(data){
-                //** issues with main_conversation_panel dom object
+                content_wrapper = document.querySelector('.content_wrapper')
                 main_conversation_panel = document.getElementById('main_conversation_panel')
-                main_conversation_panel.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
+                if (main_conversation_panel){
+                    content_wrapper.removeChild(main_conversation_panel)
+                }
+                content_wrapper.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -812,14 +822,9 @@
             const doc = parser.parseFromString(data, 'text/html');
             const sendRequestPanel = doc.querySelector('.send_request_panel_wrapper');
             if (sendRequestPanel) {
-                let main_panels = document.getElementsByClassName('main_panel')
-                if (main_panels.length > 1){
-                    throw new MultipleMainPanelException(main_panels.length)
-                }
-                let main_panel = main_panels[0]
-                let main_conversation_panel = document.getElementById('main_conversation_panel')
-                main_panel.removeChild(main_conversation_panel)
-                main_panel.appendChild(sendRequestPanel)
+                let content_wrapper = document.querySelector('.content_wrapper')
+                content_wrapper.innerHTML = ''
+                content_wrapper.appendChild(sendRequestPanel)
                 document.getElementById('send_friend_request_form').addEventListener('submit', post_friend_request_ajax)
             } else {
                 error('*CLIENT RESPONSE: Could not find friend request panel from template');
@@ -945,7 +950,7 @@
                 messages_wrapper.innerHTML = '';
                 let friends_html_element = ''
                 for (let i = 0; i < friends.length; i++){
-                    friends_html_element = `<div class="message_item" onclick="handleFriendClick(${friends[i].id})">
+                    friends_html_element = `<div class="message_item" id="message_item_${friends[i].id}" onclick="handleFriendClick(${friends[i].id})">
                         <div class="user_avatar">
                             <img class="messages_users_avatar" src="logo.png" alt="User avatar">
                         </div>
@@ -964,6 +969,48 @@
         })
     }
 
+    refresh_private_message = (channel_id) => {
+        fetch(`/vw/get-channel-last-message-info/${channel_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            let messages_label = document.querySelector('.messages_label')
+            if (messages_label && messages_label.innerHTML == "Личные сообщения"){
+                let message_item = document.getElementById(`message_item_${channel_id}`)
+                let new_message_item_body = get_message_item_body_html(data.sender_profilename, data.updated_at, data.content)
+                message_item.innerHTML = new_message_item_body
+            } 
+        })
+    }
+
+    get_message_item_body_html = (profilename, date, content) => {
+        let message_item_body = `<div class="user_avatar">
+            <img class="messages_users_avatar" src="logo.png" alt="User avatar">
+        </div>
+        <div class="message_info">
+            <div class="nickname_data">
+                <div class="conv_user_nickname">
+                    ${profilename}
+                </div>
+                <div class="message_data">
+                    ${date}
+                </div>
+            </div>
+            <div class="conversation_status">
+                ${content}
+            </div>
+        </div>`
+
+        return message_item_body
+    }
+
+    get_message_item_html = (channel_id, profilename, date, content) => {
+        let message_item = `<div class="message_item" id="message_item_${channel_id}" onclick="handleFriendClick(${channel_id})">
+            ${get_message_item_body_html(profilename, date, content)}
+        </div>`
+        
+        return message_item
+    }
+
     get_side_panel = () => {
         side_panel_array = document.getElementsByClassName('personal_messages')
         if (side_panel_array.length != 1){
@@ -978,27 +1025,8 @@
         side_panel.innerHTML = 
         `<div class="messages_label">Личные сообщения</div>
             <div class="messages_wrapper">
-                {% for private_message in private_messages %}
-                <div class="message_item" onclick="handleFriendClick({{ private_message.0.id }})">
-                    <div class="user_avatar">
-                        <img class="messages_users_avatar" src="logo.png" alt="User avatar">
-                    </div>
-                    <div class="message_info">
-                        <div class="nickname_data">
-                            <div class="conv_user_nickname">
-                                {% comment %} User_Nickname {% endcomment %}
-                                {{ private_message.0.profile_name }}
-                            </div>
-                            <div class="message_data">
-                                {{ private_message.1.updated_at }}
-                            </div>
-                        </div>
-                        <div class="conversation_status">
-                            {{ private_message.1.content }}
-                        </div>
-                    </div>
-                    
-                </div>
+                {% for channel_name, last_message in private_messages %}
+                ${get_message_item_html('{{ channel_name.id}}', '{{ channel_name.profile_name }}', '{{ last_message.updated_at }}', '{{ last_message.content }}')}
                 {% endfor %}
             </div>
         </div>`
