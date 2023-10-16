@@ -408,7 +408,7 @@
                                         </div>
                                     </div>
                                     <div class="conversation_status">
-                                        {{ private_message.1.content }}
+                                        {{ private_message.1.profile.profile_name }}||: {{ private_message.1.content }}
                                     </div>
                                 </div>
                                 
@@ -937,6 +937,35 @@
             main_panel.removeChild(modal)
         });
     }
+    refresh_private_messages_list = (user_id) => {
+        fetch(`/vw/get-member-private-messages-list/${user_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            let messages_label = document.querySelector('.messages_label')
+            if (messages_label && messages_label.innerHTML != "Личные сообщения"){
+                side_panel = get_side_panel()
+                if (side_panel){
+                    let message_items = ''
+
+                    for (const [channel_id, channel_data] of Object.entries(data)) {
+                        let channel_name = channel_data.channel_name
+                        let channel_true_id = channel_data.channel_true_id
+                        let sender_profilename = channel_data.sender_profilename
+                        let content = channel_data.content
+                        let updated_at = channel_data.updated_at
+                        message_items += get_message_item_html(channel_id, channel_name, channel_true_id, sender_profilename, updated_at, content)
+                    }
+
+                    side_panel.innerHTML = 
+                    `<div class="messages_label">Личные сообщения</div>
+                        <div class="messages_wrapper">
+                            ${message_items}
+                        </div>
+                    </div>`
+                }
+            } 
+        })
+    }
 
     // Сырой метод асинхронного обновления данных, нужно пересмотреть
     refresh_page_after_friend_permission = (user_id) => {
@@ -976,36 +1005,36 @@
             let messages_label = document.querySelector('.messages_label')
             if (messages_label && messages_label.innerHTML == "Личные сообщения"){
                 let message_item = document.getElementById(`message_item_${channel_id}`)
-                let new_message_item_body = get_message_item_body_html(data.sender_profilename, data.updated_at, data.content)
+                let new_message_item_body = get_message_item_body_html(data.channel_name, data.sender_profilename, data.updated_at, data.content)
                 message_item.innerHTML = new_message_item_body
             } 
         })
     }
 
-    get_message_item_body_html = (profilename, date, content) => {
+    get_message_item_body_html = (channel_name, profilename, date, content) => {
         let message_item_body = `<div class="user_avatar">
             <img class="messages_users_avatar" src="logo.png" alt="User avatar">
         </div>
         <div class="message_info">
             <div class="nickname_data">
                 <div class="conv_user_nickname">
-                    ${profilename}
+                    ${channel_name}
                 </div>
                 <div class="message_data">
                     ${date}
                 </div>
             </div>
             <div class="conversation_status">
-                ${content}
+                ${profilename}||: ${content}
             </div>
         </div>`
 
         return message_item_body
     }
 
-    get_message_item_html = (channel_id, profilename, date, content) => {
-        let message_item = `<div class="message_item" id="message_item_${channel_id}" onclick="handleFriendClick(${channel_id})">
-            ${get_message_item_body_html(profilename, date, content)}
+    get_message_item_html = (channel_id, channel_name, channel_true_id, profilename, date, content) => {
+        let message_item = `<div class="message_item" id="message_item_${channel_id}" onclick="handleFriendClick(${channel_true_id})">
+            ${get_message_item_body_html(channel_name, profilename, date, content)}
         </div>`
         
         return message_item
@@ -1020,19 +1049,22 @@
         side_panel = side_panel_array[0]
         return side_panel
     }
+    //** TODO: rewrite this method to reload data after click
+    //** make the condition to check if the page is loaded
     switch_on_personal_messages = () => {
-        side_panel = get_side_panel()
-        side_panel.innerHTML = 
-        `<div class="messages_label">Личные сообщения</div>
-            <div class="messages_wrapper">
-                {% for channel_name, last_message in private_messages %}
-                ${get_message_item_html('{{ channel_name.id}}', '{{ channel_name.profile_name }}', '{{ last_message.updated_at }}', '{{ last_message.content }}')}
-                {% endfor %}
-            </div>
-        </div>`
+        let messages_label = document.querySelector('.messages_label')
+        if (!messages_label || messages_label.innerHTML == "Личные сообщения"){
+            return
+        }
+
+        refresh_private_messages_list({{ current_user.id }})
     }
 
     switch_on_friends = () => {
+        let messages_label = document.querySelector('.messages_label')
+        if (!messages_label || messages_label.innerHTML == "Друзья"){
+            return
+        }
         side_panel = get_side_panel()
         side_panel.innerHTML =
         `<div class="messages_label">Друзья</div>

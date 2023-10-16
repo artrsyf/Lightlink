@@ -445,8 +445,10 @@
                 }))
                 channelNotificationSocket.close()
             }
-
+            // after message sending
             message_input_field.value = ''
+
+            refresh_private_message(CHANNEL_ID)
         }
     };
 

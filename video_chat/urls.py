@@ -13,5 +13,6 @@ urlpatterns = [
     path('add-friend/', friendRequest, name='friend-request'),
     path('get-member-friends/<int:user_id>', getMemberFriends),
     path('get-member-channels-ids/<int:user_id>', getMemberChannelsIds),
-    path('get-channel-last-message-info/<int:channel_id>', getChannelLastMessageInfo)
+    path('get-channel-last-message-info/<int:channel_id>', getChannelLastMessageInfo),
+    path('get-member-private-messages-list/<int:user_id>', getMemberPrivateMessagesList)
 ]

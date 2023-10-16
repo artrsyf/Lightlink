@@ -5,7 +5,7 @@ from .models import User, Profile, Channel, ChannelInfo, ChannelType
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
-from .utils import find_private_messages_list, find_friend_list, find_channels_list
+from .utils import find_private_messages_list, find_friend_list, find_channels_list, find_current_profile
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm
 
@@ -188,15 +188,55 @@ def getMemberChannelsIds(request, user_id):
 
 def getChannelLastMessageInfo(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
+    current_profile = find_current_profile(request.user.id)
     last_message = channel.all_messages.last()
     sender_profile = last_message.profile
+    if channel.channel_type.id == 2:
+        # check on multy
+        channel_name = ChannelInfo.objects \
+            .filter(Q(channel=channel) & ~Q(profile=current_profile)).last().profile.profile_name
+    else:
+            channel_name = 'x'
+            # else from groups
     sender_profilename = sender_profile.profile_name
     content = last_message.content
     updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
 
     return JsonResponse({'channel_id': channel_id,
+                         'channel_name': channel_name,
                          'sender_profilename': sender_profilename,
                          'content': content,
                          'updated_at': updated_at
                          })
+
+def getMemberPrivateMessagesList(request, user_id):
+    current_profile = find_current_profile(user_id)
+    channels_ids = find_channels_list(user_id)
+    channels_infos = {}
+    for channel_id in channels_ids:
+        channel = Channel.objects.get(id=channel_id)
+
+        last_message = channel.all_messages.last()
+        sender_profile = last_message.profile
+        if channel.channel_type.id == 2:
+        # check on multy
+            friend_profile = ChannelInfo.objects \
+                .filter(Q(channel=channel) & ~Q(profile=current_profile)).last().profile
+            channel_name = friend_profile.profile_name
+            channel_true_id = friend_profile.id
+        else:
+            channel_name = 'x'
+            channel_true_id = 1
+            # else from groups
+        sender_profilename = sender_profile.profile_name
+        content = last_message.content
+        updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
+
+        channels_infos[channel_id] = {'channel_name': channel_name,
+                                      'channel_true_id': channel_true_id,
+                                      'sender_profilename': sender_profilename,
+                                      'content': content,
+                                      'updated_at': updated_at
+                                      }
+    return JsonResponse(channels_infos)
 
