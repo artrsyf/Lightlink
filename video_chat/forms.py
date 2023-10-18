@@ -38,10 +38,15 @@ class FriendshipForm(ModelForm):
         self.cleaned_data['status_type'] = FriendRequestType.objects.get(id=1)
 
         if self.sender == profile:
-            raise forms.ValidationError('Could not send request to your own')
+            raise forms.ValidationError('Could not send friend request to your own')
 
-        if Friendship.objects.filter(sender=self.sender, receiver=profile).exists():
-            raise forms.ValidationError('Request is already sent')
+        if Friendship.objects.filter(sender=self.sender, receiver=profile, status_type__id=1).exists():
+            raise forms.ValidationError('Friend request is already sent')
+        
+        if Friendship.objects.filter(Q(sender=self.sender, receiver=profile, status_type__id=3) | \
+                                     Q(sender=profile, receiver=self.sender, status_type__id=3)) \
+                                        .exists():
+            raise forms.ValidationError('Friend request is already permitted') 
     
     def save(self, commit=True):
         friendship = super().save(commit=False)
@@ -51,10 +56,17 @@ class FriendshipForm(ModelForm):
         friendship.status_type = self.cleaned_data['status_type']
 
         if friendship.sender == friendship.receiver:
-            raise forms.ValidationError('Could not send request to your own')
+            raise forms.ValidationError('Could not send friend request to your own')
 
         if Friendship.objects.filter(sender=friendship.sender, receiver=friendship.receiver).exists():
-            raise forms.ValidationError('Request is already sent')
+            raise forms.ValidationError('Friend request is already sent')
+        
+        if Friendship.objects.filter(Q(sender=friendship.sender, receiver=friendship.receiver, \
+                                       status_type__id=3) | \
+                                     Q(sender=friendship.receiver, receiver=friendship.sender, \
+                                       status_type__id=3)) \
+                                        .exists():
+            raise forms.ValidationError('Friend request is already permitted') 
         
         if commit:
             friendship.save()

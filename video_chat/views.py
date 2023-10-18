@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.db.models import Q
-from .models import User, Profile, Channel, ChannelInfo, ChannelType
+from .models import User, Profile, Channel, ChannelInfo, Friendship
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
