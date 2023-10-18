@@ -206,10 +206,6 @@
         height: 50%;
         background-color: burlywood;
     }
-    .textchat_wrapper{
-        width: 100%;
-        height: 50%;
-    }
     .videochat_content{
         width: 100%;
         height: 100%;
@@ -390,17 +386,6 @@
         + {{ channel_id }}
         + '/'
     )
-
-    fix_scroll = () => {
-        let element = document.getElementsByClassName('messages_area_wrapper')[0]
-        if (element){
-            element.scrollTop = element.scrollHeight
-            element.style.visibility = 'visible'
-        }
-        else{
-            console.log('cant find textchat wrapper area')
-        }
-    }
 
     fix_scroll()
 

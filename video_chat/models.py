@@ -12,6 +12,13 @@ class Channel(models.Model):
     channel_name = models.CharField(max_length=45, null=False)
     channel_type = models.ForeignKey(ChannelType, on_delete=models.PROTECT, null=False)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'channel_name': self.channel_name,
+            'channel_type_id': self.channel_type.id
+        }
+
 class Profile(models.Model):
     profile_name = models.CharField(max_length=20, 
                                     validators=[MinLengthValidator(5), MaxLengthValidator(20)])
@@ -21,6 +28,13 @@ class Profile(models.Model):
     profiles = models.ManyToManyField(to='self', through="Friendship")
 
     channels = models.ManyToManyField(Channel, through="ChannelInfo")
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'profilename': self.profile_name,
+            'user_id': self.user.id,
+        }
 
     def __str__(self) -> str:
         return f"Profile: {self.profile_name} with User ID: {self.user.id}"
@@ -49,3 +63,14 @@ class Message(models.Model):
     content = models.TextField(null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'channel_id': self.channel.id,
+            'profile_id': self.profile.id if self.profile else None,
+            'profilename': self.profile.profile_name if self.profile else None,
+            'content': self.content,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+        } 

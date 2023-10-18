@@ -366,6 +366,11 @@
             jistify-content: center;
             align-items: center;
         }
+        .textchat_wrapper{
+            width: 100%;
+            height: 50%;
+        }
+        
     </style>
 </head>
 <body>
@@ -393,7 +398,7 @@
                         <div class="messages_wrapper">
                             {% comment %} friend_dialog starts {% endcomment %}
                             {% for private_message in private_messages %}
-                            <div class="message_item" id="message_item_{{ private_message.1.channel.id }}" onclick="handleFriendClick({{ private_message.0.id }})">
+                            <div class="message_item" id="message_item_{{ private_message.1.channel.id }}" onclick="handleFriendClick({{ private_message.1.channel.id }})">
                                 <div class="user_avatar">
                                     <img class="messages_users_avatar" src="logo.png" alt="User avatar">
                                 </div>
@@ -469,6 +474,17 @@
         + '{{ current_user }}'
         + '/'
     )
+
+    fix_scroll = () => {
+        let element = document.getElementsByClassName('messages_area_wrapper')[0]
+        if (element){
+            element.scrollTop = element.scrollHeight
+            element.style.visibility = 'visible'
+        }
+        else{
+            console.log('cant find textchat wrapper area')
+        }
+    }
 
     var ids = {{ channels_ids }}
 
@@ -736,10 +752,9 @@
         }
     }
 
-    {% comment %} Обработка нажатия на юзера в диалогах {% endcomment %}
-    handleFriendClick = (id) => {
+    handleFriendClick = (channel_id) => {
         $.ajax({
-            url: `/vw/return_profile_data/${id}`,
+            url: `/vw/get-channel-data/${channel_id}`,
             dataType: "json",
             method: 'GET',
             success: function(data){
@@ -748,7 +763,71 @@
                 if (main_conversation_panel){
                     content_wrapper.removeChild(main_conversation_panel)
                 }
-                content_wrapper.innerHTML = `<div>Юзер: ${data.profile_name}</div><button onclick="start_call(${id})" class="call_button" id="call_button_for_${data.profile_name}">Звонок ${data.profile_name}</button>`
+                let channel_name = data.channel_name
+                let channel_type_id = data.channel_type_id
+                let channel_messages = data.channel_messages
+                if (channel_type_id == 2){
+                    content_wrapper.innerHTML = `<div>Юзер: ${channel_name}</div><button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">Звонок ${channel_name}</button>`
+                }
+                content_wrapper.innerHTML += textchat_generator(channel_messages)
+                const channelURL = `/vw/channel/${channel_id}`
+                window.history.pushState(null, '', channelURL);
+                const channelSocket = new WebSocket(
+                    ws_scheme
+                    + window.location.host
+                    + '/ws/chat/'
+                    + channel_id
+                    + '/'
+                )
+                fix_scroll()
+
+                channelSocket.onmessage = function(e){
+                    const data = JSON.parse(e.data)
+                    const profile = data.profile_name
+                    const message_data = data.message
+                    const messages_area = document.querySelector('.messages_area_wrapper')
+                    const message = `<div class="message">${profile}||${message_data}</div>`
+                    messages_area.innerHTML += message
+                }
+            
+                channelSocket.onclose = function(e){
+                    console.error('Chat socket closed unexpectedly');
+                }
+            
+                document.querySelector('#textchat_input_message').onkeyup = function(e) {
+                    if (e.key === 'Enter'){
+                        message_input_field = document.querySelector('#textchat_input_message')
+                        const message = message_input_field.value
+                        channelSocket.send(JSON.stringify({
+                            'user_id': {{ current_user.id }},
+                            'channel_id': channel_id,
+                            'message': message
+                        }))
+            
+                        let channelNotificationSocket = new WebSocket(
+                            ws_scheme
+                            + window.location.host
+                            + '/ws/service/notification/'
+                            + channel_id
+                            + '/'
+                        )
+            
+                        channelNotificationSocket.onopen = () => {
+                            channelNotificationSocket.send(JSON.stringify({
+                                'type': 'notification.getmessage',
+                                'sender_username': '{{ current_user.username }}',
+                                'sender_profilename': '{{ current_profile.profile_name }}',
+                                'channel_id': channel_id,
+                                'message': `${message}`
+                            }))
+                            channelNotificationSocket.close()
+                        }
+                        // after message sending
+                        message_input_field.value = ''
+            
+                        refresh_private_message(channel_id)
+                    }
+                };
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -762,7 +841,10 @@
         return data
     }
 
-    start_call = (id) => {
+    start_call = (channel_id) => {
+        window.open(`/vw/channel/${channel_id}`, '_self')
+    }
+    {% comment %} start_call = (id) => {
         console.log('call is starting')
 
         call_data = {
@@ -802,7 +884,7 @@
                 console.error('AJAX Error: ', error)
             }
         })
-    }
+    } {% endcomment %}
 
     function MultipleMainPanelException(message){
         this.message = message
@@ -903,21 +985,31 @@
                             }))
                             // Нужно делать еще ws запрос для подтверждения, что другой пользователь сохранил данные...
                             // refresh_page_after_friend_permission({{ current_user.id }})
-
-                            {% comment %} if (friendRequestSocket.readyState === WebSocket.OPEN){
-                                friendRequestSocket.close()
-                                print(`close ws: ${friendRequestSocket.readyState}`)
-                            } {% endcomment %}
                         }
                         else if (data["type"] == "data_ready"){
                             console.log('!!!!!!!!!!!!!1')
                             refresh_page_after_friend_permission({{ current_user.id }})
+
+                            if (friendRequestSocket.readyState === WebSocket.OPEN){
+                                friendRequestSocket.close()
+                                concole.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                            }
                         }
                         else if (data["type"] == "declined" && data["state"] == 'success'){
                             console.log('!!!!!!!!! after request declined')
+
+                            if (friendRequestSocket.readyState === WebSocket.OPEN){
+                                friendRequestSocket.close()
+                                concole.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                            }
                         }
                         else{
                             console.error(`Unexpeceted data type taken from FriendRequestConsumer(AsyncWebsocketConsumer): ${data["type"]}`)
+                            
+                            if (friendRequestSocket.readyState === WebSocket.OPEN){
+                                friendRequestSocket.close()
+                                concole.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                            }
                         }
                     }
                 }
@@ -949,11 +1041,10 @@
 
                     for (const [channel_id, channel_data] of Object.entries(data)) {
                         let channel_name = channel_data.channel_name
-                        let channel_true_id = channel_data.channel_true_id
                         let sender_profilename = channel_data.sender_profilename
                         let content = channel_data.content
                         let updated_at = channel_data.updated_at
-                        message_items += get_message_item_html(channel_id, channel_name, channel_true_id, sender_profilename, updated_at, content)
+                        message_items += get_message_item_html(channel_id, channel_name, sender_profilename, updated_at, content)
                     }
 
                     side_panel.innerHTML = 
@@ -979,14 +1070,14 @@
                 messages_wrapper.innerHTML = '';
                 let friends_html_element = ''
                 for (let i = 0; i < friends.length; i++){
-                    friends_html_element = `<div class="message_item" id="message_item_${friends[i].id}" onclick="handleFriendClick(${friends[i].id})">
+                    friends_html_element = `<div class="message_item" id="message_item_${friends[i].friend_info.id}" onclick="handleFriendClick(${friends[i].channel_info.id})">
                         <div class="user_avatar">
                             <img class="messages_users_avatar" src="logo.png" alt="User avatar">
                         </div>
                         <div class="message_info">
                             <div class="nickname_data">
                                 <div class="conv_user_nickname">
-                                    ${friends[i].profile_name}
+                                    ${friends[i].friend_info.profilename}
                                 </div>
                             </div>
                         </div>
@@ -1032,8 +1123,8 @@
         return message_item_body
     }
 
-    get_message_item_html = (channel_id, channel_name, channel_true_id, profilename, date, content) => {
-        let message_item = `<div class="message_item" id="message_item_${channel_id}" onclick="handleFriendClick(${channel_true_id})">
+    get_message_item_html = (channel_id, channel_name, profilename, date, content) => {
+        let message_item = `<div class="message_item" id="message_item_${channel_id}" onclick="handleFriendClick(${channel_id})">
             ${get_message_item_body_html(channel_name, profilename, date, content)}
         </div>`
         
@@ -1076,6 +1167,36 @@
 
     switch_on_notifications = () => {
 
+    }
+
+    textchat_message_generator = (profilename, message_content) => {
+        let message = `<div class="message">
+            ${profilename}||${message_content}
+        </div>`
+
+        return message
+    }
+
+    textchat_generator = (channel_messages) => {
+        let messages = ''
+        if (channel_messages){
+            for (message of channel_messages){
+                messages += textchat_message_generator(message.profilename, message.content)
+            }
+         }
+
+        textchat_html = `<div class="textchat_wrapper">
+            <div class="textchat_content">
+                <div class="messages_area_wrapper" turned="false">
+                     ${messages}
+                </div>
+                <div class="message_input_wrapper">
+                     <input type="text" id="textchat_input_message" placeholder="Write">
+                </div>
+            </div>
+         </div>`
+
+         return textchat_html
     }
 </script>
 

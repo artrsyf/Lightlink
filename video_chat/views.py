@@ -15,7 +15,6 @@ environ.Env().read_env('../lightlink/')
 def index(request):
     current_user_id = request.user.id
     private_messages = find_private_messages_list(current_user_id)
-    print(private_messages)
     current_profile = Profile.objects.get(user=request.user)
     friends = find_friend_list(current_user_id)
     channels_ids = find_channels_list(current_user_id)
@@ -33,43 +32,43 @@ def return_profile_data(request, _id):
     return JsonResponse({'profile_name': profile_name})
 
 # this view should create or return existing room (amount of tables in db)
-def call_process(request):
-    if request.method == 'POST':
-        json_content = request.POST.get('content')
-        content = json.loads(json_content)
-        sender_id = content['sender_id']
-        receiver_id = content['receiver_id']
+# def call_process(request):
+#     if request.method == 'POST':
+#         json_content = request.POST.get('content')
+#         content = json.loads(json_content)
+#         sender_id = content['sender_id']
+#         receiver_id = content['receiver_id']
 
-        print(f'*SERVER RESPONSE: Async post request got with sender_profile_id: {sender_id}')
-        print(f'*SERVER RESPONSE: Async post request got with receiver_profile_id: {receiver_id}')
+#         print(f'*SERVER RESPONSE: Async post request got with sender_profile_id: {sender_id}')
+#         print(f'*SERVER RESPONSE: Async post request got with receiver_profile_id: {receiver_id}')
         
-        sender_profile = Profile.objects.get(id=sender_id)
-        receiver_profile = Profile.objects.get(id=receiver_id)
-        try:
-            channel = Channel.objects\
-                .filter(channel_infos__profile=sender_profile, channel_type=2)\
-                .get(channel_infos__profile=receiver_profile)
-            print(f'*SERVER RESPONSE: Channel is using: {channel}')
-            return JsonResponse({'channel_id': channel.id,
-                                 'channel_name': channel.channel_name,
-                                 'channel_type': channel.channel_type.type})
-        except Channel.DoesNotExist:
-            new_channel_name = str(sender_id) + '____' + str(receiver_id)
-            DIALOG_TYPE = 2
-            channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
-            new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
-            ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
-            ChannelInfo.objects.create(channel=new_channel, profile=receiver_profile)
-            print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
-            return JsonResponse({'channel_id': new_channel.id,
-                                 'channel_name': new_channel.channel_name,
-                                 'channel_type': new_channel.channel_type.type})
-        except MultipleObjectsReturned:
-            print(f'*SERVER RESPONSE: Multiple channels detected')
-            raise MultipleObjectsReturned
+#         sender_profile = Profile.objects.get(id=sender_id)
+#         receiver_profile = Profile.objects.get(id=receiver_id)
+#         try:
+#             channel = Channel.objects\
+#                 .filter(channel_infos__profile=sender_profile, channel_type=2)\
+#                 .get(channel_infos__profile=receiver_profile)
+#             print(f'*SERVER RESPONSE: Channel is using: {channel}')
+#             return JsonResponse({'channel_id': channel.id,
+#                                  'channel_name': channel.channel_name,
+#                                  'channel_type': channel.channel_type.type})
+#         except Channel.DoesNotExist:
+#             new_channel_name = str(sender_id) + '____' + str(receiver_id)
+#             DIALOG_TYPE = 2
+#             channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
+#             new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
+#             ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
+#             ChannelInfo.objects.create(channel=new_channel, profile=receiver_profile)
+#             print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
+#             return JsonResponse({'channel_id': new_channel.id,
+#                                  'channel_name': new_channel.channel_name,
+#                                  'channel_type': new_channel.channel_type.type})
+#         except MultipleObjectsReturned:
+#             print(f'*SERVER RESPONSE: Multiple channels detected')
+#             raise MultipleObjectsReturned
 
-    return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Invalid request method',
-                         'REQUEST_METHOD': request.method}}, status=400)
+#     return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Invalid request method',
+#                          'REQUEST_METHOD': request.method}}, status=400)
 def get_token(request):
     app_id = env("APP_ID")
     channel_id = request.GET.get('channel')
@@ -176,12 +175,12 @@ def friendRequest(request):
 # Проверить работу на большом количестве пользователей
 def getMemberFriends(request, user_id):
     friends = find_friend_list(user_id)
-    friends_dict = []
+    friends_serialized = []
     for friend in friends:
-        friend_info = friend.__dict__
-        del friend_info['_state']
-        friends_dict.append(friend_info)
-    return JsonResponse({'fresh_friends': friends_dict})
+        friend_info = friend[0].to_dict()
+        channel_info = friend[1].to_dict()
+        friends_serialized.append({'friend_info': friend_info, 'channel_info': channel_info})
+    return JsonResponse({'fresh_friends': friends_serialized})
 
 def getMemberChannelsIds(request, user_id):
     return JsonResponse({'channels_ids': find_channels_list(user_id)})
@@ -223,20 +222,26 @@ def getMemberPrivateMessagesList(request, user_id):
             friend_profile = ChannelInfo.objects \
                 .filter(Q(channel=channel) & ~Q(profile=current_profile)).last().profile
             channel_name = friend_profile.profile_name
-            channel_true_id = friend_profile.id
         else:
             channel_name = 'x'
-            channel_true_id = 1
             # else from groups
         sender_profilename = sender_profile.profile_name
         content = last_message.content
         updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
 
         channels_infos[channel_id] = {'channel_name': channel_name,
-                                      'channel_true_id': channel_true_id,
                                       'sender_profilename': sender_profilename,
                                       'content': content,
                                       'updated_at': updated_at
                                       }
     return JsonResponse(channels_infos)
+
+def getChannelData(request, channel_id):
+    channel = Channel.objects.get(id=channel_id)
+    channel_messages = channel.all_messages.all()
+
+    serialized_channel_messages = [channel_message.to_dict() for channel_message in channel_messages]
+
+    return JsonResponse(channel.to_dict() | {'channel_messages': serialized_channel_messages
+                       })
 

@@ -1,6 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Profile, User, Channel, Message, Friendship, FriendRequestType
+from .models import Profile, User, Channel, ChannelType, ChannelInfo, Message, Friendship, FriendRequestType
 from .utils import find_current_profile, find_current_profile_with_username
 from channels.db import database_sync_to_async
 
@@ -218,7 +218,15 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                           reverse friendship request is already permitted')
                     
                     raise Exception("Already permitted by other user, check consumers.py")
-                
+
+            new_channel_name = str(sender_username) + '____' + str(friend_username)
+            DIALOG_TYPE = 2
+            channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
+            new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
+            ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
+            ChannelInfo.objects.create(channel=new_channel, profile=friend_profile)
+            print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
+
             print(f'*SERVER RESPONSE: Successfully permitted friend request \
                   from sender_username: {sender_username} to friend_username: {friend_username}')
             

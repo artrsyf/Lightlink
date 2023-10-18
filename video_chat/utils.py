@@ -38,8 +38,14 @@ def find_friend_list(user_id: int) -> list[Profile]:
                                            | Q(receiver=current_profile, status_type=3))
     friends = []
     for relation in friendship:
-        friends.append(relation.receiver if relation.sender.id == current_profile.id \
-                              else relation.sender)
+        friend_profile = relation.receiver if relation.sender.id == current_profile.id \
+                              else relation.sender
+        channel = Channel.objects\
+                 .filter(channel_infos__profile=current_profile, channel_type=2)\
+                 .get(channel_infos__profile=friend_profile)
+        
+        friend = (friend_profile, channel)
+        friends.append(friend)
     friends = list(set(friends))
     return friends
 
