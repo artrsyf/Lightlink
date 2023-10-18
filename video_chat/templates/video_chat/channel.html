@@ -386,6 +386,7 @@
         + {{ channel_id }}
         + '/'
     )
+    WebSocketConnections.add(channelSocket)
 
     fix_scroll()
 
@@ -419,6 +420,7 @@
                 + CHANNEL_ID
                 + '/'
             )
+            WebSocketConnections.add(channelNotificationSocket)
 
             channelNotificationSocket.onopen = () => {
                 channelNotificationSocket.send(JSON.stringify({

@@ -467,6 +467,8 @@
     const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
     console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
 
+    const WebSocketConnections = new Set()
+
     const myFriendSocket = new WebSocket(
         ws_scheme
         + window.location.host
@@ -474,6 +476,7 @@
         + '{{ current_user }}'
         + '/'
     )
+    WebSocketConnections.add(myFriendSocket)
 
     fix_scroll = () => {
         let element = document.getElementsByClassName('messages_area_wrapper')[0]
@@ -496,6 +499,7 @@
             + `${channel_id}`
             + '/'
         )
+        WebSocketConnections.add(channel_socket)
 
         channel_socket.onopen = () => {
             channel_socket.onmessage = (e) => {
@@ -683,6 +687,7 @@
                                 + `${new_channel_socket}`
                                 + '/'
                             )
+                            WebSocketConnections.add(new_channel_socket)
 
                             new_channel_socket.onopen = () => {
                                 new_channel_socket.onmessage = (e) => {
@@ -779,6 +784,13 @@
                     + channel_id
                     + '/'
                 )
+                for (ws of WebSocketConnections){
+                    if (ws.url.includes('/ws/chat/')) {
+                        ws.close()
+                        WebSocketConnections.delete(ws);
+                      }
+                }
+                WebSocketConnections.add(channelSocket)
                 fix_scroll()
 
                 channelSocket.onmessage = function(e){
@@ -957,6 +969,7 @@
                         + `${receiver_username_value}`
                         + '/'
                     )
+                    WebSocketConnections.add(friendRequestSocket)
 
                     friendRequestSocket.onopen = () => {
                         friendRequestSocket.send(JSON.stringify({
