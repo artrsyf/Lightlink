@@ -36,11 +36,6 @@
             display: flex;
             flex-direction: row;
         }
-        .main_panel{
-            height: 100%;
-            flex-grow: 1;
-            background-color: lightcoral;
-        }
         .side_panel{
             height: 100%;
             width: 272px;
@@ -202,6 +197,10 @@
             margin-right: 3%;
         }
         .main_panel{
+            height: 100%;
+            width: 100%;
+            flex-grow: 1;
+            background-color: lightcoral;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -291,7 +290,7 @@
             visibility: hidden;
         }
         .message_input_wrapper{
-            height: 15%;
+            min-height: 15%;
             width: 80%;
             display: flex;
             flex-direction: column;
