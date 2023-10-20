@@ -1004,7 +1004,7 @@
 
                             if (friendRequestSocket.readyState === WebSocket.OPEN){
                                 friendRequestSocket.close()
-                                concole.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                                console.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
                             }
                         }
                         else if (data["type"] == "declined" && data["state"] == 'success'){
@@ -1012,7 +1012,7 @@
 
                             if (friendRequestSocket.readyState === WebSocket.OPEN){
                                 friendRequestSocket.close()
-                                concole.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                                console.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
                             }
                         }
                         else{
@@ -1020,7 +1020,7 @@
                             
                             if (friendRequestSocket.readyState === WebSocket.OPEN){
                                 friendRequestSocket.close()
-                                concole.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                                console.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
                             }
                         }
                     }

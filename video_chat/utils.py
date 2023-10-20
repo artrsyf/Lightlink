@@ -7,7 +7,7 @@ def find_current_profile(user_id: int) -> Profile:
     return current_profile
 
 def find_current_profile_with_username(username: str) -> Profile:
-    current_user = User.object.get(username=username)
+    current_user = User.objects.get(username=username)
     current_profile = Profile.objects.get(user=current_user)
     return current_profile
 
