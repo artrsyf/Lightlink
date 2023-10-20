@@ -219,18 +219,25 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                     
                     raise Exception("Already permitted by other user, check consumers.py")
 
-            new_channel_name = str(sender_username) + '____' + str(friend_username)
-            DIALOG_TYPE = 2
-            channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
-            new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
-            ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
-            ChannelInfo.objects.create(channel=new_channel, profile=friend_profile)
-            print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
+            try:
+                existing_channel = Channel.objects \
+                    .filter(channel_infos__profile=sender_profile, channel_type=2) \
+                    .get(channel_infos__profile=friend_profile)
+                channel_id = existing_channel.id
+            except Channel.DoesNotExist:
+                new_channel_name = str(sender_username) + '____' + str(friend_username)
+                DIALOG_TYPE = 2
+                channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
+                new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
+                ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
+                ChannelInfo.objects.create(channel=new_channel, profile=friend_profile)
+                channel_id = new_channel.id
+                print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
 
             print(f'*SERVER RESPONSE: Successfully permitted friend request \
                   from sender_username: {sender_username} to friend_username: {friend_username}')
             
-            return 'success'
+            return {'status': 'success', 'channel_id': channel_id}
         else:
             print(f'*SERVER RESPONSE: Error while permitting friend request \
                           from straight_friendship: sender_username: {sender_username} \
@@ -342,12 +349,16 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         if (isTarget):
 
             try:
-                status = await self.permit_friend_request(sender_username, friend_username)
+                response = await self.permit_friend_request(sender_username, friend_username)
+                status = response['status']
+                channel_id = response['channel_id']
             except:
                 status = 'failure'
+                channel_id = -1
 
             await self.send(text_data=json.dumps({"type": 'permitted',
                                                 "status": status,
+                                                "channel_id": channel_id,
                                                 "sender_username": sender_username,
                                                 "friend_username": friend_username,
                                                 "sender_profilename": sender_profilename,

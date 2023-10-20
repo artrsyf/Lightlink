@@ -358,7 +358,7 @@
             width: 40%;
         }
         .content_wrapper{
-            flex-grow: 1;
+            height: 100%;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -405,7 +405,7 @@
                                     <div class="nickname_data">
                                         <div class="conv_user_nickname">
                                             {% comment %} User_Nickname {% endcomment %}
-                                            {{ private_message.0.profile_name }}
+                                            {{ private_message.0.channel_name }}
                                         </div>
                                         <div class="message_data">
                                             {{ private_message.1.updated_at }}
@@ -667,58 +667,45 @@
                     console.log('successfully added friend')
                     // Выполняем финальный действия для пользователя, получившего запрос на добавление в друзья
                     console.log('finalization')
-                    refresh_page_after_friend_permission({{ current_user.id }})
+                    refresh_friends_list({{ current_user.id }}, true)
 
-                    $.ajax({
-                        url: `/vw/get-member-channels-ids/{{ current_user.id }}`,
-                        dataType: "json",
-                        method: 'GET',
-                        success: function(data){
-                            ids = data.channels_ids
-                            console.log('new channels', ids)
+                    // После добавления в друзья и создания канала подписываемся на уведомления
+                    const new_channel_socket = new WebSocket(
+                        ws_scheme
+                        + window.location.host
+                        + '/ws/service/notification/'
+                        + `${data.channel_id}`
+                        + '/'
+                    )
 
-                            new_channel_socket = ids[ids.length - 1]
+                    WebSocketConnections.add(new_channel_socket)
 
-                            const new_channel_socket = new WebSocket(
-                                ws_scheme
-                                + window.location.host
-                                + '/ws/service/notification/'
-                                + `${new_channel_socket}`
-                                + '/'
-                            )
-                            WebSocketConnections.add(new_channel_socket)
-
-                            new_channel_socket.onopen = () => {
-                                new_channel_socket.onmessage = (e) => {
-                                    const data = JSON.parse(e.data)
-                                    if (data.sender_username == '{{ current_user.username }}'){
-                                        return 
-                                    }
-                                    console.log('got new notif')
-                                    console.log(data)
-                                    let main_panel_element = document.querySelector('.main_panel')
-                                    if (data.type == 'message_notification'){
-                                        let sender_profilename = data.sender_profilename
-                                        let message = data.message
-                                        
-                                        // previous notification check
-                                        let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
-                                        if (previous_notifications.length > 1){
-                                            throw new MultipleNotificationException(previous_notifications.length)
-                                        }
-                                        else if (previous_notifications.length == 1){
-                                            closeNotificationModal()
-                                        }
-
-                                        create_new_message_notif(sender_profilename, message)
-                                    }
-                                }
+                    new_channel_socket.onopen = () => {
+                        new_channel_socket.onmessage = (e) => {
+                            const data = JSON.parse(e.data)
+                            if (data.sender_username == '{{ current_user.username }}'){
+                                return 
                             }
-                        },
-                        error: function(xhr, status, error){
-                            console.error('AJAX Error: ', error)
+                            console.log('got new notif')
+                            console.log(data)
+                            let main_panel_element = document.querySelector('.main_panel')
+                            if (data.type == 'message_notification'){
+                                let sender_profilename = data.sender_profilename
+                                let message = data.message
+                                
+                                // previous notification check
+                                let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
+                                if (previous_notifications.length > 1){
+                                    throw new MultipleNotificationException(previous_notifications.length)
+                                }
+                                else if (previous_notifications.length == 1){
+                                    closeNotificationModal()
+                                }
+
+                                create_new_message_notif(sender_profilename, message)
+                            }
                         }
-                    })
+                    }
                 }
                 else if (status == 'failure'){
                     console.error('got error in permitting friend request')
@@ -855,47 +842,6 @@
     start_call = (channel_id) => {
         window.open(`/vw/channel/${channel_id}`, '_self')
     }
-    {% comment %} start_call = (id) => {
-        console.log('call is starting')
-
-        call_data = {
-            sender_id: {{ current_profile.id }},
-            receiver_id: id
-        }
-        json_call_data = JSON.stringify(call_data)
-        $.ajax({
-            url: '/vw/call_process',
-            dataType: 'json',
-            data: {
-                'content': json_call_data,
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
-            method: 'POST',
-            success: function(data){
-                console.log('AJAX Notice: Successfully send request to server to start call')
-
-                // get this data in session storage (log is just for check)
-                console.log('TEST LOG: Testing fetching channel data after attempt to create or use existing channel:', data)
-
-                channel_id = data.channel_id
-                channel_name = data.channel_name
-                data_parser(channel_id).then(result => {
-                    console.log('FETCHED DATA FROM SERVER SUCCESSFULLY', result)
-                    // For debugging
-                    sessionStorage.setItem('user_id', result.user_id)
-                    sessionStorage.setItem('token', result.token)
-                    sessionStorage.setItem('stream_id', result.stream_id)
-                    sessionStorage.setItem('stream_token', result.stream_token)
-                    sessionStorage.setItem('channel_id', channel_id)
-                    window.open(`channel/${channel_id}`, '_self')
-                })
-                
-            },
-            error: function(xhr, status, error){
-                console.error('AJAX Error: ', error)
-            }
-        })
-    } {% endcomment %}
 
     function MultipleMainPanelException(message){
         this.message = message
@@ -996,11 +942,11 @@
                                 'friend_username': `${receiver_username_value}`
                             }))
                             // Нужно делать еще ws запрос для подтверждения, что другой пользователь сохранил данные...
-                            // refresh_page_after_friend_permission({{ current_user.id }})
+                            // refresh_friends_list({{ current_user.id }})
                         }
                         else if (data["type"] == "data_ready"){
                             console.log('!!!!!!!!!!!!!1')
-                            refresh_page_after_friend_permission({{ current_user.id }})
+                            refresh_friends_list({{ current_user.id }}, true)
 
                             if (friendRequestSocket.readyState === WebSocket.OPEN){
                                 friendRequestSocket.close()
@@ -1070,35 +1016,46 @@
         })
     }
 
-    // Сырой метод асинхронного обновления данных, нужно пересмотреть
-    refresh_page_after_friend_permission = (user_id) => {
+    refresh_friends_list = (user_id, key=false) => {
         fetch(`/vw/get-member-friends/${user_id}`)
         .then(response => response.json())
         .then((data) => {
             let messages_label = document.querySelector('.messages_label')
-            if (messages_label && messages_label.innerHTML == "Друзья"){
-                let friends = data.fresh_friends
-                let messages_wrapper = document.querySelector('.messages_wrapper')
-                messages_wrapper.innerHTML = '';
-                let friends_html_element = ''
-                for (let i = 0; i < friends.length; i++){
-                    friends_html_element = `<div class="message_item" id="message_item_${friends[i].friend_info.id}" onclick="handleFriendClick(${friends[i].channel_info.id})">
-                        <div class="user_avatar">
-                            <img class="messages_users_avatar" src="logo.png" alt="User avatar">
-                        </div>
-                        <div class="message_info">
-                            <div class="nickname_data">
-                                <div class="conv_user_nickname">
-                                    ${friends[i].friend_info.profilename}
-                                </div>
-                            </div>
+            if ((messages_label && messages_label.innerHTML != "Друзья") || key){
+                side_panel = get_side_panel()
+                if (side_panel){
+                    let friends = data.fresh_friends
+                    let friend_items = ''
+                    for (let i = 0; i < friends.length; i++){
+                        friend_items += get_friend_item_html(friends[i].friend_info.id, friends[i].friend_info.profilename, friends[i].channel_info.id)
+                    }
+
+                    side_panel.innerHTML = 
+                    `<div class="messages_label">Друзья</div>
+                        <div class="messages_wrapper">
+                            ${friend_items}
                         </div>
                     </div>`
-                    
-                    messages_wrapper.innerHTML += friends_html_element
                 } 
             } 
         })
+    }
+
+    get_friend_item_html = (friend_id, friend_profilename, channel_id) => {
+        friend_item_html = `<div class="message_item" id="message_item_${friend_id}" onclick="handleFriendClick(${channel_id})">
+            <div class="user_avatar">
+                <img class="messages_users_avatar" src="logo.png" alt="User avatar">
+            </div>
+            <div class="message_info">
+                <div class="nickname_data">
+                    <div class="conv_user_nickname">
+                        ${friend_profilename}
+                    </div>
+                </div>
+            </div>
+        </div>`
+
+        return friend_item_html
     }
 
     refresh_private_message = (channel_id) => {
@@ -1152,8 +1109,7 @@
         side_panel = side_panel_array[0]
         return side_panel
     }
-    //** TODO: rewrite this method to reload data after click
-    //** make the condition to check if the page is loaded
+
     switch_on_personal_messages = () => {
         let messages_label = document.querySelector('.messages_label')
         if (!messages_label || messages_label.innerHTML == "Личные сообщения"){
@@ -1168,13 +1124,8 @@
         if (!messages_label || messages_label.innerHTML == "Друзья"){
             return
         }
-        side_panel = get_side_panel()
-        side_panel.innerHTML =
-        `<div class="messages_label">Друзья</div>
-            <div class="messages_wrapper">
-            </div>
-        </div>`
-        refresh_page_after_friend_permission({{ current_user.id }})
+
+        refresh_friends_list({{ current_user.id }})
     }
 
     switch_on_notifications = () => {
