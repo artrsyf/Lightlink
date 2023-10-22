@@ -216,6 +216,9 @@ def getMemberPrivateMessagesList(request, user_id):
         channel = Channel.objects.get(id=channel_id)
 
         last_message = channel.all_messages.last()
+        if not last_message:
+            continue
+        
         sender_profile = last_message.profile
         if channel.channel_type.id == 2:
         # check on multy

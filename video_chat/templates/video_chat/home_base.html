@@ -521,8 +521,10 @@
                         closeNotificationModal()
                     }
                     messages_area_wrapper = document.querySelector('.messages_area_wrapper')
+                    let current_path = window.location.pathname
+                    let target_path = `/vw/channel/${data.channel_id}`
 
-                    if (!messages_area_wrapper || messages_area_wrapper.attributes.turned.value == "true"){
+                    if ((current_path != target_path) || (!messages_area_wrapper) || (messages_area_wrapper.attributes.turned.value == "true")){
                         create_new_message_notif(sender_profilename, message)
                     }
                     else{
@@ -1065,8 +1067,15 @@
             let messages_label = document.querySelector('.messages_label')
             if (messages_label && messages_label.innerHTML == "Личные сообщения"){
                 let message_item = document.getElementById(`message_item_${channel_id}`)
-                let new_message_item_body = get_message_item_body_html(data.channel_name, data.sender_profilename, data.updated_at, data.content)
-                message_item.innerHTML = new_message_item_body
+                if (message_item){
+                    let new_message_item_body = get_message_item_body_html(data.channel_name, data.sender_profilename, data.updated_at, data.content)
+                    message_item.innerHTML = new_message_item_body
+                }
+                else{
+                    let new_message_item = get_message_item_html(channel_id, data.channel_name, data.sender_profilename, data.updated_at, data.content)
+                    let messages_wrapper = document.querySelector('.messages_wrapper')
+                    messages_wrapper.innerHTML = new_message_item + messages_wrapper.innerHTML
+                }
             } 
         })
     }
@@ -1129,7 +1138,6 @@
     }
 
     switch_on_notifications = () => {
-
     }
 
     textchat_message_generator = (profilename, message_content) => {
