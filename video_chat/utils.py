@@ -11,7 +11,7 @@ def find_current_profile_with_username(username: str) -> Profile:
     current_profile = Profile.objects.get(user=current_user)
     return current_profile
 
-def find_private_messages_list(user_id: int):
+def find_private_messages_list(user_id: int) -> dict[Channel, Message]:
     current_profile = find_current_profile(user_id)
     private_messages = {}
 
@@ -42,6 +42,6 @@ def find_friend_list(user_id: int) -> list[Profile]:
 
 def find_channels_list(user_id: int) -> list[int]:
     current_profile = find_current_profile(user_id)
-    channels_info_list = list(current_profile.channels.all().values())
-    channels_ids_list = [i['id'] for i in channels_info_list]
+    channels_data_list = list(current_profile.channels.all().values())
+    channels_ids_list = [channel_data['id'] for channel_data in channels_data_list]
     return channels_ids_list

@@ -248,3 +248,14 @@ def getChannelData(request, channel_id):
     return JsonResponse(channel.to_dict() | {'channel_messages': serialized_channel_messages
                        })
 
+def getChannelType(request, channel_id):
+    try:
+        channel = Channel.objects.get(id=channel_id)
+        channel_type_id = channel.channel_type.id
+        return JsonResponse({'channel_id': channel_id, 'channel_type': channel_type_id})
+    except Channel.DoesNotExist:
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Requested channel does not exist'}}, status=400)
+    except Channel.MultipleObjectsReturned:
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Query returned multiple channel objects'}}, status=400)
+    except:
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Unrecognized error while requesting channel type'}}, status=400)

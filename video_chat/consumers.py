@@ -116,6 +116,24 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                                               "channel_id": channel_id,
                                               "message": message
                                               }))
+        
+    @database_sync_to_async
+    def create_notification_and_get_profile(self, sender_username: str) -> Profile:
+        #** db request for notif
+        return find_current_profile_with_username(sender_username)
+
+        
+    async def notification_incomingdialogcall(self, event):
+        sender_username = event['sender_username']
+        channel_id = event['channel_id']
+        sender_profile = await self.create_notification_and_get_profile(sender_username)
+        sender_profilename = sender_profile.profile_name
+
+        await self.send(text_data=json.dumps({"type": 'incoming_dialog_call',
+                                              "sender_username": sender_username,
+                                              "sender_profilename": sender_profilename,
+                                              "channel_id": channel_id
+                                              }))
     
 class FriendRequestConsumer(AsyncWebsocketConsumer):
     """

@@ -534,6 +534,15 @@
                     // refresh messages_list
                     refresh_private_message(data.channel_id)
                 }
+                else if (data.type == 'incoming_dialog_call'){
+                    let sender_profilename = data.sender_profilename
+                    let channel_id = data.channel_id
+                    // Actions after user got incoming dialog come
+                    alert(`Incoming call from ${sender_profilename} in ${channel_id}`)
+                }
+                else{
+                    console.error("Unrecognized ws input type")
+                }
             }
         }
     })
@@ -842,7 +851,37 @@
     }
 
     start_call = (channel_id) => {
-        window.open(`/vw/channel/${channel_id}`, '_self')
+        fetch(`/vw/get-channel-type/${channel_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            channel_type_id = data.channel_type
+
+            // For dialog channels
+            if (channel_type_id == 2){
+                const channelCallNotificationSocket = new WebSocket(
+                    ws_scheme
+                    + window.location.host
+                    + '/ws/service/notification/'
+                    + {{ channel_id }}
+                    + '/'
+                )
+                WebSocketConnections.add(channelCallNotificationSocket)
+
+                channelCallNotificationSocket.onopen = () => {
+                    channelCallNotificationSocket.send(JSON.stringify({
+                        'type': 'notification.incomingdialogcall',
+                        'sender_username': '{{ current_user.username }}',
+                        'channel_id': channel_id,
+                    }))
+                }
+
+                channelCallNotificationSocket.onclose = function(e){
+
+                }
+                // redeirect on the channel page after call is starting
+                //window.open(`/vw/channel/${channel_id}`, '_self')
+            }
+        })
     }
 
     function MultipleMainPanelException(message){
