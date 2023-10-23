@@ -89,9 +89,14 @@ def get_token(request):
 def channel(request, channel_id):
     current_user_id = request.user.id
     current_profile = Profile.objects.get(user=request.user)
+    channel = Channel.objects.get(id=channel_id)
+
+    channel_profiles = [channel_info.profile for channel_info in channel.channel_infos.all()]
+    if current_profile not in channel_profiles:
+        return redirect('WebChatHome')
+
     private_messages = find_private_messages_list(current_user_id)
     friends = find_friend_list(current_user_id)
-    channel = Channel.objects.get(id=channel_id)
     channel_messages = channel.all_messages.all()
     channels_ids = find_channels_list(current_user_id)
     context = {

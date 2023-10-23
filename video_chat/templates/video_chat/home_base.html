@@ -1295,13 +1295,14 @@
 
         let content_wrapper = document.querySelector('.content_wrapper')
         content_wrapper.appendChild(call_modal_window)
+        setTimeout(() => decline_incoming_call(channel_id, "timeout"), 15_000)
     }
 
     apply_incoming_call = (channel_id) => {
         window.open(`/vw/channel/${channel_id}`, '_self')
     }
 
-    decline_incoming_call = (channel_id) => {
+    decline_incoming_call = (channel_id, status="declined") => {
         close_incoming_call_modal()
 
         // Далее посылаем сигнал об отказе
