@@ -134,6 +134,18 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                                               "sender_profilename": sender_profilename,
                                               "channel_id": channel_id
                                               }))
+        
+    async def notification_calldecline(self, event):
+        status = event['status']
+        declined_username = event['declined_username']
+        declined_profilename = event['declined_profilename']
+        channel_id = event['channel_id']
+
+        await self.send(text_data=json.dumps({"type": 'call_declining',
+                                              "sender_username": declined_username,
+                                              "sender_profilename": declined_profilename,
+                                              "channel_id": channel_id
+                                              }))
     
 class FriendRequestConsumer(AsyncWebsocketConsumer):
     """

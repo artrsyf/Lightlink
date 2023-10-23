@@ -593,6 +593,9 @@
                     close_incoming_call_modal()
                     create_incoming_call_modal_window(sender_profilename, channel_id)
                 }
+                else if (data.type == 'call_declining'){
+                    alert('Declined')
+                }
                 else{
                     console.error("Unrecognized ws input type")
                 }
@@ -882,7 +885,7 @@
                                 'channel_id': channel_id,
                                 'message': `${message}`
                             }))
-                            channelNotificationSocket.close()
+                            // channelNotificationSocket.close()
                         }
                         // after message sending
                         message_input_field.value = ''
@@ -1306,6 +1309,25 @@
         close_incoming_call_modal()
 
         // Далее посылаем сигнал об отказе
+
+        const channelNotificationSocket = new WebSocket(
+            ws_scheme
+            + window.location.host
+            + '/ws/service/notification/'
+            + `${channel_id}`
+            + '/'
+        )
+        WebSocketConnections.add(channelNotificationSocket)
+
+        channelNotificationSocket.onopen = () => {
+            channelNotificationSocket.send(JSON.stringify({
+                'type': 'notification.calldecline',
+                'status': status,
+                'declined_username': '{{ current_user.username }}',
+                'declined_profilename': '{{ current_profile.profile_name }}',
+                'channel_id': `${channel_id}`
+            }))
+        }
     }
 
     close_incoming_call_modal = () => {
