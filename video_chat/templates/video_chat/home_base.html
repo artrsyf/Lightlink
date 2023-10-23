@@ -361,6 +361,7 @@
             height: 100%;
             width: 100%;
             display: flex;
+            position: relative;
             flex-direction: column;
             jistify-content: center;
             align-items: center;
@@ -369,6 +370,57 @@
             width: 100%;
             height: 50%;
         }
+        {% comment %} For calling modal {% endcomment %}
+
+        .incoming_call_wrapper{
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+        .incoming_call_modal_background{
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0.3;
+            z-index: 0;
+        }
+        .incoming_call_modal_wrapper{
+            width: 20%;
+            height: 15%;
+            position: absolute;
+            background-color: aqua;
+            z-index: 1; 
+            left: 0; 
+            right: 0;
+            top: 0;
+            bottom: 0; 
+            margin: auto;
+            padding: 5px;
+        }
+        .incoming_call_modal_content{
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .incoming_call_modal_content_header{
+            display: flex;
+            flex-direction: row;
+        }
+        .incoming_call_modal_content_header_space{
+            flex-grow: 1;
+        }
+        .incoming_call_modal_content_header_panel{
+    
+        }
+        .incoming_call_modal_content_panel{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+
+        {% comment %}  {% endcomment %}
         
     </style>
 </head>
@@ -538,7 +590,8 @@
                     let sender_profilename = data.sender_profilename
                     let channel_id = data.channel_id
                     // Actions after user got incoming dialog come
-                    alert(`Incoming call from ${sender_profilename} in ${channel_id}`)
+                    close_incoming_call_modal()
+                    create_incoming_call_modal_window(sender_profilename, channel_id)
                 }
                 else{
                     console.error("Unrecognized ws input type")
@@ -862,7 +915,7 @@
                     ws_scheme
                     + window.location.host
                     + '/ws/service/notification/'
-                    + {{ channel_id }}
+                    + channel_id
                     + '/'
                 )
                 WebSocketConnections.add(channelCallNotificationSocket)
@@ -879,7 +932,7 @@
 
                 }
                 // redeirect on the channel page after call is starting
-                //window.open(`/vw/channel/${channel_id}`, '_self')
+                window.open(`/vw/channel/${channel_id}`, '_self')
             }
         })
     }
@@ -1208,6 +1261,60 @@
 
          return textchat_html
     }
+
+    get_incoming_call_modal_window = (profilename, channel_id) => {
+        let call_modal_window = document.createElement('div')
+        call_modal_window.className = "incoming_call_wrapper"
+        call_modal_window.innerHTML = `<div class="incoming_call_modal_background">
+        </div>
+        <div class="incoming_call_modal_wrapper">
+            <div class="incoming_call_modal_content">
+                <div class="incoming_call_modal_content_header">
+                    <div class="incoming_call_modal_content_header_space">
+
+                    </div>
+                    <div class="incoming_call_modal_content_header_panel">
+                        <button role="button" onclick="close_incoming_call_modal(${channel_id})">x</button>
+                    </div>
+                </div>
+                <div class="incoming_call_modal_content_body">
+                    ${profilename} is calling you
+                </div>
+                <div class="incoming_call_modal_content_panel">
+                    <button role="button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id})">Apply</button>
+                    <button role="button" id="decline_incoming_call_button" onclick="decline_incoming_call(${channel_id})">Decline</button>
+                </div>
+            </div>
+        </div>`
+
+        return call_modal_window
+    }
+
+    create_incoming_call_modal_window = (profilename, channel_id) => {
+        let call_modal_window = get_incoming_call_modal_window(profilename, channel_id)
+
+        let content_wrapper = document.querySelector('.content_wrapper')
+        content_wrapper.appendChild(call_modal_window)
+    }
+
+    apply_incoming_call = (channel_id) => {
+        window.open(`/vw/channel/${channel_id}`, '_self')
+    }
+
+    decline_incoming_call = (channel_id) => {
+        close_incoming_call_modal()
+
+        // Далее посылаем сигнал об отказе
+    }
+
+    close_incoming_call_modal = () => {
+        let incoming_call_wrapper = document.querySelector('.incoming_call_wrapper')
+        let content_wrapper = document.querySelector('.content_wrapper')
+        if (incoming_call_wrapper){
+            content_wrapper.removeChild(incoming_call_wrapper)
+        }
+    }
+
 </script>
 
 {% block aux_script %}{% endblock aux_script %}
