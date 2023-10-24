@@ -1,3 +1,5 @@
+{% load static %}
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +9,7 @@
     <title>Document</title>
     <script src="https://kit.fontawesome.com/3c928d185b.js" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script type="text/javascript" src="{% static 'js/AgoraRTC_N-4.18.2.js' %}"></script>
     <style>
         html, body, ul{
             margin: 0px;
@@ -421,6 +424,147 @@
         }
 
         {% comment %}  {% endcomment %}
+
+        {% comment %} For videochat {% endcomment %}
+
+        .videochat_wrapper{
+            width: 100%;
+            height: 50%;
+            background-color: burlywood;
+        }
+        .videochat_content{
+            width: 100%;
+            height: 100%;
+            padding: 10px 10px 10px 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .videochat_info{
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+        .videocall_status{
+            display: flex;
+            flex-direction: row;
+            width: 13%;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .videocall_toolbar{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 26%;
+        }
+        .videostreams_wrapper{
+            flex-grow: 1;
+            padding-top: 30px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            position: relative;
+        }
+        .videostreams{
+            width: fit-content;
+            height: 100%;
+            display: grid;
+            gap: 10px;
+        }
+        .videostream{
+            background-color: #ddd;
+        }
+        .control_panel_wrapper{
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+        .control_panel{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: centers;
+        }
+
+            .videochat_wrapper{
+        width: 100%;
+        height: 50%;
+        background-color: burlywood;
+    }
+    .videochat_content{
+        width: 100%;
+        height: 100%;
+        padding: 10px 10px 10px 10px;
+        display: flex;
+        flex-direction: column;
+    }
+    .videochat_info{
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    .videocall_status{
+        display: flex;
+        flex-direction: row;
+        width: 13%;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .videocall_toolbar{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width: 26%;
+    }
+    .videostreams_wrapper{
+        flex-grow: 1;
+        padding-top: 30px;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        position: relative;
+    }
+    .videostreams{
+        width: fit-content;
+        height: 100%;
+        display: grid;
+        gap: 10px;
+    }
+    .videostream{
+        background-color: #ddd;
+    }
+    .control_panel_wrapper{
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+    }
+    .control_panel{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: centers;
+    }
+
+    {% comment %}  {% endcomment %}
+
+    {% comment %} For call panel {% endcomment %}
+
+    .call_panel_wrapper{
+        display: flex;
+        flex-direction: row;
+    }
+
+    {% comment %}  {% endcomment %}
         
     </style>
 </head>
@@ -594,6 +738,7 @@
                     create_incoming_call_modal_window(sender_profilename, channel_id)
                 }
                 else if (data.type == 'call_declining'){
+                    // Actions after call declining
                     alert('Declined')
                 }
                 else{
@@ -825,7 +970,9 @@
                 let channel_type_id = data.channel_type_id
                 let channel_messages = data.channel_messages
                 if (channel_type_id == 2){
-                    content_wrapper.innerHTML = `<div>Юзер: ${channel_name}</div><button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">Звонок ${channel_name}</button>`
+                    //
+                    //content_wrapper.innerHTML = `<div>Юзер: ${channel_name}</div><button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">Звонок ${channel_name}</button>`
+                    create_call_panel_element(channel_id, channel_name)
                 }
                 content_wrapper.innerHTML += textchat_generator(channel_messages)
                 const channelURL = `/vw/channel/${channel_id}`
@@ -935,7 +1082,9 @@
 
                 }
                 // redeirect on the channel page after call is starting
-                window.open(`/vw/channel/${channel_id}`, '_self')
+                //window.open(`/vw/channel/${channel_id}`, '_self')
+
+                create_video_chat_element(channel_id, "CHANNEL_NAME")
             }
         })
     }
@@ -1337,6 +1486,187 @@
             content_wrapper.removeChild(incoming_call_wrapper)
         }
     }
+
+    get_video_chat_wrapper = (channel_name, friend_status="") => {
+        let video_chat_element = document.createElement('div')
+        video_chat_element.classList = "videochat_wrapper"
+        video_chat_element.setAttribute("turned", "false")
+
+        let video_chat_html = `
+            <div class="videochat_content">
+                <div class="videochat_info">
+                    <div class="videocall_status">
+                        <div class="info_button">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </div>
+                        <div class="room_name">
+                            CompanionName 
+                        </div>
+                        <div class="companion_status"> <!-- If room is not channel -->
+                            <i class="fa-solid fa-circle"></i>
+                        </div>
+                    </div>
+                    <div class="videocall_toolbar">
+                        <div class="notifications">
+                            <i class="fa-solid fa-bell non-shift"></i>
+                        </div>
+                        <div class="pinned_messages">
+                            <i class="fa-solid fa-thumbtack"></i>
+                        </div>
+                        <div class="chat_members">
+                            <i class="fa-solid fa-user-group"></i>
+                        </div>
+                        <div class="smart_search">
+                            <input type="search" name="" id="">
+                        </div>
+                    </div>
+                </div>
+                <div class="videostreams_wrapper" id="streams_wrapper">
+                    <div class="videostreams" id="streams_store">
+                        <!-- <div class="videostream">
+     
+                        </div>
+                        <div class="videostream">
+                            
+                        </div>
+                        <div class="videostream">
+                            
+                        </div>
+                        <div class="videostream">
+                            
+                        </div>
+                        <div class="videostream">
+                            
+                        </div> -->
+                    </div>
+                    <div class="control_panel_wrapper">
+                        <div class="control_panel">
+                            <div class="share_stream_btn" id="share-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-desktop"></i>
+                                </button>
+                            </div>
+                            <div class="mute_video_btn" id="video-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-video"></i>
+                                </button>
+                            </div>
+                            <div class="mute_mic_btn" id="mic-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-microphone-lines"></i>
+                                </button>
+                            </div>
+                            <div class="leave_room_btn" id="leave-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-phone-slash fa-flip-horizontal"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`
+
+        video_chat_element.innerHTML = video_chat_html
+
+        return video_chat_element
+    }
+
+    create_video_chat_element = (channel_idd, channel_name, friend_status="") => {
+        let video_chat_element = get_video_chat_wrapper(channel_name, friend_status)
+
+        let content_wrapper = document.querySelector('.content_wrapper')
+        if (content_wrapper){
+            let call_panel_element = content_wrapper.querySelector('.call_panel_wrapper')
+            if (call_panel_element){
+                content_wrapper.removeChild(call_panel_element)
+            }
+            content_wrapper.insertBefore(video_chat_element, content_wrapper.firstChild)
+
+            let videostreams = document.getElementById('streams_store')
+            let observer = new MutationObserver(handleChanges);
+            observer.observe(videostreams, observerOptions);
+
+            optimizeVideostreamsWrapper()
+        }
+    }
+
+    get_call_dialog_panel_wrapper = (channel_id, channel_name) => {
+        let call_panel_wrapper = document.createElement('div')
+        call_panel_wrapper.classList = "call_panel_wrapper"
+
+        let call_panel_html = `<div class="friend_data_wrapper">
+            <div class="friend_profilename">${channel_name}</div>
+        </div>
+        <div class="call_active_panel_wrapper">
+            <button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">Звонок ${channel_name}</button>
+        </div>`
+
+        call_panel_wrapper.innerHTML = call_panel_html
+
+        return call_panel_wrapper
+    }
+
+    create_call_panel_element = (channel_id, channel_name) => {
+        let content_wrapper = document.querySelector('.content_wrapper')
+
+        if (content_wrapper){
+            let call_panel_wrapper = get_call_dialog_panel_wrapper(channel_id, channel_name)
+            content_wrapper.innerHTML = ''
+            content_wrapper.appendChild(call_panel_wrapper)
+        }
+    }
+
+    // video_chat functionality
+
+   
+    var defaultStreamWidth = 0
+    const observerOptions = {
+        childList: true,
+        subtree: false,
+        attributes: false
+    };
+    
+
+    findOptimalDimension = (usersCount) => {
+        return Math.ceil(Math.sqrt(usersCount))
+    }
+
+    optimizeVideostreamsWrapper = () => {
+        let streamsContainer = document.getElementsByClassName('videostream')
+        let usersCount = streamsContainer.length
+        if (usersCount > 1){
+            streamsContainer[0].style.width = 'auto'
+            let optimalDimension = findOptimalDimension(usersCount)
+            videostreams.style.gridTemplateColumns = `repeat(${optimalDimension}, 1fr)`;
+            videostreams.style.justifyItems = ''
+            // Идеальная высота - высота грида
+            // Идеальная ширина - 48% грида
+            let maxStreamHeight = videostreams.clientHeight
+            let currentStreamHeight = streamsContainer[0].clientHeight
+            let currentStreamWidth = streamsContainer[0].clientWidth
+            
+            for (let i = 0; i < usersCount; i++){
+                //streamsContainer[i].style.width = `${48 / maxStreamHeight * currentStreamHeight}%`
+                streamsContainer[i].style.width  = `${defaultStreamWidth / Math.ceil(usersCount / optimalDimension)}`
+            }
+        }
+        else{
+            videostreams.style.gridTemplateColumns = ''
+            videostreams.style.justifyItems = 'center'
+            streamsContainer[0].style.width = `${streams_wrapper.clientWidth * 0.48}px`
+            if (defaultStreamWidth == 0) defaultStreamWidth = streamsContainer[0].clientWidth
+        }
+    }
+
+    function handleChanges(mutationsList, observer) {
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+                optimizeVideostreamsWrapper()
+            }
+        }
+    }
+
+    // video_chat functionality end
 
 </script>
 
