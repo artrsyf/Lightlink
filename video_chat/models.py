@@ -29,6 +29,8 @@ class Profile(models.Model):
 
     channels = models.ManyToManyField(Channel, through="ChannelInfo")
 
+    profile_avatar = models.ImageField(default='default_profile_avatar.jpg', upload_to='profile_avatars')
+
     def to_dict(self):
         return {
             'id': self.id,

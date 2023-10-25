@@ -595,7 +595,7 @@
                             {% for private_message in private_messages %}
                             <div class="message_item" id="message_item_{{ private_message.1.channel.id }}" onclick="handleFriendClick({{ private_message.1.channel.id }})">
                                 <div class="user_avatar">
-                                    <img class="messages_users_avatar" src="logo.png" alt="User avatar">
+                                    <img class="messages_users_avatar" src="{{ current_profile.profile_avatar.url }}" alt="User avatar">
                                 </div>
                                 <div class="message_info">
                                     <div class="nickname_data">
@@ -1290,7 +1290,7 @@
     get_friend_item_html = (friend_id, friend_profilename, channel_id) => {
         friend_item_html = `<div class="message_item" id="message_item_${friend_id}" onclick="handleFriendClick(${channel_id})">
             <div class="user_avatar">
-                <img class="messages_users_avatar" src="logo.png" alt="User avatar">
+                <img class="messages_users_avatar" src="{{ current_profile.profile_avatar.url }}" alt="User avatar">
             </div>
             <div class="message_info">
                 <div class="nickname_data">
@@ -1326,7 +1326,7 @@
 
     get_message_item_body_html = (channel_name, profilename, date, content) => {
         let message_item_body = `<div class="user_avatar">
-            <img class="messages_users_avatar" src="logo.png" alt="User avatar">
+            <img class="messages_users_avatar" src="{{ current_profile.profile_avatar.url }}" alt="User avatar">
         </div>
         <div class="message_info">
             <div class="nickname_data">

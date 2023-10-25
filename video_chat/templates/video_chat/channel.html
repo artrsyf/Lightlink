@@ -203,7 +203,7 @@
     }
 
 
-    
+
     .videochat_wrapper{
         width: 100%;
         height: 50%;
@@ -444,52 +444,7 @@
     };
 
     const videostreams = document.getElementById('streams_store')
-    var defaultStreamWidth = 0
-    const observerOptions = {
-        childList: true,
-        subtree: false,
-        attributes: false
-    };
-    
 
-    findOptimalDimension = (usersCount) => {
-        return Math.ceil(Math.sqrt(usersCount))
-    }
-
-    optimizeVideostreamsWrapper = () => {
-        let streamsContainer = document.getElementsByClassName('videostream')
-        let usersCount = streamsContainer.length
-        if (usersCount > 1){
-            streamsContainer[0].style.width = 'auto'
-            let optimalDimension = findOptimalDimension(usersCount)
-            videostreams.style.gridTemplateColumns = `repeat(${optimalDimension}, 1fr)`;
-            videostreams.style.justifyItems = ''
-            // Идеальная высота - высота грида
-            // Идеальная ширина - 48% грида
-            let maxStreamHeight = videostreams.clientHeight
-            let currentStreamHeight = streamsContainer[0].clientHeight
-            let currentStreamWidth = streamsContainer[0].clientWidth
-            
-            for (let i = 0; i < usersCount; i++){
-                //streamsContainer[i].style.width = `${48 / maxStreamHeight * currentStreamHeight}%`
-                streamsContainer[i].style.width  = `${defaultStreamWidth / Math.ceil(usersCount / optimalDimension)}`
-            }
-        }
-        else{
-            videostreams.style.gridTemplateColumns = ''
-            videostreams.style.justifyItems = 'center'
-            streamsContainer[0].style.width = `${streams_wrapper.clientWidth * 0.48}px`
-            if (defaultStreamWidth == 0) defaultStreamWidth = streamsContainer[0].clientWidth
-        }
-    }
-
-    function handleChanges(mutationsList, observer) {
-        for (const mutation of mutationsList) {
-            if (mutation.type === 'childList') {
-                optimizeVideostreamsWrapper()
-            }
-        }
-    }
     const observer = new MutationObserver(handleChanges);
     observer.observe(videostreams, observerOptions);
     checker = () => {
