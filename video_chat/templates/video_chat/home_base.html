@@ -595,7 +595,7 @@
                             {% for private_message in private_messages %}
                             <div class="message_item" id="message_item_{{ private_message.1.channel.id }}" onclick="handleFriendClick({{ private_message.1.channel.id }})">
                                 <div class="user_avatar">
-                                    <img class="messages_users_avatar" src="{{ current_profile.profile_avatar.url }}" alt="User avatar">
+                                    <img class="messages_users_avatar" src="{{ private_message.2 }}" alt="User avatar">
                                 </div>
                                 <div class="message_info">
                                     <div class="nickname_data">
@@ -633,7 +633,7 @@
                     <div class="profile_part">
                         <div class="profile_info">
                             <div class="profile_img_wrapper">
-                                <img class="profile_img" src="logo.svg" alt="Profile_pic">
+                                <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
                             </div>
                             <div class="profile_nicknames">
                                 <div class="profile_nickname">
@@ -1246,9 +1246,10 @@
                     for (const [channel_id, channel_data] of Object.entries(data)) {
                         let channel_name = channel_data.channel_name
                         let sender_profilename = channel_data.sender_profilename
+                        let channel_avatar_url = channel_data.channel_avatar_url
                         let content = channel_data.content
                         let updated_at = channel_data.updated_at
-                        message_items += get_message_item_html(channel_id, channel_name, sender_profilename, updated_at, content)
+                        message_items += get_message_item_html(channel_id, channel_name, sender_profilename, channel_avatar_url, updated_at, content)
                     }
 
                     side_panel.innerHTML = 
@@ -1273,7 +1274,7 @@
                     let friends = data.fresh_friends
                     let friend_items = ''
                     for (let i = 0; i < friends.length; i++){
-                        friend_items += get_friend_item_html(friends[i].friend_info.id, friends[i].friend_info.profilename, friends[i].channel_info.id)
+                        friend_items += get_friend_item_html(friends[i].friend_info.id, friends[i].friend_info.profilename, friends[i].friend_info.profile_avatar_url, friends[i].channel_info.id)
                     }
 
                     side_panel.innerHTML = 
@@ -1287,10 +1288,10 @@
         })
     }
 
-    get_friend_item_html = (friend_id, friend_profilename, channel_id) => {
+    get_friend_item_html = (friend_id, friend_profilename, friend_profile_avatar_url, channel_id) => {
         friend_item_html = `<div class="message_item" id="message_item_${friend_id}" onclick="handleFriendClick(${channel_id})">
             <div class="user_avatar">
-                <img class="messages_users_avatar" src="{{ current_profile.profile_avatar.url }}" alt="User avatar">
+                <img class="messages_users_avatar" src="${friend_profile_avatar_url}" alt="User avatar">
             </div>
             <div class="message_info">
                 <div class="nickname_data">
@@ -1312,11 +1313,11 @@
             if (messages_label && messages_label.innerHTML == "Личные сообщения"){
                 let message_item = document.getElementById(`message_item_${channel_id}`)
                 if (message_item){
-                    let new_message_item_body = get_message_item_body_html(data.channel_name, data.sender_profilename, data.updated_at, data.content)
+                    let new_message_item_body = get_message_item_body_html(data.channel_name, data.sender_profilename, data.channel_avatar_url, data.updated_at, data.content)
                     message_item.innerHTML = new_message_item_body
                 }
                 else{
-                    let new_message_item = get_message_item_html(channel_id, data.channel_name, data.sender_profilename, data.updated_at, data.content)
+                    let new_message_item = get_message_item_html(channel_id, data.channel_name, data.sender_profilename, data.channel_avatar_url, data.updated_at, data.content)
                     let messages_wrapper = document.querySelector('.messages_wrapper')
                     messages_wrapper.innerHTML = new_message_item + messages_wrapper.innerHTML
                 }
@@ -1324,9 +1325,9 @@
         })
     }
 
-    get_message_item_body_html = (channel_name, profilename, date, content) => {
+    get_message_item_body_html = (channel_name, profilename, profile_avatar_url, date, content) => {
         let message_item_body = `<div class="user_avatar">
-            <img class="messages_users_avatar" src="{{ current_profile.profile_avatar.url }}" alt="User avatar">
+            <img class="messages_users_avatar" src="${profile_avatar_url}" alt="User avatar">
         </div>
         <div class="message_info">
             <div class="nickname_data">
@@ -1345,9 +1346,9 @@
         return message_item_body
     }
 
-    get_message_item_html = (channel_id, channel_name, profilename, date, content) => {
+    get_message_item_html = (channel_id, channel_name, profilename, profile_avatar_url, date, content) => {
         let message_item = `<div class="message_item" id="message_item_${channel_id}" onclick="handleFriendClick(${channel_id})">
-            ${get_message_item_body_html(channel_name, profilename, date, content)}
+            ${get_message_item_body_html(channel_name, profilename, profile_avatar_url, date, content)}
         </div>`
         
         return message_item

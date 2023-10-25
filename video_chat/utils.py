@@ -11,15 +11,24 @@ def find_current_profile_with_username(username: str) -> Profile:
     current_profile = Profile.objects.get(user=current_user)
     return current_profile
 
-def find_private_messages_list(user_id: int) -> dict[Channel, Message]:
+def find_private_messages_list(user_id: int):
     current_profile = find_current_profile(user_id)
-    private_messages = {}
+    private_messages = []
 
     current_profile_channels = current_profile.channels.all()
     for channel in current_profile_channels:
+        if channel.channel_type.id == 2:
+            query_result = list(channel.profile_set.all())
+            query_result.remove(current_profile)
+            if len(query_result) > 1:
+                raise Exception('More than 2 users in dialog room')
+            friend_profile = query_result[0]
+            channel_avatar_url = friend_profile.profile_avatar.url
+        else:
+            channel_avatar_url = 'x'
         last_message = channel.all_messages.last()
         if last_message != None:
-            private_messages[channel] = last_message
+            private_messages.append((channel, last_message, channel_avatar_url))
 
     return private_messages
 

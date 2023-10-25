@@ -1,0 +1,6 @@
+<form method="post" action="" id="" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.profilename }}
+    {{ form.profile_avatar }}
+    <button type="submit" class="btn btn-success">Update</button>
+</form>

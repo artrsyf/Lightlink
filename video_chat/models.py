@@ -35,6 +35,7 @@ class Profile(models.Model):
         return {
             'id': self.id,
             'profilename': self.profile_name,
+            'profile_avatar_url': self.profile_avatar.url,
             'user_id': self.user.id,
         }
 

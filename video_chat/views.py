@@ -7,7 +7,7 @@ from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
 from .utils import find_private_messages_list, find_friend_list, find_channels_list, find_current_profile
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from .forms import FriendshipForm
+from .forms import FriendshipForm, ProfileForm
 
 env = environ.Env()
 environ.Env().read_env('../lightlink/')
@@ -22,7 +22,7 @@ def index(request):
         'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
-        'private_messages': private_messages.items(),
+        'private_messages': private_messages,
         'channels_ids': channels_ids
     }
     return render(request, 'video_chat/index.html', context)
@@ -199,8 +199,10 @@ def getChannelLastMessageInfo(request, channel_id):
         # check on multy
         channel_name = ChannelInfo.objects \
             .filter(Q(channel=channel) & ~Q(profile=current_profile)).last().profile.profile_name
+        channel_avatar_url = sender_profile.profile_avatar.url
     else:
             channel_name = 'x'
+            channel_avatar_url = 'x'
             # else from groups
     sender_profilename = sender_profile.profile_name
     content = last_message.content
@@ -209,6 +211,7 @@ def getChannelLastMessageInfo(request, channel_id):
     return JsonResponse({'channel_id': channel_id,
                          'channel_name': channel_name,
                          'sender_profilename': sender_profilename,
+                         'channel_avatar_url': channel_avatar_url,
                          'content': content,
                          'updated_at': updated_at
                          })
@@ -230,8 +233,10 @@ def getMemberPrivateMessagesList(request, user_id):
             friend_profile = ChannelInfo.objects \
                 .filter(Q(channel=channel) & ~Q(profile=current_profile)).last().profile
             channel_name = friend_profile.profile_name
+            channel_avatar_url = friend_profile.profile_avatar.url
         else:
             channel_name = 'x'
+            channel_avatar_url = 'x'
             # else from groups
         sender_profilename = sender_profile.profile_name
         content = last_message.content
@@ -239,6 +244,7 @@ def getMemberPrivateMessagesList(request, user_id):
 
         channels_infos[channel_id] = {'channel_name': channel_name,
                                       'sender_profilename': sender_profilename,
+                                      'channel_avatar_url': channel_avatar_url,
                                       'content': content,
                                       'updated_at': updated_at
                                       }
@@ -264,3 +270,42 @@ def getChannelType(request, channel_id):
         return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Query returned multiple channel objects'}}, status=400)
     except:
         return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Unrecognized error while requesting channel type'}}, status=400)
+
+def editProfile(request):
+    profile = find_current_profile(request.user.id)
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, updated_profile=profile)
+        print(form.errors)
+        if form.is_valid():
+            profile.profile_name = request.POST['profilename']
+            profile.profile_avatar = request.FILES['profile_avatar']
+            profile.save()
+            return JsonResponse({'result': 'ok'})
+    default_form_profile_avatar = profile.profile_avatar \
+        if profile.profile_avatar != 'default_profile_avatar.jpg' else None
+    form = ProfileForm(initial={'profilename': profile.profile_name,
+                                'profile_avatar': default_form_profile_avatar},
+                       updated_profile=profile)
+    context = {'form': form}
+    return render(request, 'video_chat/update_profile.html', context)
+
+# def friendRequest(request):
+#     print('friendrequest ', request.method)
+#     error_default_message = ''
+#     if request.method == 'POST':
+#         form = FriendshipForm(request.POST, sender=request.user)
+#         print(form.errors)
+#         if form.is_valid():
+#             form.save()
+#             return JsonResponse({'result': 'Successfully sent request', 'status': 'success'})
+#         else:
+#             error_default_message = 'Something went wrong'
+#             error_messages = [str(error) for field, errors in form.errors.items() for error in errors]
+#             return JsonResponse({'result': error_messages, 'status': 'failure'})
+#     form = FriendshipForm(sender=request.user)
+#     context = {
+#         'current_user': request.user,
+#         'form': form,
+#         'error': error_default_message
+#     }
+#     return render(request, 'video_chat/friend_request.html', context)
