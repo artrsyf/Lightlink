@@ -1574,7 +1574,7 @@
     }
 
     class AgoraClient{
-        constructor(_chanel_id, _csrf_token, _app_id, _stream_token, _stream_id, _token, _user_id){
+        constructor(_chanel_id, _csrf_token, _app_id=0, _stream_token=0, _stream_id=0, _token=0, _user_id=0){
             this.csrf_token = _csrf_token
             this.channel_id = _chanel_id
             this.client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
@@ -1587,6 +1587,8 @@
             this.stream_id = _stream_id
             this.token = _token
             this.user_id = _user_id
+            this.isSharingEnabled = false
+            this.screenTrack = []
         }
 
         getSessionUserData = async () => {
@@ -1702,12 +1704,13 @@
         }
         
         leaveAndRemovLocalStreams = async () => {
-            for (let i = 0; i < localTracks.length; i++){
+            for (let i = 0; i < this.localTracks.length; i++){
                 this.localTracks[i].stop()
                 this.localTracks[i].close()
             }
         
             await this.client.leave()
+            console.log('Successfully close videocall')
             window.open('/vw/Home', '_self')
         }
         
@@ -1734,22 +1737,22 @@
         }
         
         toggleSharing = async (e) => {
-            if (!isSharingEnabled){
+            if (!this.isSharingEnabled){
                 let withAudio = "enable"
                 let defaultConfig = {}
-                screenTrack = await AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
+                this.screenTrack = await AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
         
-                await this.share_client.publish([screenTrack[0], screenTrack[1]])
+                await this.share_client.publish([this.screenTrack[0], this.screenTrack[1]])
                 e.target.style.backgroundColor = 'green'
-                isSharingEnabled = true
+                this.isSharingEnabled = true
             }
             else{
-                for (const track of screenTrack){
+                for (const track of this.screenTrack){
                     track.stop()
                     track.close()
                 }
         
-                await this.share_client.unpublish([screenTrack[0], screenTrack[1]])
+                await this.share_client.unpublish([this.screenTrack[0], this.screenTrack[1]])
                 document.getElementById(`user-container-${STREAM_ID}`).remove()
                 e.target.style.backgroundColor = 'blue'
                 isSharingEnabled = false
@@ -1779,18 +1782,10 @@
 
             // open new one
 
-            var APP_ID;
-            var USER_ID
-            var TOKEN
-            var STREAM_ID
-            var STREAM_TOKEN
-            let CHANNEL = input_channel_id.toString()
-            
-            let USER_USERNAME = '{{ current_user.username }}'
-            let USER_PROFILENAME = '{{ current_profile.profile_name }}'
-            
-            var isSharingEnabled = false
-            var screenTrack = []
+            if (typeof(obj) !== 'undefined' && obj){
+                obj.leaveAndRemovLocalStreams()
+                delete obj
+            }
             obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
             // constructor(_chanel_id, _csrf_token, _app_id, _stream_token, _stream_id, _token, _user_id)
             obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
@@ -1865,7 +1860,7 @@
     optimizeVideostreamsWrapper = () => {
         let streamsContainer = document.getElementsByClassName('videostream')
         let usersCount = streamsContainer.length
-        videostreams = document.getElementById('streams_store')
+        let videostreams = document.getElementById('streams_store')
         if (usersCount > 1){
             streamsContainer[0].style.width = 'auto'
             let optimalDimension = findOptimalDimension(usersCount)
