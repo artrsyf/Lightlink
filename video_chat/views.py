@@ -103,7 +103,7 @@ def channel(request, channel_id):
         'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
-        'private_messages': private_messages.items(),
+        'private_messages': private_messages,
         'channel_id': channel_id,
         'channel_messages': channel_messages,
         'channels_ids': channels_ids
@@ -259,11 +259,15 @@ def getChannelData(request, channel_id):
     return JsonResponse(channel.to_dict() | {'channel_messages': serialized_channel_messages
                        })
 
-def getChannelType(request, channel_id):
+def getChannelMeta(request, channel_id):
     try:
         channel = Channel.objects.get(id=channel_id)
+        channel_name = channel.channel_name
         channel_type_id = channel.channel_type.id
-        return JsonResponse({'channel_id': channel_id, 'channel_type': channel_type_id})
+        return JsonResponse({'channel_id': channel_id,
+                             'channel_name': channel_name,
+                             'channel_type': channel_type_id
+                             })
     except Channel.DoesNotExist:
         return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Requested channel does not exist'}}, status=400)
     except Channel.MultipleObjectsReturned:
@@ -288,24 +292,3 @@ def editProfile(request):
                        updated_profile=profile)
     context = {'form': form}
     return render(request, 'video_chat/update_profile.html', context)
-
-# def friendRequest(request):
-#     print('friendrequest ', request.method)
-#     error_default_message = ''
-#     if request.method == 'POST':
-#         form = FriendshipForm(request.POST, sender=request.user)
-#         print(form.errors)
-#         if form.is_valid():
-#             form.save()
-#             return JsonResponse({'result': 'Successfully sent request', 'status': 'success'})
-#         else:
-#             error_default_message = 'Something went wrong'
-#             error_messages = [str(error) for field, errors in form.errors.items() for error in errors]
-#             return JsonResponse({'result': error_messages, 'status': 'failure'})
-#     form = FriendshipForm(sender=request.user)
-#     context = {
-#         'current_user': request.user,
-#         'form': form,
-#         'error': error_default_message
-#     }
-#     return render(request, 'video_chat/friend_request.html', context)

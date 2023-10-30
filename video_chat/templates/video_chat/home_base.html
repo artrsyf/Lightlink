@@ -1054,10 +1054,11 @@
     }
 
     start_call = (channel_id) => {
-        fetch(`/vw/get-channel-type/${channel_id}`)
+        fetch(`/vw/get-channel-meta/${channel_id}`)
         .then(response => response.json())
         .then((data) => {
             channel_type_id = data.channel_type
+            channel_name = data.channel_name
 
             // For dialog channels
             if (channel_type_id == 2){
@@ -1084,7 +1085,7 @@
                 // redeirect on the channel page after call is starting
                 //window.open(`/vw/channel/${channel_id}`, '_self')
 
-                create_video_chat_element(channel_id, "CHANNEL_NAME")
+                create_video_chat_element(channel_id, channel_name)
             }
         })
     }
@@ -1572,7 +1573,191 @@
         return video_chat_element
     }
 
-    create_video_chat_element = (channel_idd, channel_name, friend_status="") => {
+    class AgoraClient{
+        constructor(_chanel_id, _csrf_token, _app_id, _stream_token, _stream_id, _token, _user_id){
+            this.csrf_token = _csrf_token
+            this.channel_id = _chanel_id
+            this.client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
+            this.share_client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'})
+            this.localTracks = []
+            this.remoteUsers = {}
+
+            this.app_id = _app_id
+            this.stream_token = _stream_token
+            this.stream_id = _stream_id
+            this.token = _token
+            this.user_id = _user_id
+        }
+
+        getSessionUserData = async () => {
+            let response = await fetch('/vw/get_user_data/')
+            data = await response.json()
+            console.log(`*CLIENT RESPONSE: Successfully parsed user data: ${JSON.stringify(data)}`)
+            if (data.user_id){
+                return data
+            }
+            else{
+                return false;
+            }
+        }
+        
+        getAgoraSDKData = async (csrf_token) => {
+            let response = await new Promise((resolve, reject) => {
+                $.ajax({
+                    url: '/vw/get_agora_sdk_data',
+                    dataType: 'json',
+                    data:{
+                        'csrfmiddlewaretoken': csrf_token
+                    },
+                    method: 'POST',
+                    success: function(data){
+                        console.log('*CLIENT RESPONSE: Successfully parsed Agora app data')
+                        resolve(data)
+                    },
+                    error: function(xhr, error, status){
+                        console.error(`*CLIENT RESPONSE: Could not parse Agora app data with error: ${error}, with status: ${status}`)
+                        reject(error)
+                    }
+                })
+            })
+            return response
+        }
+        
+        joinAndDisplayLocalStream = async () => {
+        
+            this.client.on('user-published', this.handleUserJoined)
+            this.client.on('user-left', this.handleUserLeft)
+        
+            try{
+                await this.share_client.join(this.app_id, this.channel_id, this.stream_token, this.stream_id)
+                console.log('*CLIENT RESPONSE: Successfully create stream client')
+            }
+            catch(ex){
+                console.error('*CLIENT RESPONSE: Could not create stream client, check Agora logs')
+            }
+        
+            try{
+                await this.client.join(this.app_id, this.channel_id, this.token, this.user_id)
+                console.log('*CLIENT RESPONSE: Successfully create client')
+            }
+            catch(ex){
+                console.error('*CLIENT RESPONSE: Could not create client, check Agora logs')
+            }
+        
+            this.localTracks = await AgoraRTC.createMicrophoneAndCameraTracks()
+        
+            let player = `<div class="videostream" id="user-container-${USER_ID}">
+                            <div class="video-player" id="user-${USER_ID}"></div>
+                            <div class="video-player-user-name id="name-user-${USER_ID}">${USER_PROFILENAME}</div>
+                        </div>`
+        
+            document.getElementById('streams_store').insertAdjacentHTML("beforeend", player)
+            this.localTracks[1].play(`user-${USER_ID}`)
+        
+            await this.client.publish([this.localTracks[0], this.localTracks[1]])
+        }
+        
+        handleUserJoined = async (user, mediaType) => {
+            this.remoteUsers[user.uid] = user
+            await this.client.subscribe(user, mediaType)
+        
+            if (mediaType == 'video'){
+                let player = document.getElementById(`user-container-${user.uid}`)
+                if (player != null){
+                    player.remove()
+                }
+                let member;
+        
+                try{
+                    member = await getMember(user)
+                }
+                catch(ex){
+                    console.error("*CLIENT RESPONSE: Could not parse member name")
+                    member = {name: 'Undefined'}
+                }
+        
+                player = `<div class="videostream" id="user-container-${user.uid}">
+                    <div class="video-player" id="user-${user.uid}" name="${member.name}"></div>
+                    <div class="video-player-user-name">${member.name}</div>
+                </div>`
+        
+                document.getElementById('streams_store').insertAdjacentHTML('beforeend', player)
+                user.videoTrack.play(`user-${user.uid}`)
+            }
+        
+            if (mediaType == 'audio'){
+                user.audioTrack.play()
+            }
+        }
+        
+        handleUserLeft = async (user) => {
+            delete this.remoteUsers[user.uid]
+            document.getElementById(`user-container-${user.uid}`).remove()
+        }
+        
+        getMember = async (user) => {
+            let response = await fetch(`/vw/get_member/?uid=${user.uid}`)
+            let member = await response.json()
+            return member
+        }
+        
+        leaveAndRemovLocalStreams = async () => {
+            for (let i = 0; i < localTracks.length; i++){
+                this.localTracks[i].stop()
+                this.localTracks[i].close()
+            }
+        
+            await this.client.leave()
+            window.open('/vw/Home', '_self')
+        }
+        
+        toggleCamera = async (e) => {
+            if (this.localTracks[1].muted){
+                await this.localTracks[1].setMuted(false)
+                e.target.style.backgroundColor = 'green'
+            }
+            else{
+                await this.localTracks[1].setMuted(true)
+                e.target.style.backgroundColor = 'blue'
+            }
+        }
+        
+        toggleMicrophone = async (e) => {
+            if (this.localTracks[0].muted){
+                await this.localTracks[0].setMuted(false)
+                e.target.style.backgroundColor = 'green'
+            }
+            else{
+                await this.localTracks[0].setMuted(true)
+                e.target.style.backgroundColor = 'blue'
+            }
+        }
+        
+        toggleSharing = async (e) => {
+            if (!isSharingEnabled){
+                let withAudio = "enable"
+                let defaultConfig = {}
+                screenTrack = await AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
+        
+                await this.share_client.publish([screenTrack[0], screenTrack[1]])
+                e.target.style.backgroundColor = 'green'
+                isSharingEnabled = true
+            }
+            else{
+                for (const track of screenTrack){
+                    track.stop()
+                    track.close()
+                }
+        
+                await this.share_client.unpublish([screenTrack[0], screenTrack[1]])
+                document.getElementById(`user-container-${STREAM_ID}`).remove()
+                e.target.style.backgroundColor = 'blue'
+                isSharingEnabled = false
+            }
+        }
+    }
+
+    create_video_chat_element = (input_channel_id, channel_name, friend_status="") => {
         let video_chat_element = get_video_chat_wrapper(channel_name, friend_status)
 
         let content_wrapper = document.querySelector('.content_wrapper')
@@ -1587,7 +1772,52 @@
             let observer = new MutationObserver(handleChanges);
             observer.observe(videostreams, observerOptions);
 
-            optimizeVideostreamsWrapper()
+            // optimizeVideostreamsWrapper()
+
+            // close other video_chats
+            // ...
+
+            // open new one
+
+            var APP_ID;
+            var USER_ID
+            var TOKEN
+            var STREAM_ID
+            var STREAM_TOKEN
+            let CHANNEL = input_channel_id.toString()
+            
+            let USER_USERNAME = '{{ current_user.username }}'
+            let USER_PROFILENAME = '{{ current_profile.profile_name }}'
+            
+            var isSharingEnabled = false
+            var screenTrack = []
+            obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
+            // constructor(_chanel_id, _csrf_token, _app_id, _stream_token, _stream_id, _token, _user_id)
+            obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
+                // APP_ID = data.app_id
+                obj.app_id = data.app_id
+                fetch(`/vw/get_token/?channel=${input_channel_id}`)
+                    .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
+                    .then(CONVERSATION_DATA =>{
+                        console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
+            
+                        // USER_ID = CONVERSATION_DATA.user_id
+                        obj.user_id = CONVERSATION_DATA.user_id
+                        obj.token = CONVERSATION_DATA.token
+                        obj.stream_id = CONVERSATION_DATA.stream_id
+                        obj.stream_token = CONVERSATION_DATA.stream_token
+            
+                        document.getElementById('leave-btn').addEventListener('click', obj.leaveAndRemovLocalStreams)
+            
+                        document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
+            
+                        document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
+            
+                        document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
+            
+                        obj.joinAndDisplayLocalStream()
+                })
+            })
         }
     }
 
@@ -1635,6 +1865,7 @@
     optimizeVideostreamsWrapper = () => {
         let streamsContainer = document.getElementsByClassName('videostream')
         let usersCount = streamsContainer.length
+        videostreams = document.getElementById('streams_store')
         if (usersCount > 1){
             streamsContainer[0].style.width = 'auto'
             let optimalDimension = findOptimalDimension(usersCount)
@@ -1652,10 +1883,12 @@
             }
         }
         else{
-            videostreams.style.gridTemplateColumns = ''
-            videostreams.style.justifyItems = 'center'
-            streamsContainer[0].style.width = `${streams_wrapper.clientWidth * 0.48}px`
-            if (defaultStreamWidth == 0) defaultStreamWidth = streamsContainer[0].clientWidth
+            if (videostreams){
+                videostreams.style.gridTemplateColumns = ''
+                videostreams.style.justifyItems = 'center'
+                streamsContainer[0].style.width = `${streams_wrapper.clientWidth * 0.48}px`
+                if (defaultStreamWidth == 0) defaultStreamWidth = streamsContainer[0].clientWidth
+            }
         }
     }
 
