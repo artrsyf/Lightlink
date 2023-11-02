@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinLengthValidator, MaxLengthValidator
+import os
 
 User = get_user_model()
 User._meta.get_field('email')._unique = True
@@ -18,6 +19,14 @@ class Channel(models.Model):
             'channel_name': self.channel_name,
             'channel_type_id': self.channel_type.id
         }
+    
+def avatar_upload_path(instance, filename):
+    CONST_DIRECTORY_PATH = 'profile_avatars/'
+
+    extension = os.path.splitext(filename)[1]
+    new_filename = f"{instance.user.username}{extension}"
+
+    return CONST_DIRECTORY_PATH + new_filename
 
 class Profile(models.Model):
     profile_name = models.CharField(max_length=20, 
@@ -29,7 +38,7 @@ class Profile(models.Model):
 
     channels = models.ManyToManyField(Channel, through="ChannelInfo")
 
-    profile_avatar = models.ImageField(default='default_profile_avatar.jpg', upload_to='profile_avatars')
+    profile_avatar = models.ImageField(default='default_profile_avatar.jpg', upload_to=avatar_upload_path)
 
     def to_dict(self):
         return {
