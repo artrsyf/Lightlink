@@ -955,26 +955,18 @@
         }
     }
 
-    handleFriendClick = (channel_id) => {
-        $.ajax({
-            url: `/vw/get-channel-data/${channel_id}`,
-            dataType: "json",
-            method: 'GET',
-            success: function(data){
-                content_wrapper = document.querySelector('.content_wrapper')
-                main_conversation_panel = document.getElementById('main_conversation_panel')
-                if (main_conversation_panel){
-                    content_wrapper.removeChild(main_conversation_panel)
-                }
-                let channel_name = data.channel_name
-                let channel_type_id = data.channel_type_id
-                let channel_messages = data.channel_messages
-                if (channel_type_id == 2){
-                    //
-                    //content_wrapper.innerHTML = `<div>Юзер: ${channel_name}</div><button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">Звонок ${channel_name}</button>`
-                    create_call_panel_element(channel_id, channel_name)
-                }
-                content_wrapper.innerHTML += textchat_generator(channel_messages)
+    createDefaultChannelElement = (channel_id, channel_name, channel_type_id, channel_messages, current_user_id) => {
+        content_wrapper = document.querySelector('.content_wrapper')
+        main_conversation_panel = document.getElementById('main_conversation_panel')
+        if (main_conversation_panel){
+            content_wrapper.removeChild(main_conversation_panel)
+        }
+
+        if (channel_type_id == 2){
+            create_call_panel_element(channel_id, channel_name)
+        }
+
+        content_wrapper.innerHTML += textchat_generator(channel_messages)
                 const channelURL = `/vw/channel/${channel_id}`
                 window.history.pushState(null, '', channelURL);
                 const channelSocket = new WebSocket(
@@ -1011,7 +1003,7 @@
                         message_input_field = document.querySelector('#textchat_input_message')
                         const message = message_input_field.value
                         channelSocket.send(JSON.stringify({
-                            'user_id': {{ current_user.id }},
+                            'user_id': current_user_id,
                             'channel_id': channel_id,
                             'message': message
                         }))
@@ -1040,6 +1032,20 @@
                         refresh_private_message(channel_id)
                     }
                 };
+    }
+
+    handleFriendClick = (channel_id) => {
+        $.ajax({
+            url: `/vw/get-channel-data/${channel_id}`,
+            dataType: "json",
+            method: 'GET',
+            success: function(data){
+                let channel_name = data.channel_name
+                let channel_type_id = data.channel_type_id
+                let channel_messages = data.channel_messages
+                let current_user_id = {{ current_user.id }}
+
+                createDefaultChannelElement(channel_id, channel_name, channel_type_id, channel_messages, current_user_id)
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
