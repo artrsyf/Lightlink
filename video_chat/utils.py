@@ -54,3 +54,11 @@ def find_channels_list(user_id: int) -> list[int]:
     channels_data_list = list(current_profile.channels.all().values())
     channels_ids_list = [channel_data['id'] for channel_data in channels_data_list]
     return channels_ids_list
+
+def findChannelDataWithSerializedMessages(channel_id: int) -> dict:
+    channel = Channel.objects.get(id=channel_id)
+    channel_messages = channel.all_messages.all()
+
+    serialized_channel_messages = [channel_message.to_dict() for channel_message in channel_messages]
+
+    return channel.to_dict() | {'channel_messages': serialized_channel_messages}

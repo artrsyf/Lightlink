@@ -5,7 +5,8 @@ from .models import User, Profile, Channel, ChannelInfo, Friendship
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
-from .utils import find_private_messages_list, find_friend_list, find_channels_list, find_current_profile
+from .utils import find_private_messages_list, find_friend_list, find_channels_list,\
+find_current_profile, findChannelDataWithSerializedMessages
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm, ProfileForm
 
@@ -31,44 +32,6 @@ def return_profile_data(request, _id):
     profile_name = Profile.objects.get(id=_id).profile_name
     return JsonResponse({'profile_name': profile_name})
 
-# this view should create or return existing room (amount of tables in db)
-# def call_process(request):
-#     if request.method == 'POST':
-#         json_content = request.POST.get('content')
-#         content = json.loads(json_content)
-#         sender_id = content['sender_id']
-#         receiver_id = content['receiver_id']
-
-#         print(f'*SERVER RESPONSE: Async post request got with sender_profile_id: {sender_id}')
-#         print(f'*SERVER RESPONSE: Async post request got with receiver_profile_id: {receiver_id}')
-        
-#         sender_profile = Profile.objects.get(id=sender_id)
-#         receiver_profile = Profile.objects.get(id=receiver_id)
-#         try:
-#             channel = Channel.objects\
-#                 .filter(channel_infos__profile=sender_profile, channel_type=2)\
-#                 .get(channel_infos__profile=receiver_profile)
-#             print(f'*SERVER RESPONSE: Channel is using: {channel}')
-#             return JsonResponse({'channel_id': channel.id,
-#                                  'channel_name': channel.channel_name,
-#                                  'channel_type': channel.channel_type.type})
-#         except Channel.DoesNotExist:
-#             new_channel_name = str(sender_id) + '____' + str(receiver_id)
-#             DIALOG_TYPE = 2
-#             channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
-#             new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
-#             ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
-#             ChannelInfo.objects.create(channel=new_channel, profile=receiver_profile)
-#             print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
-#             return JsonResponse({'channel_id': new_channel.id,
-#                                  'channel_name': new_channel.channel_name,
-#                                  'channel_type': new_channel.channel_type.type})
-#         except MultipleObjectsReturned:
-#             print(f'*SERVER RESPONSE: Multiple channels detected')
-#             raise MultipleObjectsReturned
-
-#     return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Invalid request method',
-#                          'REQUEST_METHOD': request.method}}, status=400)
 def get_token(request):
     app_id = env("APP_ID")
     channel_id = request.GET.get('channel')
@@ -87,26 +50,29 @@ def get_token(request):
     return JsonResponse({'channel': channel_id, 'user_id': user_id, 'token': token, 'stream_id': stream_id, 'stream_token': stream_token}, safe=False)
 
 def channel(request, channel_id):
-    current_user_id = request.user.id
-    current_profile = Profile.objects.get(user=request.user)
     channel = Channel.objects.get(id=channel_id)
+    channel_name = channel.channel_name
+    channel_type_id = channel.channel_type.id
 
-    channel_profiles = [channel_info.profile for channel_info in channel.channel_infos.all()]
-    if current_profile not in channel_profiles:
-        return redirect('WebChatHome')
+    current_user_id = request.user.id
 
+    channel_messages_json = json.dumps(findChannelDataWithSerializedMessages(channel_id))
+    current_user_id = request.user.id
     private_messages = find_private_messages_list(current_user_id)
+    current_profile = Profile.objects.get(user=request.user)
     friends = find_friend_list(current_user_id)
-    channel_messages = channel.all_messages.all()
     channels_ids = find_channels_list(current_user_id)
     context = {
         'current_user': request.user,
         'current_profile': current_profile,
         'friends': friends,
         'private_messages': private_messages,
+        'channels_ids': channels_ids,
         'channel_id': channel_id,
-        'channel_messages': channel_messages,
-        'channels_ids': channels_ids
+        'channel_name': channel_name,
+        'channel_type_id': channel_type_id,
+        'channel_messages': channel_messages_json,
+        'current_user_id': current_user_id
     }
     return render(request, 'video_chat/channel.html', context)
 
@@ -251,13 +217,9 @@ def getMemberPrivateMessagesList(request, user_id):
     return JsonResponse(channels_infos)
 
 def getChannelData(request, channel_id):
-    channel = Channel.objects.get(id=channel_id)
-    channel_messages = channel.all_messages.all()
+    full_channel_data_dict = findChannelDataWithSerializedMessages(channel_id)
 
-    serialized_channel_messages = [channel_message.to_dict() for channel_message in channel_messages]
-
-    return JsonResponse(channel.to_dict() | {'channel_messages': serialized_channel_messages
-                       })
+    return JsonResponse(full_channel_data_dict)
 
 def getChannelMeta(request, channel_id):
     try:
