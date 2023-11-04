@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Profile, User, Channel, ChannelType, ChannelInfo, Message, Friendship, FriendRequestType
+from .models import Profile, User, Channel, ChannelType, ChannelInfo, \
+    Message, Friendship, FriendRequestType, Notification, NotificationType, NotificationStatus
 from .utils import find_current_profile, find_current_profile_with_username
 from channels.db import database_sync_to_async
 
@@ -189,6 +190,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         
         self.target = event["target"]
         print(f"verified target - {self.target}")
+        print(self)
 
     @database_sync_to_async
     def get_profiles_data(self, sender_username, friend_username):
@@ -209,6 +211,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
     
     @database_sync_to_async
     def permit_friend_request(self, sender_username, friend_username):
+        print('*****************************')
         """
         Makes async requests in database.
 
@@ -236,6 +239,25 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         if (straight_friendship.status_type != permitted_status_type):
             straight_friendship.status_type = permitted_status_type
             straight_friendship.save()
+
+            # Close friend request notification
+            FRIEND_REQUEST_NOTIFICATION_TYPE = NotificationType.objects.get(id=2)
+            FRIEND_REQUEST_OPENED_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=1)
+            FRIEND_REQUEST_CLOSED_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=2)
+            print('trying')
+            try:
+                existing_notifications = \
+                    Notification.objects.filter(owner_profile=friend_profile, 
+                                             sender_profile=sender_profile,
+                                             notification_status=FRIEND_REQUEST_OPENED_NOTIFICATION_STATUS, 
+                                             notification_type=FRIEND_REQUEST_NOTIFICATION_TYPE)
+            except Notification.DoesNotExist as ex:
+                print("Notif does not exist")
+                raise ex
+            for existing_notification in existing_notifications:
+                existing_notification.status = FRIEND_REQUEST_CLOSED_NOTIFICATION_STATUS
+                existing_notification.save()
+            # 
 
             if (reverse_friendship):
                 if (reverse_friendship.status_type != permitted_status_type):
@@ -306,9 +328,18 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         else:
             print(f'*SERVER RESPONSE: Error while declining friend request \
                           from sender_username: {sender_username} to \
-                          friend_username: {friend_username}')
-            
-            raise Exception("Already declined, check consumers.py")
+                          friend_username: {friend_username}. \
+                    Already declined, check consumers.py')
+            return 'already_declined'
+        
+    @database_sync_to_async
+    def createFriendRequestNotification(self, sender_username, friend_username):
+        FRIEND_REQUEST_NOTIFICATION_TYPE = NotificationType.objects.get(id=2)
+        FRIEND_REQUEST_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=1)
+        Notification.objects.create(notification_type=FRIEND_REQUEST_NOTIFICATION_TYPE, \
+                                    owner_profile=find_current_profile_with_username(friend_username), \
+                                    sender_profile=find_current_profile_with_username(sender_username), \
+                                    notification_status = FRIEND_REQUEST_NOTIFICATION_STATUS)
 
     # Если получилось установить таргет - значит, это получатель запроса на добавление в друзья.
     # В противном случае возникнет управляемое исключение об отсутствии атрибута self.target
@@ -337,6 +368,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                 profiles_data = await self.get_profiles_data(sender_username, friend_username)
                 sender_profilename = profiles_data['sender_profilename']
                 friend_profilename = profiles_data['friend_profilename']
+
+                await self.createFriendRequestNotification(sender_username, friend_username)
 
                 await self.send(text_data=json.dumps({"type": 'request',
                                                       "sender_username": sender_username,
@@ -382,7 +415,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                 response = await self.permit_friend_request(sender_username, friend_username)
                 status = response['status']
                 channel_id = response['channel_id']
-            except:
+            except Exception as ex:
+                print(ex)
                 status = 'failure'
                 channel_id = -1
 

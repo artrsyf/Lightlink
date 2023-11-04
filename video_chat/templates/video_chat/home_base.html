@@ -112,7 +112,7 @@
         ws_scheme
         + window.location.host
         + '/ws/service/friend-request/'
-        + '{{ current_user }}'
+        + '{{ current_user.username }}'
         + '/'
     )
     WebSocketConnections.add(myFriendSocket)
@@ -261,7 +261,7 @@
     myFriendSocket.onopen = () => {
         myFriendSocket.send(JSON.stringify({
             'type': 'friendrequest.verif',
-            'target': '{{ current_user }}'
+            'target': '{{ current_user.username }}'
         }))
 
         myFriendSocket.onmessage = (e) => {
@@ -378,6 +378,9 @@
                 }
                 else if (status == 'failure'){
                     console.error('got error in declining friend request')
+                }
+                else if (status == 'already_declined'){
+                    console.log('friend request is already declined')
                 }
                 else{
                     console.error('Unexpected error')
@@ -676,13 +679,15 @@
     }
 
     closeNotificationModal = () => {
-        main_panel = document.getElementsByClassName('main_panel')[0]
-        modal = document.getElementsByClassName('notification_modal_wrapper')[0]
-        modal.style["opacity"] = "0"
-        modal.addEventListener('transitionend', () => {
-            modal.style["display"] = "none"
-            main_panel.removeChild(modal)
-        });
+        main_panel = document.querySelector('.main_panel')
+        modal = document.querySelector('.notification_modal_wrapper')
+        if (modal){
+            modal.style["opacity"] = "0"
+            modal.addEventListener('transitionend', () => {
+                modal.style["display"] = "none"
+                main_panel.removeChild(modal)
+            });
+        }    
     }
     refresh_private_messages_list = (user_id) => {
         fetch(`/vw/get-member-private-messages-list/${user_id}`)
@@ -714,6 +719,33 @@
         })
     }
 
+    refresh_notifications_list = (user_id) => {
+        fetch(`/vw/get-member-notifications/${user_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            let messages_label = document.querySelector('.messages_label')
+            if (messages_label && messages_label.innerHTML != "Уведомления"){
+                side_panel = get_side_panel()
+                if (side_panel){
+                    if (side_panel){
+                        let notifications = data.fresh_notifications
+                        let notification_items = ''
+                        for (notification of notifications){
+                            notification_items += get_notification_item_html(notification.notification_type_id, notification.sender_username, notification.sender_profilename, notification.owner_username, notification.owner_profilename, notification.status)
+                        }
+
+                        side_panel.innerHTML = 
+                        `<div class="messages_label">Уведомления</div>
+                            <div class="messages_wrapper">
+                                ${notification_items}
+                            </div>
+                        </div>`
+                    }
+                }
+            }
+        })
+    }
+
     refresh_friends_list = (user_id, key=false) => {
         fetch(`/vw/get-member-friends/${user_id}`)
         .then(response => response.json())
@@ -737,6 +769,51 @@
                 } 
             } 
         })
+    }
+
+    get_notification_item_html = (notification_type_id, sender_username, sender_profilename, friend_username, friend_profilename, status) => {
+        switch(notification_type_id){
+            case 1:
+                return get_missing_call_notification_item_html()
+            case 2:
+                return get_friend_request_notification_item_html(sender_username, sender_profilename, friend_username, friend_profilename, status)
+            default:
+                console.error('Unrecognized notification type')
+                break
+        }
+    }
+
+    get_missing_call_notification_item_html = () => {
+
+    }
+    
+    get_friend_request_notification_item_html = (sender_username, sender_profilename, friend_username, friend_profilename, status) => {
+        let friend_request_notification_item_panel_html = ''
+        switch(status){
+            case 'opened':
+                friend_request_notification_item_panel_html = `<div class="notification_content_panel">
+                    <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Принять</button>
+                    <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Отклонить</button>
+                </div>`
+            case 'closed':
+                break
+            default:
+                break
+        }
+
+        let friend_request_notification_item_html = `<div class="message_item">
+            <div class="notification_content">
+                <div class="notification_content_header">
+                    Новая заявка в друзья
+                </div>
+                <div class="notification_content_body">
+                    ${sender_profilename} хочет добавить вас в друзья
+                </div>
+                ${friend_request_notification_item_panel_html}
+            </div>
+        </div>`
+
+        return friend_request_notification_item_html
     }
 
     get_friend_item_html = (friend_id, friend_profilename, friend_profile_avatar_url, channel_id) => {
@@ -834,6 +911,12 @@
     }
 
     switch_on_notifications = () => {
+        let messages_label = document.querySelector('.messages_label')
+        if (!messages_label || messages_label.innerHTML == "Уведомления"){
+            return
+        }
+
+        refresh_notifications_list({{ current_user.id }})
     }
 
     textchat_message_generator = (profilename, message_content) => {

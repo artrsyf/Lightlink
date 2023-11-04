@@ -17,5 +17,6 @@ urlpatterns = [
     path('get-member-private-messages-list/<int:user_id>', getMemberPrivateMessagesList),
     path('get-channel-data/<int:channel_id>', getChannelData),
     path('get-channel-meta/<int:channel_id>', getChannelMeta),
-    path('edit-profile', editProfile)
+    path('edit-profile', editProfile),
+    path('get-member-notifications/<int:user_id>', getMemberNotifications)
 ]

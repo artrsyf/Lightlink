@@ -254,3 +254,12 @@ def editProfile(request):
                        updated_profile=profile)
     context = {'form': form}
     return render(request, 'video_chat/update_profile.html', context)
+
+def getMemberNotifications(request, user_id):
+    current_profile = find_current_profile(user_id)
+    notifications_serialized = []
+
+    notifications = current_profile.all_notifications.all()
+    notifications_serialized = [notification.to_dict() for notification in notifications]
+
+    return JsonResponse({'fresh_notifications': notifications_serialized})

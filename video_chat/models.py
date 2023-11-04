@@ -88,9 +88,24 @@ class Message(models.Model):
         }
     
 class NotificationType(models.Model):
-    type =  models.CharField(null=False)
+    type = models.CharField(null=False)
+
+class NotificationStatus(models.Model):
+    status = models.CharField(null=False)
 
 class Notification(models.Model):
     notification_type= models.ForeignKey(NotificationType, on_delete=models.PROTECT, null=False)
-    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='all_notifications')
-    
+    owner_profile = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='all_notifications')
+    sender_profile = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, related_name='all_sent_notifications')
+    notification_status = models.ForeignKey(NotificationStatus, on_delete=models.PROTECT, null=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'notification_type_id': self.notification_type.id,
+            'owner_username': self.owner_profile.user.username,
+            'owner_profilename': self.owner_profile.profile_name,
+            'sender_username': self.sender_profile.user.username,
+            'sender_profilename': self.sender_profile.profile_name,
+            'status': self.notification_status.status
+        }
