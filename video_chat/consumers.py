@@ -5,6 +5,10 @@ from .models import Profile, User, Channel, ChannelType, ChannelInfo, \
 from .utils import find_current_profile, find_current_profile_with_username
 from channels.db import database_sync_to_async
 
+import redis
+
+r = redis.Redis(host='localhost', port=6379, db=0) 
+
 class ChatConsumer(AsyncWebsocketConsumer):
     """
     A class to handle WebSocket connections connected with text chates in channels.
@@ -189,8 +193,9 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         """
         
         self.target = event["target"]
+        r.set(self.room_group_name, event["target"])
         print(f"verified target - {self.target}")
-        print(self)
+        print(r.get(self.room_group_name).decode('utf-8'))
 
     @database_sync_to_async
     def get_profiles_data(self, sender_username, friend_username):
@@ -363,8 +368,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend_username = event["friend_username"]
 
         try:
-            if (self.target == friend_username):
-                print(f"*SERVER RESPONSE: Sent request only to {self.target}")
+            if (r.get(self.room_group_name).decode('utf-8') == friend_username):
+                print(f"*SERVER RESPONSE: Sent request only to {r.get(self.room_group_name).decode('utf-8')}")
                 profiles_data = await self.get_profiles_data(sender_username, friend_username)
                 sender_profilename = profiles_data['sender_profilename']
                 friend_profilename = profiles_data['friend_profilename']
@@ -402,7 +407,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         isTarget = True
 
         try:
-            if (self.target == friend_username):
+            if (r.get(self.room_group_name).decode('utf-8') == friend_username):
                 print('*SERVER RESPONSE: Processed confirmation only from target')
         except AttributeError:
             print(f'*SERVER RESPONSE: Deny processing in confirmation \
@@ -460,7 +465,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         isTarget = True
 
         try:
-            if (self.target == friend_username):
+            if (r.get(self.room_group_name).decode('utf-8') == friend_username):
                 print('*SERVER RESPONSE: Processed readytorefresh only from target')
         except AttributeError:
             print(f'*SERVER RESPONSE: Deny processing in readytorefresh \
@@ -495,7 +500,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         isTarget = True
 
         try:
-            if (self.target == friend_username):
+            if (r.get(self.room_group_name).decode('utf-8') == friend_username):
                 print('*SERVER RESPONSE: Processed dataready only from target')
         except AttributeError:
             print(f'*SERVER RESPONSE: Deny processing in dataready \
@@ -530,7 +535,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         isTarget = True
 
         try:
-            if (self.target == friend_username):
+            if (r.get(self.room_group_name).decode('utf-8') == friend_username):
                 print('*SERVER RESPONSE: Processed abolition only from target')
         except AttributeError:
             print(f'*SERVER RESPONSE: Deny processing in abolition \

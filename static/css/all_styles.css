@@ -126,7 +126,7 @@ body{
     margin-top: 5px;
     overflow-y: auto;
     overflow-x: hidden;
-    max-height: 75vh;
+    max-height: 72vh;
 }
 .message_item{
     display: flex;
