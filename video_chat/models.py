@@ -85,4 +85,12 @@ class Message(models.Model):
             'content': self.content,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
-        } 
+        }
+    
+class NotificationType(models.Model):
+    type =  models.CharField(null=False)
+
+class Notification(models.Model):
+    notification_type= models.ForeignKey(NotificationType, on_delete=models.PROTECT, null=False)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='all_notifications')
+    
