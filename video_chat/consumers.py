@@ -9,7 +9,7 @@ import redis
 import environ
 
 env = environ.Env()
-environ.Env().read_env('../lightlink/')
+environ.Env().read_env("../lightlink/")
 
 redis_adapter = redis.Redis(host=env("REDIS_HOST"),
                             port=env("REDIS_PORT"),
@@ -122,7 +122,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         channel_id = event["channel_id"]
         #** db request.....
 
-        await self.send(text_data=json.dumps({"type": 'message_notification',
+        await self.send(text_data=json.dumps({"type": "message_notification",
                                               "sender_profilename": sender_profilename,
                                               "sender_username": sender_username,
                                               "channel_id": channel_id,
@@ -136,24 +136,24 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         
     async def notification_incomingdialogcall(self, event):
-        sender_username = event['sender_username']
-        channel_id = event['channel_id']
+        sender_username = event["sender_username"]
+        channel_id = event["channel_id"]
         sender_profile = await self.create_notification_and_get_profile(sender_username)
         sender_profilename = sender_profile.profile_name
 
-        await self.send(text_data=json.dumps({"type": 'incoming_dialog_call',
+        await self.send(text_data=json.dumps({"type": "incoming_dialog_call",
                                               "sender_username": sender_username,
                                               "sender_profilename": sender_profilename,
                                               "channel_id": channel_id
                                               }))
         
     async def notification_calldecline(self, event):
-        status = event['status']
-        declined_username = event['declined_username']
-        declined_profilename = event['declined_profilename']
-        channel_id = event['channel_id']
+        status = event["status"]
+        declined_username = event["declined_username"]
+        declined_profilename = event["declined_profilename"]
+        channel_id = event["channel_id"]
 
-        await self.send(text_data=json.dumps({"type": 'call_declining',
+        await self.send(text_data=json.dumps({"type": "call_declining",
                                               "sender_username": declined_username,
                                               "sender_profilename": declined_profilename,
                                               "channel_id": channel_id
@@ -163,6 +163,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
     """
     A class to handle WebSocket connections connected with friend requestes 
     and conforming notifications.
+    
+    Define witch user owns the Consumer object.
     """
 
     async def connect(self):
@@ -194,7 +196,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         """
         Processes the distribution of the recieve(self, text_data) method with type: friendrequest.verif.
 
-        Makes the attribute "target" with username only for owner of this WebSocket connection.
+        Makes the attribute "target" with username of receiver and sets this value in
+        redis db with the room_group_name key.
 
         The owner of the WebSocket connection - user which can only take 
         friend requestes trough this connection.
@@ -203,9 +206,9 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         target = event["target"]
         if self.room_name == target:
             redis_adapter.set(self.room_group_name, target)
-            print(f"verified target - {target}")
+            print(f"*SERVER RESPONSE: Verified target - {target}")
         else:
-            print(f'Unexpected detour from user with username {target}')
+            print(f"*SERVER RESPONSE: Unexpected detour from user with username {target}")
 
     @database_sync_to_async
     def get_profiles_data(self, sender_username, friend_username):
@@ -222,7 +225,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend_profile = find_current_profile_with_username(friend_username)
         friend_profilename = friend_profile.profile_name
 
-        return {'sender_profilename': sender_profilename, 'friend_profilename': friend_profilename}
+        return {"sender_profilename": sender_profilename, "friend_profilename": friend_profilename}
     
     @database_sync_to_async
     def permit_friend_request(self, sender_username, friend_username):
@@ -236,6 +239,9 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         then check the existence of friend request from sender to receiver
         and from receiver to sender, after that permits existing records
         in database.
+
+        Also this method closes existing notifications connected with found
+        friend request records.
         """
 
         sender_profile = find_current_profile_with_username(sender_username)
@@ -259,29 +265,27 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
             FRIEND_REQUEST_OPENED_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=1)
             FRIEND_REQUEST_CLOSED_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=2)
 
-            try:
-                existing_notifications = \
-                    Notification.objects.filter(owner_profile=friend_profile, 
-                                             sender_profile=sender_profile,
-                                             notification_status=FRIEND_REQUEST_OPENED_NOTIFICATION_STATUS, 
-                                             notification_type=FRIEND_REQUEST_NOTIFICATION_TYPE)
-            except Notification.DoesNotExist as ex:
-                print("Notif does not exist")
-                raise ex
+            existing_notifications = \
+                Notification.objects.filter(owner_profile=friend_profile, 
+                                            sender_profile=sender_profile,
+                                            notification_status=FRIEND_REQUEST_OPENED_NOTIFICATION_STATUS, 
+                                            notification_type=FRIEND_REQUEST_NOTIFICATION_TYPE)
+            if not existing_notifications.exists():
+                print("*SERVER RESPONSE: Notifications do not exist")
+
             for existing_notification in existing_notifications:
-                existing_notification.status = FRIEND_REQUEST_CLOSED_NOTIFICATION_STATUS
+                existing_notification.notification_status = FRIEND_REQUEST_CLOSED_NOTIFICATION_STATUS
                 existing_notification.save()
-            # 
 
             if (reverse_friendship):
                 if (reverse_friendship.status_type != permitted_status_type):
                     reverse_friendship.status_type = permitted_status_type
                     reverse_friendship.save()
                 else:
-                    print(f'*SERVER RESPONSE: Error while permitting friend request \
-                          from reverse_friendship: sender_username: {sender_username} \
-                          friend_username: {friend_username}. \
-                          reverse friendship request is already permitted')
+                    print("*SERVER RESPONSE: Error while permitting friend request"
+                          f"from reverse_friendship: sender_username: {sender_username}"
+                          f"friend_username: {friend_username}."
+                          "reverse friendship request is already permitted")
                     
                     raise Exception("Already permitted by other user, check consumers.py")
 
@@ -291,24 +295,24 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                     .get(channel_infos__profile=friend_profile)
                 channel_id = existing_channel.id
             except Channel.DoesNotExist:
-                new_channel_name = str(sender_username) + '____' + str(friend_username)
+                new_channel_name = str(sender_username) + "____" + str(friend_username)
                 DIALOG_TYPE = 2
                 channel_dialog_type = ChannelType.objects.get(id=DIALOG_TYPE)
                 new_channel = Channel.objects.create(channel_name=new_channel_name, channel_type=channel_dialog_type)
                 ChannelInfo.objects.create(channel=new_channel, profile=sender_profile)
                 ChannelInfo.objects.create(channel=new_channel, profile=friend_profile)
                 channel_id = new_channel.id
-                print(f'*SERVER RESPONSE: Channel was created: {new_channel}')
+                print(f"*SERVER RESPONSE: Channel was created: {new_channel}")
 
-            print(f'*SERVER RESPONSE: Successfully permitted friend request \
-                  from sender_username: {sender_username} to friend_username: {friend_username}')
+            print("*SERVER RESPONSE: Successfully permitted friend request"
+                  f"from sender_username: {sender_username} to friend_username: {friend_username}")
             
-            return {'status': 'success', 'channel_id': channel_id}
+            return {"status": "success", "channel_id": channel_id}
         else:
-            print(f'*SERVER RESPONSE: Error while permitting friend request \
-                          from straight_friendship: sender_username: {sender_username} \
-                          friend_username: {friend_username}. \
-                          straight friendship request is already permitted')
+            print("*SERVER RESPONSE: Error while permitting friend request"
+                  f"from straight_friendship: sender_username: {sender_username}"
+                  f"friend_username: {friend_username}."
+                  "straight friendship request is already permitted")
             
             raise Exception("Already permitted, check consumers.py")
         
@@ -336,20 +340,28 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
             straight_friendship.status_type = declined_status_type
             straight_friendship.save()
 
-            print(f'*SERVER RESPONSE: Successfully declined friend request \
-                  from sender_username: {sender_username} to friend_username: {friend_username}')
-            return 'success'
+            print("*SERVER RESPONSE: Successfully declined friend request"
+                  f"from sender_username: {sender_username} to friend_username: {friend_username}")
+            return "success"
         else:
-            print(f'*SERVER RESPONSE: Error while declining friend request \
-                          from sender_username: {sender_username} to \
-                          friend_username: {friend_username}. \
-                    Already declined, check consumers.py')
-            return 'already_declined'
+            print("*SERVER RESPONSE: Error while declining friend request"
+                  f"from sender_username: {sender_username} to"
+                  f"friend_username: {friend_username}."
+                  "Already declined, check consumers.py")
+            return "already_declined"
         
     @database_sync_to_async
     def createFriendRequestNotification(self, sender_username, friend_username):
+        """
+        Makes async requests in database.
+
+        This method creates open friend request notification
+        according to the new friend request have created.
+        """
+
         FRIEND_REQUEST_NOTIFICATION_TYPE = NotificationType.objects.get(id=2)
         FRIEND_REQUEST_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=1)
+
         Notification.objects.create(notification_type=FRIEND_REQUEST_NOTIFICATION_TYPE, \
                                     owner_profile=find_current_profile_with_username(friend_username), \
                                     sender_profile=find_current_profile_with_username(sender_username), \
@@ -362,8 +374,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         Parses sender username and receiver username from the sent data from the client
         through the WebSocket connection.
 
-        "target" attribute exists only for connection owner, so this method checkes
-        it it called for the target.
+        Checkes whether the receiver is the target.
 
         If it called for the receiver, then user will get message
         with friend request information.
@@ -379,21 +390,21 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
             if (target == self.username):
                 print(f"*SERVER RESPONSE: Sent request only to {target}")
                 profiles_data = await self.get_profiles_data(sender_username, friend_username)
-                sender_profilename = profiles_data['sender_profilename']
-                friend_profilename = profiles_data['friend_profilename']
+                sender_profilename = profiles_data["sender_profilename"]
+                friend_profilename = profiles_data["friend_profilename"]
 
                 await self.createFriendRequestNotification(sender_username, friend_username)
 
-                await self.send(text_data=json.dumps({"type": 'request',
+                await self.send(text_data=json.dumps({"type": "request",
                                                       "sender_username": sender_username,
                                                       "sender_profilename": sender_profilename,
                                                       "friend_username": friend_username,
                                                       "friend_profilename": friend_profilename
                                                       }))
             else:
-                print(f"*SERVER RESPONSE: \
-                  Deny request for none target (sender, strangers): {self.username}, \
-                      when the target: {target}")
+                print("*SERVER RESPONSE:"
+                      f"Deny request for none target (sender, strangers): {self.username},"
+                      f"when the target: {target}")
         except Exception as ex:
             print(f"*SERVER RESPONSE: Received an exception while friend request sending: {ex}")
             raise ex
@@ -408,13 +419,15 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
 
         After that premits friend request and sends different messages for receiver user
         and sender user.
+
+        Other users will be passed.
         """
 
         sender_username = event["sender_username"]
         friend_username = event["friend_username"]
         
-        sender_profilename = event['sender_profilename']
-        friend_profilename = event['friend_profilename']
+        sender_profilename = event["sender_profilename"]
+        friend_profilename = event["friend_profilename"]
 
         try:
             target = redis_adapter.get(self.room_group_name)
@@ -423,16 +436,16 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
 
                 try:
                     response = await self.permit_friend_request(sender_username, friend_username)
-                    status = response['status']
-                    channel_id = response['channel_id']
+                    status = response["status"]
+                    channel_id = response["channel_id"]
                 except Exception as ex:
-                    print(f"*SERVER RESPONSE: Received an exception \
-                          while friend request permitting in database sync_to_async method: {ex}")
+                    print("*SERVER RESPONSE: Received an exception"
+                          f"while friend request permitting in database sync_to_async method: {ex}")
                     
-                    status = 'failure'
+                    status = "failure"
                     channel_id = -1
 
-                await self.send(text_data=json.dumps({"type": 'permitted',
+                await self.send(text_data=json.dumps({"type": "permitted",
                                                     "status": status,
                                                     "channel_id": channel_id,
                                                     "sender_username": sender_username,
@@ -442,18 +455,18 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                                                     }))
 
             elif self.username == sender_username:
-                print(f"*SERVER RESPONSE: \
-                      Sending signal about successfull permitting friend request to request sender: \
-                      {sender_username}, when the receiver is {target}")
+                print("*SERVER RESPONSE:"
+                      "Sending signal about successfull permitting friend request to request sender:"
+                      f"{sender_username}, when the receiver is {target}")
             
-                await self.send(text_data=json.dumps({"type": 'permitted',
-                                                    "state": 'success',
-                                                    'sender_username': sender_username
+                await self.send(text_data=json.dumps({"type": "permitted",
+                                                    "state": "success",
+                                                    "sender_username": sender_username
                                                     }))
             
             else:
-                print(f"*SERVER RESPONSE: Deny processing in confirmation \
-                      for stranger: {self.username}, when the target: {target}")
+                print("*SERVER RESPONSE: Deny processing in confirmation"
+                      f"for stranger: {self.username}, when the target: {target}")
                 
         except Exception as ex:
             print(f"*SERVER RESPONSE: Received an exception while friend request permitting: {ex}")
@@ -478,9 +491,9 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         try:
             target = redis_adapter.get(self.room_group_name)
             if (self.username == target):
-                print(f"*SERVER RESPONSE: Sending signal about ready state \
-                      to parse new friend list data \
-                      for sender: {sender_username} from receiver: {friend_username}")
+                print("*SERVER RESPONSE: Sending signal about ready state"
+                      "to parse new friend list data"
+                      f"for sender: {sender_username} from receiver: {friend_username}")
 
                 print(f"*SERVER RESPONSE: Processed readytorefresh only from target: {target}")
 
@@ -489,9 +502,9 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                                                       "sender_username": sender_username
                                                       }))
             else:
-                print(f"*SERVER RESPONSE: Deny processing in readytorefresh \
-                      for none target (sender, strangers): {self.username}, \
-                      when the target: {target}")
+                print("*SERVER RESPONSE: Deny processing in readytorefresh"
+                      f"for none target (sender, strangers): {self.username},"
+                      f"when the target: {target}")
                 
         except Exception as ex:
             print(f"*SERVER RESPONSE: Received an exception while readytorefresh signal sending: {ex}")
@@ -516,23 +529,23 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         try:
             target = redis_adapter.get(self.room_group_name)
             if self.username == target:
-                print(f"*SERVER RESPONSE: Sending signal about ready state \
-                      of data for the new friend list \
-                      for sender: {sender_username} from receiver: {friend_username}")
+                print("*SERVER RESPONSE: Sending signal about ready state"
+                      "of data for the new friend list"
+                      f"for sender: {sender_username} from receiver: {friend_username}")
                 
                 print(f"*SERVER RESPONSE: Processed dataready only from target: {target}")
             elif self.username == sender_username:
-                print(f"*SERVER RESPONSE: Signaling to sender: {sender_username} \
-                      about data ready state")
+                print(f"*SERVER RESPONSE: Signaling to sender: {sender_username}"
+                      "about data ready state")
 
-                await self.send(text_data=json.dumps({"type": 'data_ready',
+                await self.send(text_data=json.dumps({"type": "data_ready",
                                                       # "status": status,
                                                       "sender_username": sender_username,
                                                       "friend_username": friend_username
                                                       }))
             else:
-                print(f"*SERVER RESPONSE: Deny processing in dataready \
-                  for stranger: {self.username}, when the target: {target}")
+                print("*SERVER RESPONSE: Deny processing in dataready"
+                      f"for stranger: {self.username}, when the target: {target}")
                 
         except Exception as ex:
             print(f"*SERVER RESPONSE: Received an exception while dataready signal sending: {ex}")
@@ -548,13 +561,15 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
 
         After that declines friend request and sends different messages for receiver user
         and sender user.
+
+        Other users will be passed.
         """
 
         sender_username = event["sender_username"]
         friend_username = event["friend_username"]
         
-        sender_profilename = event['sender_profilename']
-        friend_profilename = event['friend_profilename']
+        sender_profilename = event["sender_profilename"]
+        friend_profilename = event["friend_profilename"]
 
         try:
             target = redis_adapter.get(self.room_group_name)
@@ -564,12 +579,12 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                 try:
                     status = await self.decline_friend_request(sender_username, friend_username)
                 except Exception as ex:
-                    print(f"*SERVER RESPONSE: Received an exception \
-                          while declining friend request in  database sync_to_async method: {ex}")
+                    print("*SERVER RESPONSE: Received an exception"
+                          f"while declining friend request in  database sync_to_async method: {ex}")
                     
-                    status = 'failure'
+                    status = "failure"
 
-                await self.send(text_data=json.dumps({"type": 'declined',
+                await self.send(text_data=json.dumps({"type": "declined",
                                                     "status": status,
                                                     "sender_username": sender_username,
                                                     "friend_username": friend_username,
@@ -577,16 +592,16 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                                                     "friend_profilename": friend_profilename
                                                     }))
             elif self.username == friend_username:
-                print(f"*SERVER RESPONSE: Sending signal \
-                      about successfull declining friend request to sender: {friend_username}")
+                print("*SERVER RESPONSE: Sending signal"
+                      f"about successfull declining friend request to sender: {friend_username}")
             
-                await self.send(text_data=json.dumps({"type": 'declined',
-                                                      "state": 'success',
+                await self.send(text_data=json.dumps({"type": "declined",
+                                                      "state": "success",
                                                       "sender_username": sender_username
                                                       }))
             else:
-                print(f"*SERVER RESPONSE: Deny processing in abolition \
-                      for stranger: {self.username}, when the target: {target}")
+                print("*SERVER RESPONSE: Deny processing in abolition"
+                      f"for stranger: {self.username}, when the target: {target}")
         
         except Exception as ex:
             print(f"*SERVER RESPONSE: Received an exception while friend request declining: {ex}")

@@ -82,6 +82,7 @@ body{
 }
 .interactive_panel{
     flex-grow: 1;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -196,8 +197,8 @@ body{
     justify-content: center;
 }
 .main_panel_wrapper{
-    /* height: 75%; */
-    margin-top: 5%;
+    height: 95%;
+    padding-top: 5%;
     flex-grow: 1;
     width: 50%;
     display: flex;
