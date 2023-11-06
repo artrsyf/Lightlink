@@ -18,6 +18,8 @@ from django.contrib.auth import get_user_model
 
 from allauth.account.models import EmailAddress
 
+from django.shortcuts import HttpResponseRedirect
+
 def index(request):
     # print('huy', get_current_site(request).domain, 'huy')
     # User.objects.create(password='11223344', is_superuser=False, email='rom.fadeev2017@yandex.ru', is_staff=False, is_active=True, username='eeQeq')
@@ -66,10 +68,14 @@ def activateEmail(request, user, to_email):
     else:
         messages.error(request, f'Problem sending email to {to_email}, check if you typed it correctly.')
 
-
 class RegisterUser(CreateView):
     form_class = RegisterUserForm
     template_name = 'base/registration/register.html'
+
+    def get(self, request, *args, **kwargs):
+        if self.request.user.is_authenticated:
+            return redirect('Home')
+        return super().get(request, *args, **kwargs)
 
     def form_valid(self, form: RegisterUserForm) -> HttpResponse:
         user = form.save(commit=False)

@@ -9,10 +9,12 @@ from .utils import find_private_messages_list, find_friend_list, find_channels_l
 find_current_profile, findChannelDataWithSerializedMessages
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm, ProfileForm
+from django.contrib.auth.decorators import login_required
 
 env = environ.Env()
 environ.Env().read_env('../lightlink/')
 
+@login_required(login_url="/login/")
 def index(request):
     current_user_id = request.user.id
     private_messages = find_private_messages_list(current_user_id)
@@ -28,10 +30,12 @@ def index(request):
     }
     return render(request, 'video_chat/index.html', context)
 
+@login_required(login_url="/login/")
 def return_profile_data(request, _id):
     profile_name = Profile.objects.get(id=_id).profile_name
     return JsonResponse({'profile_name': profile_name})
 
+@login_required(login_url="/login/")
 def get_token(request):
     app_id = env("APP_ID")
     channel_id = request.GET.get('channel')
@@ -49,6 +53,7 @@ def get_token(request):
 
     return JsonResponse({'channel': channel_id, 'user_id': user_id, 'token': token, 'stream_id': stream_id, 'stream_token': stream_token}, safe=False)
 
+@login_required(login_url="/login/")
 def channel(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
     channel_name = channel.channel_name
@@ -76,6 +81,7 @@ def channel(request, channel_id):
     }
     return render(request, 'video_chat/channel.html', context)
 
+@login_required(login_url="/login/")
 def get_user_data(request):
     try:
         user_id = request.session['user_id']
@@ -91,7 +97,8 @@ def get_user_data(request):
     except Exception:
         return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Unexpected Exception',
                                                'REQUEST METHOD': request.method}}, status=400)
-    
+
+@login_required(login_url="/login/")   
 def get_agora_sdk_data(request):
     if request.method == 'POST':
         app_id = env("APP_ID")
@@ -100,6 +107,7 @@ def get_agora_sdk_data(request):
         return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Invalid request method',
                                                 'REQUEST_METHOD': request.method}}, status=400)
 
+@login_required(login_url="/login/")
 def get_member(request):
     try:
         uid = request.GET.get('uid')
@@ -122,6 +130,7 @@ def get_member(request):
             print(f'*SERVER RESPONSE: Requested user does not exist')
             return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Requested user does not exist'}}, status=400)
 
+@login_required(login_url="/login/")
 def friendRequest(request):
     print('friendrequest ', request.method)
     error_default_message = ''
@@ -144,6 +153,7 @@ def friendRequest(request):
     return render(request, 'video_chat/friend_request.html', context)
 
 # Проверить работу на большом количестве пользователей
+@login_required(login_url="/login/")
 def getMemberFriends(request, user_id):
     friends = find_friend_list(user_id)
     friends_serialized = []
@@ -153,9 +163,11 @@ def getMemberFriends(request, user_id):
         friends_serialized.append({'friend_info': friend_info, 'channel_info': channel_info})
     return JsonResponse({'fresh_friends': friends_serialized})
 
+@login_required(login_url="/login/")
 def getMemberChannelsIds(request, user_id):
     return JsonResponse({'channels_ids': find_channels_list(user_id)})
 
+@login_required(login_url="/login/")
 def getChannelLastMessageInfo(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
     current_profile = find_current_profile(request.user.id)
@@ -182,6 +194,7 @@ def getChannelLastMessageInfo(request, channel_id):
                          'updated_at': updated_at
                          })
 
+@login_required(login_url="/login/")
 def getMemberPrivateMessagesList(request, user_id):
     current_profile = find_current_profile(user_id)
     channels_ids = find_channels_list(user_id)
@@ -216,11 +229,13 @@ def getMemberPrivateMessagesList(request, user_id):
                                       }
     return JsonResponse(channels_infos)
 
+@login_required(login_url="/login/")
 def getChannelData(request, channel_id):
     full_channel_data_dict = findChannelDataWithSerializedMessages(channel_id)
 
     return JsonResponse(full_channel_data_dict)
 
+@login_required(login_url="/login/")
 def getChannelMeta(request, channel_id):
     try:
         channel = Channel.objects.get(id=channel_id)
@@ -237,6 +252,7 @@ def getChannelMeta(request, channel_id):
     except:
         return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Unrecognized error while requesting channel type'}}, status=400)
 
+@login_required(login_url="/login/")
 def editProfile(request):
     profile = find_current_profile(request.user.id)
     if request.method == 'POST':
@@ -255,6 +271,7 @@ def editProfile(request):
     context = {'form': form}
     return render(request, 'video_chat/update_profile.html', context)
 
+@login_required(login_url="/login/")
 def getMemberNotifications(request, user_id):
     current_profile = find_current_profile(user_id)
     notifications_serialized = []
