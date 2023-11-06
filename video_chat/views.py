@@ -276,7 +276,7 @@ def getMemberNotifications(request, user_id):
     current_profile = find_current_profile(user_id)
     notifications_serialized = []
 
-    notifications = current_profile.all_notifications.all()
+    notifications = current_profile.all_notifications.all().order_by('-created_at')
     notifications_serialized = [notification.to_dict() for notification in notifications]
 
     return JsonResponse({'fresh_notifications': notifications_serialized})

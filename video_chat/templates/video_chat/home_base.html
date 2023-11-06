@@ -146,7 +146,7 @@
                 if (data.sender_username == '{{ current_user.username }}'){
                     return 
                 }
-                console.log('got new notif')
+                console.log('got new notification')
                 console.log(data)
                 if (data.type == 'message_notification'){
                     let sender_profilename = data.sender_profilename
@@ -357,7 +357,7 @@
                                 else if (previous_notifications.length == 1){
                                     closeNotificationModal()
                                 }
-
+                                refresh_private_message(data.channel_id)
                                 create_new_message_notif(sender_profilename, message)
                             }
                         }
@@ -439,6 +439,7 @@
                     const messages_area = document.querySelector('.messages_area_wrapper')
                     const message = `<div class="message">${profile}||${message_data}</div>`
                     messages_area.innerHTML += message
+                    fix_scroll()
                 }
             
                 channelSocket.onclose = function(e){
@@ -838,15 +839,17 @@
         .then(response => response.json())
         .then((data) => {
             let messages_label = document.querySelector('.messages_label')
+            let messages_wrapper = document.querySelector('.messages_wrapper')
             if (messages_label && messages_label.innerHTML == "Личные сообщения"){
                 let message_item = document.getElementById(`message_item_${channel_id}`)
                 if (message_item){
                     let new_message_item_body = get_message_item_body_html(data.channel_name, data.sender_profilename, data.channel_avatar_url, data.updated_at, data.content)
                     message_item.innerHTML = new_message_item_body
+                    messages_wrapper.removeChild(message_item)
+                    messages_wrapper.insertBefore(message_item, messages_wrapper.firstChild)
                 }
                 else{
                     let new_message_item = get_message_item_html(channel_id, data.channel_name, data.sender_profilename, data.channel_avatar_url, data.updated_at, data.content)
-                    let messages_wrapper = document.querySelector('.messages_wrapper')
                     messages_wrapper.innerHTML = new_message_item + messages_wrapper.innerHTML
                 }
             } 

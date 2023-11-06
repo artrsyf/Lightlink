@@ -30,7 +30,9 @@ def find_private_messages_list(user_id: int):
         if last_message != None:
             private_messages.append((channel, last_message, channel_avatar_url))
 
-    return private_messages
+    return sorted(private_messages, 
+                  key=lambda private_message: private_message[1].updated_at, 
+                  reverse=True)
 
 def find_friend_list(user_id: int) -> list[Profile]:
     current_profile = find_current_profile(user_id)
@@ -40,13 +42,18 @@ def find_friend_list(user_id: int) -> list[Profile]:
     for relation in friendship:
         friend_profile = relation.receiver if relation.sender.id == current_profile.id \
                               else relation.sender
-        channel = Channel.objects\
-                 .filter(channel_infos__profile=current_profile, channel_type=2)\
-                 .get(channel_infos__profile=friend_profile)
+        try:
+            channel = Channel.objects\
+                    .filter(channel_infos__profile=current_profile, channel_type=2)\
+                    .get(channel_infos__profile=friend_profile)
+        except Channel.DoesNotExist:
+            print("*SERVER RESPONSE: Friendship exists but channel was not found for user"
+                  f"with user_id: {user_id}")
+            return []
         
         friend = (friend_profile, channel)
         friends.append(friend)
-    friends = list(set(friends))
+    friends = sorted(list(set(friends)), key=lambda friend: friend[0].profile_name)
     return friends
 
 def find_channels_list(user_id: int) -> list[int]:

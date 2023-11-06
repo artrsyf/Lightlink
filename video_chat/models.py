@@ -98,6 +98,7 @@ class Notification(models.Model):
     owner_profile = models.ForeignKey(Profile, on_delete=models.CASCADE, null=False, related_name='all_notifications')
     sender_profile = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, related_name='all_sent_notifications')
     notification_status = models.ForeignKey(NotificationStatus, on_delete=models.PROTECT, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def to_dict(self):
         return {
