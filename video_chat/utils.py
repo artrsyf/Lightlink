@@ -1,5 +1,7 @@
 from .models import Profile, Friendship, Channel, User, Message
 from django.db.models import Q
+from datetime import datetime, timedelta
+
 
 def find_current_profile(user_id: int) -> Profile:
     current_user = User.objects.get(id=user_id)
@@ -28,6 +30,8 @@ def find_private_messages_list(user_id: int):
             channel_avatar_url = 'x'
         last_message = channel.all_messages.last()
         if last_message != None:
+            last_message.updated_at_processed = convertItemDate(last_message.updated_at \
+                                                                .strftime("%b. %d, %Y, %I:%M %p"))
             private_messages.append((channel, last_message, channel_avatar_url))
 
     return sorted(private_messages, 
@@ -69,3 +73,19 @@ def findChannelDataWithSerializedMessages(channel_id: int) -> dict:
     serialized_channel_messages = [channel_message.to_dict() for channel_message in channel_messages]
 
     return channel.to_dict() | {'channel_messages': serialized_channel_messages}
+
+def convertItemDate(unprocessed_string_date: str) -> str:
+    processed_date = datetime.strptime(unprocessed_string_date, "%b. %d, %Y, %I:%M %p")
+    current_datetime = datetime.now()
+
+    if processed_date.date() == current_datetime.date():
+        return processed_date.strftime("%I:%M %p")
+
+    elif processed_date.date() == (current_datetime - timedelta(days=1)).date():
+        return "Yesterday"
+
+    elif processed_date.year == current_datetime.year:
+        return processed_date.strftime("%b. %d")
+
+    else:
+        return processed_date.strftime("%b. %d %Y")

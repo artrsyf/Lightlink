@@ -6,7 +6,7 @@ import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
 from .utils import find_private_messages_list, find_friend_list, find_channels_list,\
-find_current_profile, findChannelDataWithSerializedMessages
+find_current_profile, findChannelDataWithSerializedMessages, convertItemDate
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm, ProfileForm
 from django.contrib.auth.decorators import login_required
@@ -184,21 +184,22 @@ def getChannelLastMessageInfo(request, channel_id):
             # else from groups
     sender_profilename = sender_profile.profile_name
     content = last_message.content
-    updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
+    unprocessed_updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
+    processed_updated_at = convertItemDate(unprocessed_updated_at)
 
     return JsonResponse({'channel_id': channel_id,
                          'channel_name': channel_name,
                          'sender_profilename': sender_profilename,
                          'channel_avatar_url': channel_avatar_url,
                          'content': content,
-                         'updated_at': updated_at
+                         'updated_at': processed_updated_at
                          })
 
 @login_required(login_url="/login/")
 def getMemberPrivateMessagesList(request, user_id):
     current_profile = find_current_profile(user_id)
     channels_ids = find_channels_list(user_id)
-    channels_infos = {}
+    channels_infos = []
     for channel_id in channels_ids:
         channel = Channel.objects.get(id=channel_id)
 
@@ -219,15 +220,17 @@ def getMemberPrivateMessagesList(request, user_id):
             # else from groups
         sender_profilename = sender_profile.profile_name
         content = last_message.content
-        updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
+        unprocessed_updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
+        processed_updated_at = convertItemDate(unprocessed_updated_at)
 
-        channels_infos[channel_id] = {'channel_name': channel_name,
-                                      'sender_profilename': sender_profilename,
-                                      'channel_avatar_url': channel_avatar_url,
-                                      'content': content,
-                                      'updated_at': updated_at
-                                      }
-    return JsonResponse(channels_infos)
+        channels_infos.append({'channel_id': channel_id,
+                               'channel_name': channel_name,
+                               'sender_profilename': sender_profilename,
+                               'channel_avatar_url': channel_avatar_url,
+                               'content': content,
+                               'updated_at': processed_updated_at
+                               })
+    return JsonResponse(channels_infos, safe=False)
 
 @login_required(login_url="/login/")
 def getChannelData(request, channel_id):

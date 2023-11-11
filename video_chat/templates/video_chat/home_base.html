@@ -49,7 +49,7 @@
                                             {{ private_message.0.channel_name }}
                                         </div>
                                         <div class="message_data">
-                                            {{ private_message.1.updated_at }}
+                                            {{ private_message.1.updated_at_processed }}
                                         </div>
                                     </div>
                                     <div class="conversation_status">
@@ -700,8 +700,9 @@
                 side_panel = get_side_panel()
                 if (side_panel){
                     let message_items = ''
-
-                    for (const [channel_id, channel_data] of Object.entries(data)) {
+                    console.log(data)
+                    for (const channel_data of data) {
+                        let channel_id = channel_data.channel_id
                         let channel_name = channel_data.channel_name
                         let sender_profilename = channel_data.sender_profilename
                         let channel_avatar_url = channel_data.channel_avatar_url
