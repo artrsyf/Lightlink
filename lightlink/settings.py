@@ -97,7 +97,8 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google'
+    'allauth.socialaccount.providers.google',
+    'sass_processor'
 ]
 
 MIDDLEWARE = [
@@ -127,6 +128,12 @@ TEMPLATES = [
             ],
         },
     },
+]
+
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'sass_processor.finders.CssFinder',
 ]
 
 WSGI_APPLICATION = 'lightlink.wsgi.application'
@@ -192,9 +199,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATIC_ROOT = BASE_DIR / 'static_root'
+
 STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
+
+SASS_PROCESSOR_ROOT = BASE_DIR / 'static'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

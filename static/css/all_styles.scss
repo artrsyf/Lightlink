@@ -1,3 +1,13 @@
+$dark_contrast_element_violet_8: #454483;
+$dark_background_violet_color_10: #3c3c53;
+$dark_background_violet_color_9: #4d4d67;
+$light_background_white_color: white;
+$auxiliary_light_color: white;
+$dark_button_hover_violet_color_6: #45455d;
+$dark_button_active_violet_color_6: #575774;
+$main_font_grey_color_5: #858585;
+$aux_font_grey_color_6: #cfcfcf;
+
 html, body, ul{
     margin: 0px;
     padding: 0px;
@@ -29,12 +39,12 @@ body{
 .side_panel{
     height: 100%;
     width: 272px;
-    background-color: lightblue;
+    background-color: $dark_background_violet_color_10;
     display: flex;
     flex-direction: column;
 }
 .profile_panel{
-    background-color: aqua;
+    background-color: $dark_contrast_element_violet_8;
     display:flex;
     flex-direction: column;
 }
@@ -113,27 +123,80 @@ body{
 }
 .side_panel_button{
     width: calc((100% - 10px) / 2);
+    outline: none;
+    background-color: transparent;
+    border-style: none;
+    flex-grow: 1;
+    padding: 8px;
+    border-radius: 5px;   
+    color: $main_font_grey_color_5;
+    
+    &:hover{
+        background-color: $dark_button_hover_violet_color_6;
+        transition: background-color 0.1s ease;
+        color: $aux_font_grey_color_6;
+    }
+
+    &:active{
+        background-color: $dark_button_active_violet_color_6;
+        color: $aux_font_grey_color_6;
+    }
+
+    .side_panel_button_content{
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+
+        .side_panel_button_content_ico{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .side_panel_button_content_name{
+            padding-left: 15px;
+        }
+    }
 }
 .personal_messages{
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    color: $main_font_grey_color_5;
+
+    .messages_label{
+        padding: 7px 5px 5px 10px;
+        font-size: 1.2rem;
+    }
+
+    .messages_wrapper{
+        flex-grow: 1;
+        margin-top: 5px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        max-height: 72vh;
+
+        .message_item{
+            display: flex;
+            flex-direction: row;
+            padding: 5px 10px 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            overflow: hidden;
+
+            &:hover{
+                background-color: $dark_button_hover_violet_color_6;
+                transition: background-color 0.1s ease;
+            }
+
+            &:active{
+                background-color: $dark_button_active_violet_color_6;
+            }
+        }
+    }
 }
-.messages_label{
-    padding: 7px 5px 5px 10px;
-}
-.messages_wrapper{
-    flex-grow: 1;
-    margin-top: 5px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    max-height: 72vh;
-}
-.message_item{
-    display: flex;
-    flex-direction: row;
-    padding: 5px 5px 5px 10px;
-}
+
+
 .messages_users_avatar{
     height:40px;
     width: 40px;
@@ -362,7 +425,7 @@ body{
     display: flex;
     position: relative;
     flex-direction: column;
-    background-color: lightcoral;
+    background-color: $dark_background_violet_color_9;
     /* justify-content: center; */
     align-items: center;
 }
