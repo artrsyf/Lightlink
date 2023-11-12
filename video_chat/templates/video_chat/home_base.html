@@ -1,0 +1,1452 @@
+{% load static %}
+{% load sass_tags %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <title>Document</title>
+    <script src="https://kit.fontawesome.com/3c928d185b.js" crossorigin="anonymous"></script>
+    <link href="{% sass_src 'css/all_styles.scss' %}" rel="stylesheet" type="text/css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script type="text/javascript" src="{% static 'js/AgoraRTC_N-4.18.2.js' %}"></script>
+    {% comment %} <link rel="stylesheet" href="{% static 'css/all_styles.css'%}" type="text/css"> {% endcomment %}
+</head>
+<body>
+    <div class="content">
+        <div class="global_wrapper">
+            <div class="side_panel">
+                <div class="interactive_panel">
+                    <div class="search_panel">
+                        <input placeholder="Search" class="search_input_default" type="search" name="groupSearch" id="search_group">
+                    </div>
+                    <div class="call_manage_buttons">
+                        <button class="side_panel_button" onclick="show_friend_request_field()" role="button" title="Новый чат" aria-label="Новый чат">
+                            <div class="side_panel_button_content">
+                                <div class="side_panel_button_content_ico">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                </div>
+                                <div class="side_panel_button_content_name">
+                                    Добавить в друзья
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="personal_messages">
+                        <div class="messages_label">Личные сообщения</div>
+                        <div class="messages_wrapper">
+                            {% comment %} friend_dialog starts {% endcomment %}
+                            {% for private_message in private_messages %}
+                            <div class="message_item" id="message_item_{{ private_message.1.channel.id }}" onclick="handleFriendClick({{ private_message.1.channel.id }})">
+                                <div class="user_avatar">
+                                    <img class="messages_users_avatar" src="{{ private_message.2 }}" alt="User avatar">
+                                </div>
+                                <div class="message_info">
+                                    <div class="nickname_data">
+                                        <div class="conv_user_nickname">
+                                            {% comment %} User_Nickname {% endcomment %}
+                                            {{ private_message.0.channel_name_processed }}
+                                        </div>
+                                        <div class="message_data">
+                                            {{ private_message.1.updated_at_processed }}
+                                        </div>
+                                    </div>
+                                    <div class="conversation_status">
+                                        {{ private_message.1.profile.profile_name }}||: {{ private_message.1.content }}
+                                    </div>
+                                </div>
+                                
+                            </div>
+                            {% endfor %}
+                            {% comment %} friend_dialog ends {% endcomment %}
+                        </div>
+                    </div>
+                </div>
+                <div class="deal_switching">
+                    <div class="panel_switcher" id="personal_messages_switcher" onclick="switch_on_personal_messages()">
+                        <i class="fa-solid fa-message fa-lg non-shift"></i>
+                    </div>
+                    <div class="panel_switcher" id="friends_switcher" onclick="switch_on_friends()">
+                        <i class="fa-solid fa-address-book fa-lg non-shift"></i>
+                    </div>
+                    <div class="panel_switcher" id="notifications_switcher" onclick="switch_on_notifications()">
+                        <i class="fa-solid fa-bell fa-lg non-shift"></i>
+                    </div>  
+                </div>
+                <div class="profile_panel">
+                    <div class="profile_part">
+                        <div class="profile_info">
+                            <div class="profile_img_wrapper">
+                                <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
+                            </div>
+                            <div class="profile_nicknames">
+                                <div class="profile_nickname">
+                                    {{ current_profile.profile_name }}
+                                </div>
+                                <div class="user_nickname">
+                                    {{ current_user.username }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="profile_options">
+                            <div class="profile_options_btn" id="profile_options_mic">
+                                <i class="fa-solid fa-microphone"></i>
+                            </div>
+                            <div class="profile_options_btn" id="profile_options_sound">
+                                <i class="fa-solid fa-headphones"></i>
+                            </div>
+                            <div class="profile_options_btn" id="profile_options_settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% block main_panel %}{% endblock main_panel %}
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+    const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
+    console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
+
+    const WebSocketConnections = new Set()
+
+    const myFriendSocket = new WebSocket(
+        ws_scheme
+        + window.location.host
+        + '/ws/service/friend-request/'
+        + '{{ current_user.username }}'
+        + '/'
+    )
+    WebSocketConnections.add(myFriendSocket)
+
+    fix_scroll = () => {
+        let element = document.getElementsByClassName('messages_area_wrapper')[0]
+        if (element){
+            element.scrollTop = element.scrollHeight
+            element.style.visibility = 'visible'
+        }
+        else{
+            console.log('cant find textchat wrapper area')
+        }
+    }
+
+    var ids = {{ channels_ids }}
+
+    ids.forEach((channel_id) => {
+        const channel_socket = new WebSocket(
+            ws_scheme
+            + window.location.host
+            + '/ws/service/notification/'
+            + `${channel_id}`
+            + '/'
+        )
+        WebSocketConnections.add(channel_socket)
+
+        channel_socket.onopen = () => {
+            channel_socket.onmessage = (e) => {
+                const data = JSON.parse(e.data)
+                if (data.sender_username == '{{ current_user.username }}'){
+                    return 
+                }
+                console.log('got new notification')
+                console.log(data)
+                if (data.type == 'message_notification'){
+                    let sender_profilename = data.sender_profilename
+                    let message = data.message
+                    
+                    // previous notification check
+                    let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
+                    if (previous_notifications.length > 1){
+                        throw new MultipleNotificationException(previous_notifications.length)
+                    }
+                    else if (previous_notifications.length == 1){
+                        closeNotificationModal()
+                    }
+                    messages_area_wrapper = document.querySelector('.messages_area_wrapper')
+                    let current_path = window.location.pathname
+                    let target_path = `/vw/channel/${data.channel_id}`
+
+                    if ((current_path != target_path) || (!messages_area_wrapper) || (messages_area_wrapper.attributes.turned.value == "true")){
+                        create_new_message_notif(sender_profilename, message)
+                    }
+                    else{
+                        console.log('texchat is not turned')
+                    }
+                    
+                    // refresh messages_list
+                    refresh_private_message(data.channel_id)
+                }
+                else if (data.type == 'incoming_dialog_call'){
+                    let sender_profilename = data.sender_profilename
+                    let channel_id = data.channel_id
+                    // Actions after user got incoming dialog come
+                    close_incoming_call_modal()
+                    create_incoming_call_modal_window(sender_profilename, channel_id)
+                }
+                else if (data.type == 'call_declining'){
+                    // Actions after call declining
+                    alert('Declined')
+                }
+                else{
+                    console.error("Unrecognized ws input type")
+                }
+            }
+        }
+    })
+
+    create_new_message_notif = (sender_profilename, message) => {
+        let date = new Date()
+        
+        let main_panel_element = document.querySelector('.main_panel')
+        let friend_request_notification = document.createElement('div')
+        friend_request_notification.className = 'notification_modal_wrapper'
+        friend_request_notification.innerHTML = 
+            `<div class="friend_request_notification_modal_content">
+                <div class="friend_request_notification_modal_header">
+                    <div class="friend_request_notification_text">
+                        New message!
+                    </div>
+                    <div class="friend_request_notification_exit_button" onclick="closeNotificationModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </div>
+                </div>
+                <div class="friend_request_notification_modal_body">
+                    <div class="friend_request_notification_modal_body_info">
+                        <div class="friend_request_notification_modal_body_message">
+                            ${sender_profilename}: ${message}
+                        </div>
+                        <div class="friend_request_notification_modal_body_date">
+                            ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
+                        </div>
+                    </div>
+                </div>
+            </div>`
+
+        main_panel_element.appendChild(friend_request_notification)
+    }
+
+    permitFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
+        control_buttons = document.getElementsByClassName('friend_request_modal_control_button')
+        for (control_button of control_buttons){
+            control_button.disabled = true
+        }
+        if (myFriendSocket.readyState === WebSocket.OPEN) {
+            myFriendSocket.send(JSON.stringify({
+                'type': 'friendrequest.permit',
+                'sender_username': sender_username,
+                'friend_username': friend_username,
+                'sender_profilename': sender_profilename,
+                'friend_profilename': friend_profilename
+            }))
+            console.log('Permitted friend request')
+        }
+    }
+
+    declineFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
+        control_buttons = document.getElementsByClassName('friend_request_modal_control_button')
+        for (control_button of control_buttons){
+            control_button.disabled = true
+        }
+        if (myFriendSocket.readyState === WebSocket.OPEN) {
+            console.log('sentttttttt')
+            myFriendSocket.send(JSON.stringify({
+                'type': 'friendrequest.decline',
+                'sender_username': sender_username,
+                'friend_username': friend_username,
+                'sender_profilename': sender_profilename,
+                'friend_profilename': friend_profilename
+            }))
+            console.log('Declined friend request')
+        }  
+    }
+
+    myFriendSocket.onopen = () => {
+        myFriendSocket.send(JSON.stringify({
+            'type': 'friendrequest.verif',
+            'target': '{{ current_user.username }}'
+        }))
+
+        myFriendSocket.onmessage = (e) => {
+            const data = JSON.parse(e.data)
+            let main_panel_element = document.querySelector('.main_panel')
+            console.log(data.type)
+            if (data.type == 'request'){
+                let sender_profilename = data.sender_profilename
+                let friend_profilename = data.friend_profilename
+                let sender_username = data.sender_username
+                let friend_username = data.friend_username
+                console.log(`Caught friend request from '${sender_profilename}' to '${friend_profilename}'`)
+                console.log(`You have acquired friend request from ${sender_profilename}`)
+
+                // previous notification check
+                let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
+                if (previous_notifications.length > 1){
+                    throw new MultipleNotificationException(previous_notifications.length)
+                }
+                else if (previous_notifications.length == 1){
+                    closeNotificationModal()
+                }
+
+                let date = new Date()
+                
+                let friend_request_notification = document.createElement('div')
+                friend_request_notification.className = 'notification_modal_wrapper'
+                friend_request_notification.innerHTML = 
+                    `<div class="friend_request_notification_modal_content">
+                        <div class="friend_request_notification_modal_header">
+                            <div class="friend_request_notification_text">
+                                New friend request!
+                            </div>
+                            <div class="friend_request_notification_exit_button" onclick="closeNotificationModal()">
+                                <i class="fa-solid fa-xmark"></i>
+                            </div>
+                        </div>
+                        <div class="friend_request_notification_modal_body">
+                            <div class="friend_request_notification_modal_body_info">
+                                <div class="friend_request_notification_modal_body_message">
+                                    ${sender_profilename} sent you a friend request
+                                </div>
+                                <div class="friend_request_notification_modal_body_date">
+                                    ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
+                                </div>
+                            </div>
+                            <div class="friend_request_notification_modal_body_controls">
+                                <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Accept</button>
+                                <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Ignore</button>
+                            </div>
+                        </div>
+                    </div>`
+
+                main_panel_element.appendChild(friend_request_notification)
+            }
+            else if (data.type == 'permitted'){
+                status = data.status
+                if (status == 'success'){
+                    console.log('successfully added friend')
+                    // Выполняем финальный действия для пользователя, получившего запрос на добавление в друзья
+                    console.log('finalization')
+                    refresh_friends_list({{ current_user.id }}, true)
+
+                    // После добавления в друзья и создания канала подписываемся на уведомления
+                    const new_channel_socket = new WebSocket(
+                        ws_scheme
+                        + window.location.host
+                        + '/ws/service/notification/'
+                        + `${data.channel_id}`
+                        + '/'
+                    )
+
+                    WebSocketConnections.add(new_channel_socket)
+
+                    new_channel_socket.onopen = () => {
+                        new_channel_socket.onmessage = (e) => {
+                            const data = JSON.parse(e.data)
+                            if (data.sender_username == '{{ current_user.username }}'){
+                                return 
+                            }
+                            console.log('got new notif')
+                            console.log(data)
+                            let main_panel_element = document.querySelector('.main_panel')
+                            if (data.type == 'message_notification'){
+                                let sender_profilename = data.sender_profilename
+                                let message = data.message
+                                
+                                // previous notification check
+                                let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
+                                if (previous_notifications.length > 1){
+                                    throw new MultipleNotificationException(previous_notifications.length)
+                                }
+                                else if (previous_notifications.length == 1){
+                                    closeNotificationModal()
+                                }
+                                refresh_private_message(data.channel_id)
+                                create_new_message_notif(sender_profilename, message)
+                            }
+                        }
+                    }
+                }
+                else if (status == 'failure'){
+                    console.error('got error in permitting friend request')
+                }
+                else{
+                    console.error('Unexpected error')
+                }
+                closeNotificationModal()
+            }
+            else if (data.type == 'declined'){
+                status = data.status
+                if (status == 'success'){
+                    console.log('successfully declined friend')
+                }
+                else if (status == 'failure'){
+                    console.error('got error in declining friend request')
+                }
+                else if (status == 'already_declined'){
+                    console.log('friend request is already declined')
+                }
+                else{
+                    console.error('Unexpected error')
+                }
+                closeNotificationModal()
+            }
+            else if (data.type == 'refreshready'){
+                console.log("data is ready")
+                let sender_username = data.sender_username
+                myFriendSocket.send(JSON.stringify({
+                    'type': 'friendrequest.dataready',
+                    'friend_username': '{{ current_user }}',
+                    'sender_username': `${sender_username}`
+                }))
+            }
+            else{
+                console.error(`Unexpeceted data type taken from FriendRequestConsumer(AsyncWebsocketConsumer): ${data.type}`)
+            }
+        }
+    }
+
+    createDefaultChannelElement = (channel_id, channel_name, channel_type_id, channel_messages, current_user_id, channel_avatar_url) => {
+        content_wrapper = document.querySelector('.content_wrapper')
+        main_conversation_panel = document.getElementById('main_conversation_panel')
+        if (main_conversation_panel){
+            content_wrapper.removeChild(main_conversation_panel)
+        }
+
+        if (channel_type_id == 2){
+            create_call_panel_element(channel_id, channel_name, channel_avatar_url)
+        }
+
+        content_wrapper.innerHTML += textchat_generator(channel_messages)
+                const channelURL = `/vw/channel/${channel_id}`
+                window.history.pushState(null, '', channelURL);
+                const channelSocket = new WebSocket(
+                    ws_scheme
+                    + window.location.host
+                    + '/ws/chat/'
+                    + channel_id
+                    + '/'
+                )
+                for (ws of WebSocketConnections){
+                    if (ws.url.includes('/ws/chat/')) {
+                        ws.close()
+                        WebSocketConnections.delete(ws);
+                      }
+                }
+                WebSocketConnections.add(channelSocket)
+                fix_scroll()
+
+                channelSocket.onmessage = function(e){
+                    const data = JSON.parse(e.data)
+                    const profile = data.profile_name
+                    const message_data = data.message
+                    const messages_area = document.querySelector('.messages_area_wrapper')
+                    const message = `<div class="message">${profile}||${message_data}</div>`
+                    messages_area.innerHTML += message
+                    fix_scroll()
+                }
+            
+                channelSocket.onclose = function(e){
+                    console.error('Chat socket closed unexpectedly');
+                }
+            
+                document.querySelector('#textchat_input_message').onkeyup = function(e) {
+                    if (e.key === 'Enter'){
+                        message_input_field = document.querySelector('#textchat_input_message')
+                        const message = message_input_field.value
+                        channelSocket.send(JSON.stringify({
+                            'user_id': current_user_id,
+                            'channel_id': channel_id,
+                            'message': message
+                        }))
+            
+                        let channelNotificationSocket = new WebSocket(
+                            ws_scheme
+                            + window.location.host
+                            + '/ws/service/notification/'
+                            + channel_id
+                            + '/'
+                        )
+            
+                        channelNotificationSocket.onopen = () => {
+                            channelNotificationSocket.send(JSON.stringify({
+                                'type': 'notification.getmessage',
+                                'sender_username': '{{ current_user.username }}',
+                                'sender_profilename': '{{ current_profile.profile_name }}',
+                                'channel_id': channel_id,
+                                'message': `${message}`
+                            }))
+                            // channelNotificationSocket.close()
+                        }
+                        // after message sending
+                        message_input_field.value = ''
+            
+                        refresh_private_message(channel_id)
+                    }
+                };
+    }
+
+    handleFriendClick = (channel_id) => {
+        $.ajax({
+            url: `/vw/get-channel-data/${channel_id}`,
+            dataType: "json",
+            method: 'GET',
+            success: function(data){
+                let channel_name = data.channel_name
+                let channel_type_id = data.channel_type_id
+                let channel_avatar_url = data.channel_avatar_url
+                let channel_messages = data.channel_messages
+                let current_user_id = {{ current_user.id }}
+
+                createDefaultChannelElement(channel_id, channel_name, channel_type_id, channel_messages, current_user_id, channel_avatar_url)
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
+        })
+    }
+
+    data_parser = async (channel_id) => {
+        let response = await fetch(`get_token/?channel=${channel_id}`)
+        let data = await response.json()
+        return data
+    }
+
+    start_call = (channel_id) => {
+        fetch(`/vw/get-channel-meta/${channel_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            channel_type_id = data.channel_type
+            channel_name = data.channel_name
+
+            // For dialog channels
+            if (channel_type_id == 2){
+                const channelCallNotificationSocket = new WebSocket(
+                    ws_scheme
+                    + window.location.host
+                    + '/ws/service/notification/'
+                    + channel_id
+                    + '/'
+                )
+                WebSocketConnections.add(channelCallNotificationSocket)
+
+                channelCallNotificationSocket.onopen = () => {
+                    channelCallNotificationSocket.send(JSON.stringify({
+                        'type': 'notification.incomingdialogcall',
+                        'sender_username': '{{ current_user.username }}',
+                        'channel_id': channel_id,
+                    }))
+                }
+
+                channelCallNotificationSocket.onclose = function(e){
+
+                }
+                // redeirect on the channel page after call is starting
+                //window.open(`/vw/channel/${channel_id}`, '_self')
+
+                create_video_chat_element(channel_id, channel_name)
+            }
+        })
+    }
+
+    function MultipleMainPanelException(message){
+        this.message = message
+        this.name = `*CLIENT RESPONSE: Multiple main panel error: count = ${message}`
+    }
+
+    function MultipleNotificationException(message){
+        this.message = messgae
+        this.name = `*CLIENT RESPONSE: Multiple notification error: count = ${message}`
+    }
+
+    show_friend_request_field = () => {
+        fetch('/vw/add-friend/')
+        .then(response => response.text())
+        .then((data) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, 'text/html');
+            const sendRequestPanel = doc.querySelector('.send_request_panel_wrapper');
+            if (sendRequestPanel) {
+                let content_wrapper = document.querySelector('.content_wrapper')
+                content_wrapper.innerHTML = ''
+                content_wrapper.appendChild(sendRequestPanel)
+                document.getElementById('send_friend_request_form').addEventListener('submit', post_friend_request_ajax)
+            } else {
+                error('*CLIENT RESPONSE: Could not find friend request panel from template');
+            }
+        })
+        .catch(error => {
+            console.error('*CLIENT RESPONSE: Unprocessed exception', error);
+        })
+    }
+
+    post_friend_request_ajax = (e) => {
+        e.preventDefault();
+        const formElement = document.getElementById('send_friend_request_form');
+        const formData = new FormData(formElement);
+        const receiver_username_value = document.querySelector('input[name="receiver_username"]').value
+        receiver_data = {
+            receiver_username: receiver_username_value
+        }
+        json_receiver_data = JSON.stringify(receiver_data)
+        $.ajax({
+            url: '/vw/add-friend/',
+            dataType: 'json',
+            data: formData,
+            method: 'POST',
+            processData: false, // Не обрабатываем данные
+            contentType: false, // Не устанавливаем Content-Type, браузер сам определит его как multipart/form-data
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+                const resultElement = document.getElementById('friend_request_form_errors');
+                let messages = data.result
+                resultElement.innerHTML = ''
+                if (Array.isArray(messages)){
+                    for (let message_index in messages){
+                        resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-${message_index}" >${messages[message_index]}</div>`;
+                    }
+                }
+                else{
+                    resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-0" >${messages}</div>`;
+                }
+                let status = data.status
+                if (status == 'success'){
+                    const friendRequestSocket = new WebSocket(
+                        ws_scheme
+                        + window.location.host
+                        + '/ws/service/friend-request/'
+                        + `${receiver_username_value}`
+                        + '/'
+                    )
+                    WebSocketConnections.add(friendRequestSocket)
+
+                    friendRequestSocket.onopen = () => {
+                        friendRequestSocket.send(JSON.stringify({
+                            'type': 'friendrequest.sendrequest',
+                            'sender_username': '{{ current_user }}',
+                            'friend_username': `${receiver_username_value}`
+                        }))
+                    }
+
+                    friendRequestSocket.onmessage = (e) => {
+                        const data = JSON.parse(e.data)
+
+                        if (data["sender_username"] != '{{ current_user }}'){
+                            return
+                        }
+
+                        console.log('Finalization after permitted friend request')
+
+                        if (data["type"] == "permitted" && data["state"] == "success"){
+                            // Выполняем финальные действия для пользователя, отправившего запрос в друзья
+                            console.log('finalization_for_sender_begins')
+                            friendRequestSocket.send(JSON.stringify({
+                                'type': 'friendrequest.readytorefresh',
+                                'sender_username': '{{ current_user }}',
+                                'friend_username': `${receiver_username_value}`
+                            }))
+                            // Нужно делать еще ws запрос для подтверждения, что другой пользователь сохранил данные...
+                            // refresh_friends_list({{ current_user.id }})
+                        }
+                        else if (data["type"] == "data_ready"){
+                            console.log('!!!!!!!!!!!!!1')
+                            refresh_friends_list({{ current_user.id }}, true)
+
+                            if (friendRequestSocket.readyState === WebSocket.OPEN){
+                                friendRequestSocket.close()
+                                console.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                            }
+                        }
+                        else if (data["type"] == "declined" && data["state"] == 'success'){
+                            console.log('!!!!!!!!! after request declined')
+
+                            if (friendRequestSocket.readyState === WebSocket.OPEN){
+                                friendRequestSocket.close()
+                                console.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                            }
+                        }
+                        else{
+                            console.error(`Unexpeceted data type taken from FriendRequestConsumer(AsyncWebsocketConsumer): ${data["type"]}`)
+                            
+                            if (friendRequestSocket.readyState === WebSocket.OPEN){
+                                friendRequestSocket.close()
+                                console.log(`close ws after permitted friend request: ${friendRequestSocket.readyState}`)
+                            }
+                        }
+                    }
+                }
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
+        })
+    }
+
+    closeNotificationModal = () => {
+        main_panel = document.querySelector('.main_panel')
+        modal = document.querySelector('.notification_modal_wrapper')
+        if (modal){
+            modal.style["opacity"] = "0"
+            modal.addEventListener('transitionend', () => {
+                modal.style["display"] = "none"
+                main_panel.removeChild(modal)
+            });
+        }    
+    }
+    refresh_private_messages_list = (user_id) => {
+        fetch(`/vw/get-member-private-messages-list/${user_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            let messages_label = document.querySelector('.messages_label')
+            if (messages_label && messages_label.innerHTML != "Личные сообщения"){
+                side_panel = get_side_panel()
+                if (side_panel){
+                    let message_items = ''
+                    console.log(data)
+                    for (const channel_data of data) {
+                        let channel_id = channel_data.channel_id
+                        let channel_name = channel_data.channel_name
+                        let sender_profilename = channel_data.sender_profilename
+                        let channel_avatar_url = channel_data.channel_avatar_url
+                        let content = channel_data.content
+                        let updated_at = channel_data.updated_at
+                        message_items += get_message_item_html(channel_id, channel_name, sender_profilename, channel_avatar_url, updated_at, content)
+                    }
+
+                    side_panel.innerHTML = 
+                    `<div class="messages_label">Личные сообщения</div>
+                        <div class="messages_wrapper">
+                            ${message_items}
+                        </div>
+                    </div>`
+                }
+            } 
+        })
+    }
+
+    refresh_notifications_list = (user_id) => {
+        fetch(`/vw/get-member-notifications/${user_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            let messages_label = document.querySelector('.messages_label')
+            if (messages_label && messages_label.innerHTML != "Уведомления"){
+                side_panel = get_side_panel()
+                if (side_panel){
+                    if (side_panel){
+                        let notifications = data.fresh_notifications
+                        let notification_items = ''
+                        for (notification of notifications){
+                            notification_items += get_notification_item_html(notification.notification_type_id, notification.sender_username, notification.sender_profilename, notification.owner_username, notification.owner_profilename, notification.status)
+                        }
+
+                        side_panel.innerHTML = 
+                        `<div class="messages_label">Уведомления</div>
+                            <div class="messages_wrapper">
+                                ${notification_items}
+                            </div>
+                        </div>`
+                    }
+                }
+            }
+        })
+    }
+
+    refresh_friends_list = (user_id, key=false) => {
+        fetch(`/vw/get-member-friends/${user_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            let messages_label = document.querySelector('.messages_label')
+            if ((messages_label && messages_label.innerHTML != "Друзья") || key){
+                side_panel = get_side_panel()
+                if (side_panel){
+                    let friends = data.fresh_friends
+                    let friend_items = ''
+                    for (let i = 0; i < friends.length; i++){
+                        friend_items += get_friend_item_html(friends[i].friend_info.id, friends[i].friend_info.profilename, friends[i].friend_info.profile_avatar_url, friends[i].channel_info.id)
+                    }
+
+                    side_panel.innerHTML = 
+                    `<div class="messages_label">Друзья</div>
+                        <div class="messages_wrapper">
+                            ${friend_items}
+                        </div>
+                    </div>`
+                } 
+            } 
+        })
+    }
+
+    get_notification_item_html = (notification_type_id, sender_username, sender_profilename, friend_username, friend_profilename, status) => {
+        switch(notification_type_id){
+            case 1:
+                return get_missing_call_notification_item_html()
+            case 2:
+                return get_friend_request_notification_item_html(sender_username, sender_profilename, friend_username, friend_profilename, status)
+            default:
+                console.error('Unrecognized notification type')
+                break
+        }
+    }
+
+    get_missing_call_notification_item_html = () => {
+
+    }
+    
+    get_friend_request_notification_item_html = (sender_username, sender_profilename, friend_username, friend_profilename, status) => {
+        let friend_request_notification_item_panel_html = ''
+        switch(status){
+            case 'opened':
+                friend_request_notification_item_panel_html = `<div class="notification_content_panel">
+                    <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Принять</button>
+                    <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Отклонить</button>
+                </div>`
+            case 'closed':
+                break
+            default:
+                break
+        }
+
+        let friend_request_notification_item_html = `<div class="message_item">
+            <div class="notification_content">
+                <div class="notification_content_header">
+                    Новая заявка в друзья
+                </div>
+                <div class="notification_content_body">
+                    ${sender_profilename} хочет добавить вас в друзья
+                </div>
+                ${friend_request_notification_item_panel_html}
+            </div>
+        </div>`
+
+        return friend_request_notification_item_html
+    }
+
+    get_friend_item_html = (friend_id, friend_profilename, friend_profile_avatar_url, channel_id) => {
+        friend_item_html = `<div class="message_item" id="message_item_${friend_id}" onclick="handleFriendClick(${channel_id})">
+            <div class="user_avatar">
+                <img class="messages_users_avatar" src="${friend_profile_avatar_url}" alt="User avatar">
+            </div>
+            <div class="message_info">
+                <div class="nickname_data">
+                    <div class="conv_user_nickname">
+                        ${friend_profilename}
+                    </div>
+                </div>
+            </div>
+        </div>`
+
+        return friend_item_html
+    }
+
+    refresh_private_message = (channel_id) => {
+        fetch(`/vw/get-channel-last-message-info/${channel_id}`)
+        .then(response => response.json())
+        .then((data) => {
+            let messages_label = document.querySelector('.messages_label')
+            let messages_wrapper = document.querySelector('.messages_wrapper')
+            if (messages_label && messages_label.innerHTML == "Личные сообщения"){
+                let message_item = document.getElementById(`message_item_${channel_id}`)
+                if (message_item){
+                    let new_message_item_body = get_message_item_body_html(data.channel_name, data.sender_profilename, data.channel_avatar_url, data.updated_at, data.content)
+                    message_item.innerHTML = new_message_item_body
+                    messages_wrapper.removeChild(message_item)
+                    messages_wrapper.insertBefore(message_item, messages_wrapper.firstChild)
+                }
+                else{
+                    let new_message_item = get_message_item_html(channel_id, data.channel_name, data.sender_profilename, data.channel_avatar_url, data.updated_at, data.content)
+                    messages_wrapper.innerHTML = new_message_item + messages_wrapper.innerHTML
+                }
+            } 
+        })
+    }
+
+    get_message_item_body_html = (channel_name, profilename, profile_avatar_url, date, content) => {
+        let message_item_body = `<div class="user_avatar">
+            <img class="messages_users_avatar" src="${profile_avatar_url}" alt="User avatar">
+        </div>
+        <div class="message_info">
+            <div class="nickname_data">
+                <div class="conv_user_nickname">
+                    ${channel_name}
+                </div>
+                <div class="message_data">
+                    ${date}
+                </div>
+            </div>
+            <div class="conversation_status">
+                ${profilename}||: ${content}
+            </div>
+        </div>`
+
+        return message_item_body
+    }
+
+    get_message_item_html = (channel_id, channel_name, profilename, profile_avatar_url, date, content) => {
+        let message_item = `<div class="message_item" id="message_item_${channel_id}" onclick="handleFriendClick(${channel_id})">
+            ${get_message_item_body_html(channel_name, profilename, profile_avatar_url, date, content)}
+        </div>`
+        
+        return message_item
+    }
+
+    get_side_panel = () => {
+        side_panel_array = document.getElementsByClassName('personal_messages')
+        if (side_panel_array.length != 1){
+            throw new MultipleSidePanelException(side_panel_array.length)
+        }
+
+        side_panel = side_panel_array[0]
+        return side_panel
+    }
+
+    switch_on_personal_messages = () => {
+        let messages_label = document.querySelector('.messages_label')
+        if (!messages_label || messages_label.innerHTML == "Личные сообщения"){
+            return
+        }
+
+        refresh_private_messages_list({{ current_user.id }})
+    }
+
+    switch_on_friends = () => {
+        let messages_label = document.querySelector('.messages_label')
+        if (!messages_label || messages_label.innerHTML == "Друзья"){
+            return
+        }
+
+        refresh_friends_list({{ current_user.id }})
+    }
+
+    switch_on_notifications = () => {
+        let messages_label = document.querySelector('.messages_label')
+        if (!messages_label || messages_label.innerHTML == "Уведомления"){
+            return
+        }
+
+        refresh_notifications_list({{ current_user.id }})
+    }
+
+    textchat_message_generator = (profilename, message_content) => {
+        let message = `<div class="message">
+            ${profilename}||${message_content}
+        </div>`
+
+        return message
+    }
+
+    textchat_generator = (channel_messages) => {
+        let messages = ''
+        if (channel_messages){
+            for (message of channel_messages){
+                messages += textchat_message_generator(message.profilename, message.content)
+            }
+         }
+
+        textchat_html = `<div class="textchat_wrapper">
+            <div class="textchat_content">
+                <div class="messages_area_wrapper" turned="false">
+                     ${messages}
+                </div>
+                <div class="message_input_wrapper">
+                     <input type="text" id="textchat_input_message" placeholder="Написать">
+                </div>
+            </div>
+         </div>`
+
+         return textchat_html
+    }
+
+    get_incoming_call_modal_window = (profilename, channel_id) => {
+        let call_modal_window = document.createElement('div')
+        call_modal_window.className = "incoming_call_wrapper"
+        call_modal_window.innerHTML = `<div class="incoming_call_modal_background">
+        </div>
+        <div class="incoming_call_modal_wrapper">
+            <div class="incoming_call_modal_content">
+                <div class="incoming_call_modal_content_header">
+                    <div class="incoming_call_modal_content_header_space">
+
+                    </div>
+                    <div class="incoming_call_modal_content_header_panel">
+                        <button role="button" onclick="close_incoming_call_modal(${channel_id})">x</button>
+                    </div>
+                </div>
+                <div class="incoming_call_modal_content_body">
+                    ${profilename} is calling you
+                </div>
+                <div class="incoming_call_modal_content_panel">
+                    <button role="button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id})">Apply</button>
+                    <button role="button" id="decline_incoming_call_button" onclick="decline_incoming_call(${channel_id})">Decline</button>
+                </div>
+            </div>
+        </div>`
+
+        return call_modal_window
+    }
+
+    create_incoming_call_modal_window = (profilename, channel_id) => {
+        let call_modal_window = get_incoming_call_modal_window(profilename, channel_id)
+
+        let content_wrapper = document.querySelector('.content_wrapper')
+        content_wrapper.appendChild(call_modal_window)
+        setTimeout(() => decline_incoming_call(channel_id, "timeout"), 15_000)
+    }
+
+    apply_incoming_call = (channel_id) => {
+        window.open(`/vw/channel/${channel_id}`, '_self')
+    }
+
+    decline_incoming_call = (channel_id, status="declined") => {
+        close_incoming_call_modal()
+
+        // Далее посылаем сигнал об отказе
+
+        const channelNotificationSocket = new WebSocket(
+            ws_scheme
+            + window.location.host
+            + '/ws/service/notification/'
+            + `${channel_id}`
+            + '/'
+        )
+        WebSocketConnections.add(channelNotificationSocket)
+
+        channelNotificationSocket.onopen = () => {
+            channelNotificationSocket.send(JSON.stringify({
+                'type': 'notification.calldecline',
+                'status': status,
+                'declined_username': '{{ current_user.username }}',
+                'declined_profilename': '{{ current_profile.profile_name }}',
+                'channel_id': `${channel_id}`
+            }))
+        }
+    }
+
+    close_incoming_call_modal = () => {
+        let incoming_call_wrapper = document.querySelector('.incoming_call_wrapper')
+        let content_wrapper = document.querySelector('.content_wrapper')
+        if (incoming_call_wrapper){
+            content_wrapper.removeChild(incoming_call_wrapper)
+        }
+    }
+
+    get_video_chat_wrapper = (channel_name, friend_status="") => {
+        let video_chat_element = document.createElement('div')
+        video_chat_element.classList = "videochat_wrapper"
+        video_chat_element.setAttribute("turned", "false")
+
+        let video_chat_html = `
+            <div class="videochat_content">
+                <div class="videochat_info">
+                    <div class="videocall_status">
+                        <div class="info_button">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </div>
+                        <div class="room_name">
+                            CompanionName 
+                        </div>
+                        <div class="companion_status"> <!-- If room is not channel -->
+                            <i class="fa-solid fa-circle"></i>
+                        </div>
+                    </div>
+                    <div class="videocall_toolbar">
+                        <div class="notifications">
+                            <i class="fa-solid fa-bell non-shift"></i>
+                        </div>
+                        <div class="pinned_messages">
+                            <i class="fa-solid fa-thumbtack"></i>
+                        </div>
+                        <div class="chat_members">
+                            <i class="fa-solid fa-user-group"></i>
+                        </div>
+                        <div class="smart_search">
+                            <input type="search" name="" id="">
+                        </div>
+                    </div>
+                </div>
+                <div class="videostreams_wrapper" id="streams_wrapper">
+                    <div class="videostreams" id="streams_store">
+                        <!-- <div class="videostream">
+     
+                        </div>
+                        <div class="videostream">
+                            
+                        </div>
+                        <div class="videostream">
+                            
+                        </div>
+                        <div class="videostream">
+                            
+                        </div>
+                        <div class="videostream">
+                            
+                        </div> -->
+                    </div>
+                    <div class="control_panel_wrapper">
+                        <div class="control_panel">
+                            <div class="share_stream_btn" id="share-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-desktop"></i>
+                                </button>
+                            </div>
+                            <div class="mute_video_btn" id="video-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-video"></i>
+                                </button>
+                            </div>
+                            <div class="mute_mic_btn" id="mic-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-microphone-lines"></i>
+                                </button>
+                            </div>
+                            <div class="leave_room_btn" id="leave-btn">
+                                <button type="submit">
+                                    <i class="fa-solid fa-phone-slash fa-flip-horizontal"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`
+
+        video_chat_element.innerHTML = video_chat_html
+
+        return video_chat_element
+    }
+
+    class AgoraClient{
+        constructor(_chanel_id, _csrf_token, _app_id=0, _stream_token=0, _stream_id=0, _token=0, _user_id=0){
+            this.csrf_token = _csrf_token
+            this.channel_id = _chanel_id
+            this.client = AgoraRTC.createClient({mode:'rtc', codec:'vp8'})
+            this.share_client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'})
+            this.localTracks = []
+            this.remoteUsers = {}
+
+            this.app_id = _app_id
+            this.stream_token = _stream_token
+            this.stream_id = _stream_id
+            this.token = _token
+            this.user_id = _user_id
+            this.isSharingEnabled = false
+            this.screenTrack = []
+        }
+
+        getSessionUserData = async () => {
+            let response = await fetch('/vw/get_user_data/')
+            data = await response.json()
+            console.log(`*CLIENT RESPONSE: Successfully parsed user data: ${JSON.stringify(data)}`)
+            if (data.user_id){
+                return data
+            }
+            else{
+                return false;
+            }
+        }
+        
+        getAgoraSDKData = async (csrf_token) => {
+            let response = await new Promise((resolve, reject) => {
+                $.ajax({
+                    url: '/vw/get_agora_sdk_data',
+                    dataType: 'json',
+                    data:{
+                        'csrfmiddlewaretoken': csrf_token
+                    },
+                    method: 'POST',
+                    success: function(data){
+                        console.log('*CLIENT RESPONSE: Successfully parsed Agora app data')
+                        resolve(data)
+                    },
+                    error: function(xhr, error, status){
+                        console.error(`*CLIENT RESPONSE: Could not parse Agora app data with error: ${error}, with status: ${status}`)
+                        reject(error)
+                    }
+                })
+            })
+            return response
+        }
+        
+        joinAndDisplayLocalStream = async () => {
+        
+            this.client.on('user-published', this.handleUserJoined)
+            this.client.on('user-left', this.handleUserLeft)
+        
+            try{
+                await this.share_client.join(this.app_id, this.channel_id, this.stream_token, this.stream_id)
+                console.log('*CLIENT RESPONSE: Successfully create stream client')
+            }
+            catch(ex){
+                console.error('*CLIENT RESPONSE: Could not create stream client, check Agora logs')
+            }
+        
+            try{
+                await this.client.join(this.app_id, this.channel_id, this.token, this.user_id)
+                console.log('*CLIENT RESPONSE: Successfully create client')
+            }
+            catch(ex){
+                console.error('*CLIENT RESPONSE: Could not create client, check Agora logs')
+            }
+        
+            this.localTracks = await AgoraRTC.createMicrophoneAndCameraTracks()
+        
+            let player = `<div class="videostream" id="user-container-${USER_ID}">
+                            <div class="video-player" id="user-${USER_ID}"></div>
+                            <div class="video-player-user-name id="name-user-${USER_ID}">${USER_PROFILENAME}</div>
+                        </div>`
+        
+            document.getElementById('streams_store').insertAdjacentHTML("beforeend", player)
+            this.localTracks[1].play(`user-${USER_ID}`)
+        
+            await this.client.publish([this.localTracks[0], this.localTracks[1]])
+        }
+        
+        handleUserJoined = async (user, mediaType) => {
+            this.remoteUsers[user.uid] = user
+            await this.client.subscribe(user, mediaType)
+        
+            if (mediaType == 'video'){
+                let player = document.getElementById(`user-container-${user.uid}`)
+                if (player != null){
+                    player.remove()
+                }
+                let member;
+        
+                try{
+                    member = await getMember(user)
+                }
+                catch(ex){
+                    console.error("*CLIENT RESPONSE: Could not parse member name")
+                    member = {name: 'Undefined'}
+                }
+        
+                player = `<div class="videostream" id="user-container-${user.uid}">
+                    <div class="video-player" id="user-${user.uid}" name="${member.name}"></div>
+                    <div class="video-player-user-name">${member.name}</div>
+                </div>`
+        
+                document.getElementById('streams_store').insertAdjacentHTML('beforeend', player)
+                user.videoTrack.play(`user-${user.uid}`)
+            }
+        
+            if (mediaType == 'audio'){
+                user.audioTrack.play()
+            }
+        }
+        
+        handleUserLeft = async (user) => {
+            delete this.remoteUsers[user.uid]
+            document.getElementById(`user-container-${user.uid}`).remove()
+        }
+        
+        getMember = async (user) => {
+            let response = await fetch(`/vw/get_member/?uid=${user.uid}`)
+            let member = await response.json()
+            return member
+        }
+        
+        leaveAndRemovLocalStreams = async () => {
+            for (let i = 0; i < this.localTracks.length; i++){
+                this.localTracks[i].stop()
+                this.localTracks[i].close()
+            }
+        
+            await this.client.leave()
+            console.log('Successfully close videocall')
+            window.open('/vw/Home', '_self')
+        }
+        
+        toggleCamera = async (e) => {
+            if (this.localTracks[1].muted){
+                await this.localTracks[1].setMuted(false)
+                e.target.style.backgroundColor = 'green'
+            }
+            else{
+                await this.localTracks[1].setMuted(true)
+                e.target.style.backgroundColor = 'blue'
+            }
+        }
+        
+        toggleMicrophone = async (e) => {
+            if (this.localTracks[0].muted){
+                await this.localTracks[0].setMuted(false)
+                e.target.style.backgroundColor = 'green'
+            }
+            else{
+                await this.localTracks[0].setMuted(true)
+                e.target.style.backgroundColor = 'blue'
+            }
+        }
+        
+        toggleSharing = async (e) => {
+            if (!this.isSharingEnabled){
+                let withAudio = "enable"
+                let defaultConfig = {}
+                this.screenTrack = await AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
+        
+                await this.share_client.publish([this.screenTrack[0], this.screenTrack[1]])
+                e.target.style.backgroundColor = 'green'
+                this.isSharingEnabled = true
+            }
+            else{
+                for (const track of this.screenTrack){
+                    track.stop()
+                    track.close()
+                }
+        
+                await this.share_client.unpublish([this.screenTrack[0], this.screenTrack[1]])
+                document.getElementById(`user-container-${STREAM_ID}`).remove()
+                e.target.style.backgroundColor = 'blue'
+                isSharingEnabled = false
+            }
+        }
+    }
+
+    create_video_chat_element = (input_channel_id, channel_name, friend_status="") => {
+        let video_chat_element = get_video_chat_wrapper(channel_name, friend_status)
+
+        let content_wrapper = document.querySelector('.content_wrapper')
+        if (content_wrapper){
+            let call_panel_element = content_wrapper.querySelector('.call_panel_wrapper')
+            if (call_panel_element){
+                content_wrapper.removeChild(call_panel_element)
+            }
+            content_wrapper.insertBefore(video_chat_element, content_wrapper.firstChild)
+
+            let videostreams = document.getElementById('streams_store')
+            let observer = new MutationObserver(handleChanges);
+            observer.observe(videostreams, observerOptions);
+
+            // optimizeVideostreamsWrapper()
+
+            // close other video_chats
+            // ...
+
+            // open new one
+
+            if (typeof(obj) !== 'undefined' && obj){
+                obj.leaveAndRemovLocalStreams()
+                delete obj
+            }
+            obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
+            // constructor(_chanel_id, _csrf_token, _app_id, _stream_token, _stream_id, _token, _user_id)
+            obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
+                // APP_ID = data.app_id
+                obj.app_id = data.app_id
+                fetch(`/vw/get_token/?channel=${input_channel_id}`)
+                    .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
+                    .then(CONVERSATION_DATA =>{
+                        console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
+            
+                        // USER_ID = CONVERSATION_DATA.user_id
+                        obj.user_id = CONVERSATION_DATA.user_id
+                        obj.token = CONVERSATION_DATA.token
+                        obj.stream_id = CONVERSATION_DATA.stream_id
+                        obj.stream_token = CONVERSATION_DATA.stream_token
+            
+                        document.getElementById('leave-btn').addEventListener('click', obj.leaveAndRemovLocalStreams)
+            
+                        document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
+            
+                        document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
+            
+                        document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
+            
+                        obj.joinAndDisplayLocalStream()
+                })
+            })
+        }
+    }
+
+    get_call_dialog_panel_wrapper = (channel_id, channel_name, channel_avatar_url) => {
+        let call_panel_wrapper = document.createElement('div')
+        call_panel_wrapper.classList = "call_panel_wrapper"
+
+        let call_panel_html = `<div class="friend_data_wrapper">
+            <div class="channel_avatar">
+                <img class="channel_avatar_img" src="${channel_avatar_url}" alt="Avatar">
+            </div>
+            <div class="channel_name">${channel_name}</div>
+        </div>
+        <div class="call_active_panel_wrapper">
+            <button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">
+                <i class="fa-solid fa-phone-volume fa-lg"></i>
+            </button>
+        </div>`
+
+        call_panel_wrapper.innerHTML = call_panel_html
+
+        return call_panel_wrapper
+    }
+
+    create_call_panel_element = (channel_id, channel_name, channel_avatar_url) => {
+        let content_wrapper = document.querySelector('.content_wrapper')
+
+        if (content_wrapper){
+            let call_panel_wrapper = get_call_dialog_panel_wrapper(channel_id, channel_name, channel_avatar_url)
+            content_wrapper.innerHTML = ''
+            content_wrapper.appendChild(call_panel_wrapper)
+        }
+    }
+
+    // video_chat functionality
+
+   
+    var defaultStreamWidth = 0
+    const observerOptions = {
+        childList: true,
+        subtree: false,
+        attributes: false
+    };
+    
+
+    findOptimalDimension = (usersCount) => {
+        return Math.ceil(Math.sqrt(usersCount))
+    }
+
+    optimizeVideostreamsWrapper = () => {
+        let streamsContainer = document.getElementsByClassName('videostream')
+        let usersCount = streamsContainer.length
+        let videostreams = document.getElementById('streams_store')
+        if (usersCount > 1){
+            streamsContainer[0].style.width = 'auto'
+            let optimalDimension = findOptimalDimension(usersCount)
+            videostreams.style.gridTemplateColumns = `repeat(${optimalDimension}, 1fr)`;
+            videostreams.style.justifyItems = ''
+            // Идеальная высота - высота грида
+            // Идеальная ширина - 48% грида
+            let maxStreamHeight = videostreams.clientHeight
+            let currentStreamHeight = streamsContainer[0].clientHeight
+            let currentStreamWidth = streamsContainer[0].clientWidth
+            
+            for (let i = 0; i < usersCount; i++){
+                //streamsContainer[i].style.width = `${48 / maxStreamHeight * currentStreamHeight}%`
+                streamsContainer[i].style.width  = `${defaultStreamWidth / Math.ceil(usersCount / optimalDimension)}`
+            }
+        }
+        else{
+            if (videostreams){
+                videostreams.style.gridTemplateColumns = ''
+                videostreams.style.justifyItems = 'center'
+                streamsContainer[0].style.width = `${streams_wrapper.clientWidth * 0.48}px`
+                if (defaultStreamWidth == 0) defaultStreamWidth = streamsContainer[0].clientWidth
+            }
+        }
+    }
+
+    function handleChanges(mutationsList, observer) {
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'childList') {
+                optimizeVideostreamsWrapper()
+            }
+        }
+    }
+
+    // video_chat functionality end
+
+</script>
+
+{% block aux_script %}{% endblock aux_script %}
