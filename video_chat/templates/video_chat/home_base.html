@@ -409,7 +409,7 @@
         }
     }
 
-    createDefaultChannelElement = (channel_id, channel_name, channel_type_id, channel_messages, current_user_id) => {
+    createDefaultChannelElement = (channel_id, channel_name, channel_type_id, channel_messages, current_user_id, channel_avatar_url) => {
         content_wrapper = document.querySelector('.content_wrapper')
         main_conversation_panel = document.getElementById('main_conversation_panel')
         if (main_conversation_panel){
@@ -417,7 +417,7 @@
         }
 
         if (channel_type_id == 2){
-            create_call_panel_element(channel_id, channel_name)
+            create_call_panel_element(channel_id, channel_name, channel_avatar_url)
         }
 
         content_wrapper.innerHTML += textchat_generator(channel_messages)
@@ -497,10 +497,11 @@
             success: function(data){
                 let channel_name = data.channel_name
                 let channel_type_id = data.channel_type_id
+                let channel_avatar_url = data.channel_avatar_url
                 let channel_messages = data.channel_messages
                 let current_user_id = {{ current_user.id }}
 
-                createDefaultChannelElement(channel_id, channel_name, channel_type_id, channel_messages, current_user_id)
+                createDefaultChannelElement(channel_id, channel_name, channel_type_id, channel_messages, current_user_id, channel_avatar_url)
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -952,7 +953,7 @@
                      ${messages}
                 </div>
                 <div class="message_input_wrapper">
-                     <input type="text" id="textchat_input_message" placeholder="Write">
+                     <input type="text" id="textchat_input_message" placeholder="Написать">
                 </div>
             </div>
          </div>`
@@ -1360,15 +1361,20 @@
         }
     }
 
-    get_call_dialog_panel_wrapper = (channel_id, channel_name) => {
+    get_call_dialog_panel_wrapper = (channel_id, channel_name, channel_avatar_url) => {
         let call_panel_wrapper = document.createElement('div')
         call_panel_wrapper.classList = "call_panel_wrapper"
 
         let call_panel_html = `<div class="friend_data_wrapper">
-            <div class="friend_profilename">${channel_name}</div>
+            <div class="channel_avatar">
+                <img class="channel_avatar_img" src="${channel_avatar_url}" alt="Avatar">
+            </div>
+            <div class="channel_name">${channel_name}</div>
         </div>
         <div class="call_active_panel_wrapper">
-            <button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">Звонок ${channel_name}</button>
+            <button onclick="start_call(${channel_id})" class="call_button" id="call_button_for_${channel_name}">
+                <i class="fa-solid fa-phone-volume fa-lg"></i>
+            </button>
         </div>`
 
         call_panel_wrapper.innerHTML = call_panel_html
@@ -1376,11 +1382,11 @@
         return call_panel_wrapper
     }
 
-    create_call_panel_element = (channel_id, channel_name) => {
+    create_call_panel_element = (channel_id, channel_name, channel_avatar_url) => {
         let content_wrapper = document.querySelector('.content_wrapper')
 
         if (content_wrapper){
-            let call_panel_wrapper = get_call_dialog_panel_wrapper(channel_id, channel_name)
+            let call_panel_wrapper = get_call_dialog_panel_wrapper(channel_id, channel_name, channel_avatar_url)
             content_wrapper.innerHTML = ''
             content_wrapper.appendChild(call_panel_wrapper)
         }

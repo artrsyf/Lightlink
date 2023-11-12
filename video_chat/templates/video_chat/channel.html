@@ -4,6 +4,6 @@
 {% endblock main_panel %}
 {% block aux_script %}
 <script>
-    createDefaultChannelElement({{ channel_id }}, '{{ channel_name }}',{{ channel_type_id }}, JSON.parse('{{ channel_messages|escapejs }}').channel_messages, {{ current_user.id }})
+    createDefaultChannelElement({{ channel_id }}, '{{ channel_name }}',{{ channel_type_id }}, JSON.parse('{{ channel_messages|escapejs }}').channel_messages, {{ current_user.id }}, '{{ channel_avatar_url }}')
 </script>
 {% endblock aux_script %}

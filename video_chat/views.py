@@ -5,8 +5,9 @@ from .models import User, Profile, Channel, ChannelInfo, Friendship
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
-from .utils import find_private_messages_list, find_friend_list, find_channels_list,\
-find_current_profile, findChannelDataWithSerializedMessages, convertItemDate
+from .utils import find_private_messages_list, find_friend_list, find_channels_list, \
+    find_current_profile, findChannelDataWithSerializedMessages, convertItemDate, \
+    convertChannelDialogName, findChannelAvatarUrl
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm, ProfileForm
 from django.contrib.auth.decorators import login_required
@@ -56,17 +57,18 @@ def get_token(request):
 @login_required(login_url="/login/")
 def channel(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
-    channel_name = channel.channel_name
+    current_user_id = request.user.id
+
+    channel_name_unprocessed = channel.channel_name
+    channel_name_processed = convertChannelDialogName(channel_name_unprocessed, current_user_id)
     channel_type_id = channel.channel_type.id
 
-    current_user_id = request.user.id
-
-    channel_messages_json = json.dumps(findChannelDataWithSerializedMessages(channel_id))
-    current_user_id = request.user.id
+    channel_messages_json = json.dumps(findChannelDataWithSerializedMessages(channel_id, current_user_id))
     private_messages = find_private_messages_list(current_user_id)
     current_profile = Profile.objects.get(user=request.user)
     friends = find_friend_list(current_user_id)
     channels_ids = find_channels_list(current_user_id)
+    channel_avatar_url = findChannelAvatarUrl(channel_id, current_user_id)
     context = {
         'current_user': request.user,
         'current_profile': current_profile,
@@ -74,7 +76,8 @@ def channel(request, channel_id):
         'private_messages': private_messages,
         'channels_ids': channels_ids,
         'channel_id': channel_id,
-        'channel_name': channel_name,
+        'channel_name': channel_name_processed,
+        'channel_avatar_url': channel_avatar_url,
         'channel_type_id': channel_type_id,
         'channel_messages': channel_messages_json,
         'current_user_id': current_user_id
@@ -177,7 +180,7 @@ def getChannelLastMessageInfo(request, channel_id):
         # check on multy
         channel_name = ChannelInfo.objects \
             .filter(Q(channel=channel) & ~Q(profile=current_profile)).last().profile.profile_name
-        channel_avatar_url = sender_profile.profile_avatar.url
+        channel_avatar_url = findChannelAvatarUrl(channel_id, request.user.id)
     else:
             channel_name = 'x'
             channel_avatar_url = 'x'
@@ -237,7 +240,8 @@ def getMemberPrivateMessagesList(request, user_id):
 
 @login_required(login_url="/login/")
 def getChannelData(request, channel_id):
-    full_channel_data_dict = findChannelDataWithSerializedMessages(channel_id)
+    user_id = request.user.id
+    full_channel_data_dict = findChannelDataWithSerializedMessages(channel_id, user_id)
 
     return JsonResponse(full_channel_data_dict)
 

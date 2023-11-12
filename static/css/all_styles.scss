@@ -9,7 +9,10 @@ $dark_button_active_violet_color_6: #575774;
 $main_font_grey_color_5: #858585;
 $active_panel_font_grey_color_7: #a0a0a0;
 $aux_font_grey_color_6: #cfcfcf;
+$aux_font_grey_color_3: #edecec;
 $main_scroll_violet_color: #2d2d3c;
+
+$side_panel_width: 272px;
 
 html, body, ul{
     margin: 0px;
@@ -41,8 +44,8 @@ body{
 }
 .side_panel{
     height: 100%;
-    width: 272px;
-    min-width: 272px;
+    width: $side_panel_width;
+    min-width: $side_panel_width;
     background-color: $dark_background_violet_color_10;
     display: flex;
     flex-direction: column;
@@ -323,7 +326,8 @@ body{
 }
 .main_panel{
     height: 100%;
-    width: 100%;
+    width: calc(100% - #{$side_panel_width});
+    max-width: calc(100% - #{$side_panel_width});
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -345,6 +349,7 @@ body{
     justify-content: center;
     margin-left: 15%;
     width: 23%;
+    min-width: 115px;
 
     .share_profile_button{
         outline: none;
@@ -425,15 +430,32 @@ body{
     align-items: center;
 }
 .messages_area_wrapper{
-    padding-bottom: 5px;
+    padding-bottom: 10px;
     padding-top: 5px;
     flex-grow: 1;
     width: 100%;
     overflow-y: scroll;
     visibility: hidden;
+    color: $aux_font_grey_color_6;
+
+    scrollbar-width: 8px;
+    scrollbar-color: $main_scroll_violet_color;
+
+    &::-webkit-scrollbar{
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: $main_scroll_violet_color;
+    }
+
+    .message{
+        word-wrap: break-word;
+    }
 }
 .message_input_wrapper{
-    min-height: 15%;
+    min-height: 40px;
+    height: 8%;
     width: 80%;
     display: flex;
     flex-direction: column;
@@ -442,6 +464,13 @@ body{
 #textchat_input_message{
     width: 100%;
     height: 75%;
+    border-radius: 10px;
+    padding-left: 12px;
+    padding-right: 12px;
+    border: none;
+    outline: none;
+    background-color: $main_scroll_violet_color;
+    color: $aux_font_grey_color_6;
 }
 
 .notification_modal_wrapper{
@@ -506,6 +535,7 @@ body{
 .content_wrapper{
     height: 100%;
     width: 100%;
+    max-width: 100%;
     display: flex;
     position: relative;
     flex-direction: column;
@@ -516,6 +546,7 @@ body{
 .textchat_wrapper{
     width: 100%;
     height: 50%;
+    flex-grow: 1;
 }
 /* {% comment %} For calling modal {% endcomment %} */
 
@@ -636,67 +667,67 @@ body{
 }
 
 .videochat_wrapper{
-width: 100%;
-height: 50%;
-background-color: burlywood;
+    width: 100%;
+    height: 50%;
+    background-color: burlywood;
 }
 .videochat_content{
-width: 100%;
-height: 100%;
-padding: 10px 10px 10px 10px;
-display: flex;
-flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: 10px 10px 10px 10px;
+    display: flex;
+    flex-direction: column;
 }
 .videochat_info{
-width: 100%;
-display: flex;
-flex-direction: row;
-justify-content: space-between;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 .videocall_status{
-display: flex;
-flex-direction: row;
-width: 13%;
-align-items: center;
-justify-content: space-between;
+    display: flex;
+    flex-direction: row;
+    width: 13%;
+    align-items: center;
+    justify-content: space-between;
 }
 .videocall_toolbar{
-display: flex;
-flex-direction: row;
-justify-content: space-between;
-align-items: center;
-width: 26%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 26%;
 }
 .videostreams_wrapper{
-flex-grow: 1;
-padding-top: 30px;
-display: flex;
-flex-direction: row;
-justify-content: center;
-position: relative;
+    flex-grow: 1;
+    padding-top: 30px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    position: relative;
 }
 .videostreams{
-width: fit-content;
-height: 100%;
-display: grid;
-gap: 10px;
+    width: fit-content;
+    height: 100%;
+    display: grid;
+    gap: 10px;
 }
 .videostream{
-background-color: #ddd;
+    background-color: #ddd;
 }
 .control_panel_wrapper{
-display: flex;
-flex-direction: row;
-justify-content: center;
-position: absolute;
-bottom: 0;
-width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
 }
 .control_panel{
-display: flex;
-flex-direction: row;
-justify-content: space-between;
-align-items: centers;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: centers;
 }
 
 /* {% comment %}  {% endcomment %}
@@ -704,8 +735,52 @@ align-items: centers;
 {% comment %} For call panel {% endcomment %} */
 
 .call_panel_wrapper{
-display: flex;
-flex-direction: row;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    padding: 10px 30px 10px 10px;
+    border-bottom: 1px solid $dark_background_violet_color_10;
+
+    .friend_data_wrapper{
+        display: flex;
+        flex-direction: row;
+        min-width: 160px;
+        width: 20%;
+
+        .channel_avatar{
+            .channel_avatar_img{
+                width: 30px;
+                height: 30px;
+                border-radius: 50px;
+            }
+        }
+
+        .channel_name{
+            padding-left: 12px;
+            display: flex;
+            align-items: center;
+            color: $aux_font_grey_color_6;
+            max-width: calc(100% - 30px);
+            overflow: hidden;
+        }
+    }
+
+    .call_active_panel_wrapper{
+        margin-left: auto;
+
+        .call_button{
+            background-color: transparent;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            border-style: none;
+            color: $aux_font_grey_color_6;
+
+            &:hover{
+                color: $aux_font_grey_color_3;
+            }
+        }
+    }
 }
 /* 
 {% comment %}  {% endcomment %} */

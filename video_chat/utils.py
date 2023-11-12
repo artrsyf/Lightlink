@@ -67,13 +67,17 @@ def find_channels_list(user_id: int) -> list[int]:
     channels_ids_list = [channel_data['id'] for channel_data in channels_data_list]
     return channels_ids_list
 
-def findChannelDataWithSerializedMessages(channel_id: int) -> dict:
+def findChannelDataWithSerializedMessages(channel_id: int, owner_user_id: int) -> dict:
     channel = Channel.objects.get(id=channel_id)
+    channel.channel_name = convertChannelDialogName(channel.channel_name, owner_user_id)
     channel_messages = channel.all_messages.all()
+
+    channel_avatar_url = findChannelAvatarUrl(channel_id, owner_user_id)
 
     serialized_channel_messages = [channel_message.to_dict() for channel_message in channel_messages]
 
-    return channel.to_dict() | {'channel_messages': serialized_channel_messages}
+    return channel.to_dict() | {"channel_avatar_url": channel_avatar_url} \
+        | {"channel_messages": serialized_channel_messages}
 
 def convertItemDate(unprocessed_string_date: str) -> str:
     processed_date = datetime.strptime(unprocessed_string_date, "%b. %d, %Y, %I:%M %p")
@@ -94,7 +98,6 @@ def convertItemDate(unprocessed_string_date: str) -> str:
 def convertChannelDialogName(unprocessed_channel_name: str, owner_user_id: int) -> str:
     owner_username = User.objects.get(id=owner_user_id).username
     channel_usernames = unprocessed_channel_name.split("____")
-    print(channel_usernames)
     if len(channel_usernames) != 2:
         raise Exception("More than two users in dialog channel")
     
@@ -103,3 +106,15 @@ def convertChannelDialogName(unprocessed_channel_name: str, owner_user_id: int) 
     channel_name = find_current_profile_with_username(friend_username).profile_name
 
     return channel_name
+
+def findChannelAvatarUrl(channel_id: int, owner_user_id: int) -> str:
+    channel = Channel.objects.get(id=channel_id)
+
+    if channel.channel_type.id == 2:
+        friend_profile = channel.channel_infos \
+            .get(~Q(profile=find_current_profile(owner_user_id))).profile
+        channel_avatar_url = friend_profile.profile_avatar.url
+    else:
+        channel_avatar_url = 'x'
+
+    return channel_avatar_url
