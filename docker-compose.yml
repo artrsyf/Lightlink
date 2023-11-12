@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+  lightlink_app:
+    container_name: lightlink_app
+    image: lightlink_app
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - ./lightlink/dev.env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/apps/lightlink/
+    ports:
+      - "8000:8000"
+    expose:
+      - 8000
+    depends_on:
+      - lightlink_db
+      - lightlink_redis
+  
+  lightlink_db:
+    container_name: lightlink_db
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_DB=lightlink
+      - POSTGRES_USER=artrsyf
+      - POSTGRES_PASSWORD=artrsyf
+    volumes:
+      - lightlink_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    expose:
+      - 5432
+  
+  lightlink_redis:
+    container_name: lightlink_redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    expose:
+      - 6379
+
+volumes:
+  lightlink_db_data:
+    driver: "local"
