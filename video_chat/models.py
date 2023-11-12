@@ -7,7 +7,7 @@ User = get_user_model()
 User._meta.get_field('email')._unique = True
 
 class ChannelType(models.Model):
-    type = models.CharField(null=False)
+    type = models.CharField(null=False, max_length=255)
 
 class Channel(models.Model):
     channel_name = models.CharField(max_length=45, null=False)
@@ -52,7 +52,7 @@ class Profile(models.Model):
         return f"Profile: {self.profile_name} with User ID: {self.user.id}"
     
 class FriendRequestType(models.Model):
-    type = models.CharField(null=False)
+    type = models.CharField(null=False, max_length=255)
 
     def __str__(self) -> str:
         return f"Request type: {self.type}"
@@ -88,10 +88,10 @@ class Message(models.Model):
         }
     
 class NotificationType(models.Model):
-    type = models.CharField(null=False)
+    type = models.CharField(null=False, max_length=255)
 
 class NotificationStatus(models.Model):
-    status = models.CharField(null=False)
+    status = models.CharField(null=False, max_length=255)
 
 class Notification(models.Model):
     notification_type= models.ForeignKey(NotificationType, on_delete=models.PROTECT, null=False)
