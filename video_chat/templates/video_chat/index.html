@@ -3,11 +3,11 @@
 <div class="main_panel">
     <div class="content_wrapper">
         <div class="main_panel_wrapper" id="main_conversation_panel">
-            <div class="big_profile_info profile_info">
+            <div class="big_profile_info">
                 <div class="pure_profile_img_wrapper">
                     <img class="big_profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
                 </div>
-                <div class="profile_nicknames">
+                <div class="big_profile_nickname">
                     <div class="welcome_message">
                         Добро пожаловать!
                     </div>
@@ -15,12 +15,12 @@
                         {{ current_profile.profile_name }}
                     </div>
                 </div>
-                <div class="share_profile_button">
-                    <button role="button" title="Поделиться профилем" aria-label="Поделиться профилем">Поделиться профилем</button>
+                <div class="share_profile_button_wrapper">
+                    <button role="button" class="share_profile_button" title="Поделиться профилем" aria-label="Поделиться профилем">Поделиться профилем</button>
                 </div>
             </div>
             <div class="widgets_wrapper">
-                <div class="hint">
+                <div class="widgets_hint">
                     Вот что можно попробовать для начала
                 </div>
                 <div class="widgets">

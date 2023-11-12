@@ -228,8 +228,11 @@ def getMemberPrivateMessagesList(request, user_id):
                                'sender_profilename': sender_profilename,
                                'channel_avatar_url': channel_avatar_url,
                                'content': content,
+                               'updated_at_unprocessed': unprocessed_updated_at,
                                'updated_at': processed_updated_at
                                })
+        channels_infos.sort(key=lambda channel_info: channel_info["updated_at_unprocessed"], 
+                            reverse=True)
     return JsonResponse(channels_infos, safe=False)
 
 @login_required(login_url="/login/")

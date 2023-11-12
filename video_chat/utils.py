@@ -32,6 +32,7 @@ def find_private_messages_list(user_id: int):
         if last_message != None:
             last_message.updated_at_processed = convertItemDate(last_message.updated_at \
                                                                 .strftime("%b. %d, %Y, %I:%M %p"))
+            channel.channel_name_processed = convertChannelDialogName(channel.channel_name, user_id)
             private_messages.append((channel, last_message, channel_avatar_url))
 
     return sorted(private_messages, 
@@ -89,3 +90,16 @@ def convertItemDate(unprocessed_string_date: str) -> str:
 
     else:
         return processed_date.strftime("%b. %d %Y")
+    
+def convertChannelDialogName(unprocessed_channel_name: str, owner_user_id: int) -> str:
+    owner_username = User.objects.get(id=owner_user_id).username
+    channel_usernames = unprocessed_channel_name.split("____")
+    print(channel_usernames)
+    if len(channel_usernames) != 2:
+        raise Exception("More than two users in dialog channel")
+    
+    channel_usernames.remove(owner_username)
+    friend_username = channel_usernames[0]
+    channel_name = find_current_profile_with_username(friend_username).profile_name
+
+    return channel_name

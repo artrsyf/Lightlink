@@ -19,7 +19,7 @@
             <div class="side_panel">
                 <div class="interactive_panel">
                     <div class="search_panel">
-                        <input placeholder="Search..." class="search_input_default" type="search" name="groupSearch" id="search_group">
+                        <input placeholder="Search" class="search_input_default" type="search" name="groupSearch" id="search_group">
                     </div>
                     <div class="call_manage_buttons">
                         <button class="side_panel_button" onclick="show_friend_request_field()" role="button" title="Новый чат" aria-label="Новый чат">
@@ -46,7 +46,7 @@
                                     <div class="nickname_data">
                                         <div class="conv_user_nickname">
                                             {% comment %} User_Nickname {% endcomment %}
-                                            {{ private_message.0.channel_name }}
+                                            {{ private_message.0.channel_name_processed }}
                                         </div>
                                         <div class="message_data">
                                             {{ private_message.1.updated_at_processed }}
@@ -64,13 +64,13 @@
                     </div>
                 </div>
                 <div class="deal_switching">
-                    <div class="personal_messages_switcher" onclick="switch_on_personal_messages()">
+                    <div class="panel_switcher" id="personal_messages_switcher" onclick="switch_on_personal_messages()">
                         <i class="fa-solid fa-message fa-lg non-shift"></i>
                     </div>
-                    <div class="friends_switcher" onclick="switch_on_friends()">
+                    <div class="panel_switcher" id="friends_switcher" onclick="switch_on_friends()">
                         <i class="fa-solid fa-address-book fa-lg non-shift"></i>
                     </div>
-                    <div class="notifications_switcher" onclick="switch_on_notifications()">
+                    <div class="panel_switcher" id="notifications_switcher" onclick="switch_on_notifications()">
                         <i class="fa-solid fa-bell fa-lg non-shift"></i>
                     </div>  
                 </div>
@@ -90,9 +90,15 @@
                             </div>
                         </div>
                         <div class="profile_options">
-                            <i class="fa-solid fa-microphone"></i>
-                            <i class="fa-solid fa-headphones"></i>
-                            <i class="fa-solid fa-gear"></i>
+                            <div class="profile_options_btn" id="profile_options_mic">
+                                <i class="fa-solid fa-microphone"></i>
+                            </div>
+                            <div class="profile_options_btn" id="profile_options_sound">
+                                <i class="fa-solid fa-headphones"></i>
+                            </div>
+                            <div class="profile_options_btn" id="profile_options_settings">
+                                <i class="fa-solid fa-gear"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
