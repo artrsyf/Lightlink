@@ -1,22 +1,55 @@
-{% extends '../base.html' %}
 {% load socialaccount %}
+{% load static %}
+{% load sass_tags %}
 
-{% block inner_content %}
-    <h1>Login</h1>
-    <form method="POST">
-        {% csrf_token %}
-        {% comment %} {{ form.as_p }} {% endcomment %}
-        <div class="form-error">{{ form.non_field_errors }}</div>
-        {% for f in form %}
-            <p><label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}: {{ f }}</label></p>
-            <div class="form-error">{{ f.errors }}</div>
-        {% endfor %}
-        <button type="submit" class="btn btn-success">Войти</button>
-        <button class="btn btn-outline-info">
-            <a href="{% provider_login_url 'google'%}?next=/">
-                <i class="fab fa-google"></i>
-                Login with Google
-            </a>
-        </button>
-    </form>
-{% endblock %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="{% sass_src 'css/auth.scss' %}" rel="stylesheet" type="text/css"/>
+    <script src="https://kit.fontawesome.com/3c928d185b.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="content_wrapper">
+        <div class="login_window">
+            <form class="form_wrapper" method="POST">
+                {% csrf_token %}
+                <div class="login_header">
+                    Login
+                </div>
+                {% comment %} <div class="form-error">{{ form.non_field_errors }}</div>
+                <div class="form-error">{{ form.errors }}</div> {% endcomment %}
+                <div class="form_text_input_wrapper">
+                    <div class="frame" id="username_frame"></div>
+                    <input class="form_text_input" type="text" name="username" id="username_input" placeholder="Username">
+                </div>
+                <div class="form_text_input_wrapper">
+                    <div class="frame" id="password_frame"></div>
+                    <input class="form_text_input" type="password" name="password" id="password_input" placeholder="Password">
+                </div>
+                <div class="captcha_wrapper">
+                    {{ form.captcha }}
+                </div>
+                <div class="control_settings">
+                    <div class="remember_me_wrapper">
+                        <input class="remember_me_input" type="checkbox" name="remember_me" id="chk_remember_me">
+                        <label class="remember_me_label" for="chk_remember_me">
+                            Remember me
+                        </label>
+                    </div>
+                    <div class="forgot_wrapper">
+                        <a class="forgot_reference" href="#">Forgot?</a>
+                    </div>
+                </div>
+                <div class="login_button_wrapper">
+                    <button class="login_button" type="submit">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+
+<script src={% static "js/auth.js" %}></script>
