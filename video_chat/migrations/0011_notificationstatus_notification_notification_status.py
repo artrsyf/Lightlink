@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='NotificationStatus',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField()),
+                ('status', models.CharField(max_length=255)),
             ],
         ),
         migrations.AddField(
