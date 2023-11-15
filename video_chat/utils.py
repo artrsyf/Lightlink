@@ -84,10 +84,10 @@ def convertItemDate(unprocessed_string_date: str) -> str:
     current_datetime = datetime.now()
 
     if processed_date.date() == current_datetime.date():
-        return processed_date.strftime("%I:%M %p")
+        return processed_date.strftime("%H:%M")
 
     elif processed_date.date() == (current_datetime - timedelta(days=1)).date():
-        return "Yesterday"
+        return "Вчера"
 
     elif processed_date.year == current_datetime.year:
         return processed_date.strftime("%b. %d")

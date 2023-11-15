@@ -58,14 +58,21 @@ def get_token(request):
 def channel(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
     current_user_id = request.user.id
+    print(current_user_id)
+    current_profile = Profile.objects.get(user=request.user)
+    
+    try:
+        channel.channel_infos.get(profile=current_profile)
+    except ChannelInfo.DoesNotExist as ex:
+        print(F"*SERVER RESPONSE: {ex}")
+        return redirect("WebChatHome")
 
     channel_name_unprocessed = channel.channel_name
     channel_name_processed = convertChannelDialogName(channel_name_unprocessed, current_user_id)
     channel_type_id = channel.channel_type.id
 
     channel_messages_json = json.dumps(findChannelDataWithSerializedMessages(channel_id, current_user_id))
-    private_messages = find_private_messages_list(current_user_id)
-    current_profile = Profile.objects.get(user=request.user)
+    private_messages = find_private_messages_list(current_user_id) 
     friends = find_friend_list(current_user_id)
     channels_ids = find_channels_list(current_user_id)
     channel_avatar_url = findChannelAvatarUrl(channel_id, current_user_id)

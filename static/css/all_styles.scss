@@ -427,13 +427,14 @@ body{
     padding: 15px;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     align-items: center;
 }
 .messages_area_wrapper{
     padding-bottom: 10px;
     padding-top: 5px;
-    flex-grow: 1;
     width: 100%;
+    max-height: 92%;
     overflow-y: scroll;
     visibility: hidden;
     color: $aux_font_grey_color_6;
@@ -449,8 +450,46 @@ body{
         background-color: $main_scroll_violet_color;
     }
 
-    .message{
-        word-wrap: break-word;
+    .textchat_message{
+        display: flex;
+        flex-direction: row;
+
+        .textchat_message_avatar_wrapper{
+            padding: 5px;
+        }
+
+        .textchat_message_text_wrapper{
+            display: flex;
+            flex-direction: column;
+            padding: 5px 8% 5px 8px;
+
+            .textchat_message_text_info{
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+
+                .textchat_message_text_info_profilename{
+                    font-size: 1rem;
+                    color: $aux_font_grey_color_3;
+                    font-weight: 500;
+                    max-width: 145px;
+                    overflow: hidden;
+                }
+
+                .textchat_message_text_info_date{
+                    padding-left: 8px;
+                    font-size: 0.8rem;
+                    color: $active_panel_font_grey_color_7;
+                    font-weight: 300;
+                }
+            }
+
+            .textchat_message_text_content{
+                color: $aux_font_grey_color_3;
+                font-weight: 300;
+                word-break: break-all;
+            }
+        }
     }
 }
 .message_input_wrapper{

@@ -33,18 +33,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     @database_sync_to_async
-    def create_and_get_profile(self, user_id: int, channel_id: int, message: str) -> Profile:
+    def create_and_get_message(self, user_id: int, channel_id: int, message: str) -> Message:
         """
         Makes async requests in database.
 
-        Create a new record Message in data base and returns sender Profile.
+        Create a new record Message in data base and returns it.
         """
         
         profile = find_current_profile(user_id)
         channel = Channel.objects.get(id=channel_id)
-        Message.objects.create(channel=channel, profile=profile, content=message)
-        profile_name = profile.profile_name
-        return profile_name
+        new_message = Message.objects.create(channel=channel, profile=profile, content=message)
+        return new_message
 
     async def receive(self, text_data):
         """
@@ -60,23 +59,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user_id = text_data_json["user_id"]
         channel_id = text_data_json["channel_id"]
         message = text_data_json["message"]
-        profile_name = await self.create_and_get_profile(user_id, channel_id, message)
+        new_message = await self.create_and_get_message(user_id, channel_id, message)
+        serialized_message = new_message.to_dict()
         
         await self.channel_layer.group_send(
-            self.room_group_name, {"type": "chat.message", "profile_name": profile_name, "message": message}
+            self.room_group_name, {"type": "chat.message", "serialized_message": serialized_message}
         )
     
     async def chat_message(self, event):
         """
         Processes the distribution of the recieve(self, text_data) method with type: chat.message.
 
-        Sends to the client side JSON with following information: name of the sender profile, message body.
+        Sends to the client side JSON with serialized Message infromation (method to_dict() in models.py).
         """
             
-        profile_name = event["profile_name"]
-        message = event["message"]
+        serialized_message = event["serialized_message"]
 
-        await self.send(text_data=json.dumps({"profile_name": profile_name, "message": message}))
+        await self.send(text_data=json.dumps({"serialized_message": serialized_message}))
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     """

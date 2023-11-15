@@ -350,13 +350,14 @@ body {
   padding: 15px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   align-items: center; }
 
 .messages_area_wrapper {
   padding-bottom: 10px;
   padding-top: 5px;
-  flex-grow: 1;
   width: 100%;
+  max-height: 92%;
   overflow-y: scroll;
   visibility: hidden;
   color: #cfcfcf;
@@ -366,8 +367,34 @@ body {
     width: 8px; }
   .messages_area_wrapper::-webkit-scrollbar-thumb {
     background-color: #2d2d3c; }
-  .messages_area_wrapper .message {
-    word-wrap: break-word; }
+  .messages_area_wrapper .textchat_message {
+    display: flex;
+    flex-direction: row; }
+    .messages_area_wrapper .textchat_message .textchat_message_avatar_wrapper {
+      padding: 5px; }
+    .messages_area_wrapper .textchat_message .textchat_message_text_wrapper {
+      display: flex;
+      flex-direction: column;
+      padding: 5px 8% 5px 8px; }
+      .messages_area_wrapper .textchat_message .textchat_message_text_wrapper .textchat_message_text_info {
+        display: flex;
+        flex-direction: row;
+        align-items: center; }
+        .messages_area_wrapper .textchat_message .textchat_message_text_wrapper .textchat_message_text_info .textchat_message_text_info_profilename {
+          font-size: 1rem;
+          color: #edecec;
+          font-weight: 500;
+          max-width: 145px;
+          overflow: hidden; }
+        .messages_area_wrapper .textchat_message .textchat_message_text_wrapper .textchat_message_text_info .textchat_message_text_info_date {
+          padding-left: 8px;
+          font-size: 0.8rem;
+          color: #a0a0a0;
+          font-weight: 300; }
+      .messages_area_wrapper .textchat_message .textchat_message_text_wrapper .textchat_message_text_content {
+        color: #edecec;
+        font-weight: 300;
+        word-break: break-all; }
 
 .message_input_wrapper {
   min-height: 40px;
