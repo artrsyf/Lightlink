@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Profile, User, Channel, ChannelType, ChannelInfo, \
     Message, Friendship, FriendRequestType, Notification, NotificationType, NotificationStatus
-from .utils import find_current_profile, find_current_profile_with_username
+from .utils import Queries
 from channels.db import database_sync_to_async
 
 import redis
@@ -40,7 +40,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         Create a new record Message in data base and returns it.
         """
         
-        profile = find_current_profile(user_id)
+        profile = Queries.getCurrentProfileByUserId(user_id)
         channel = Channel.objects.get(id=channel_id)
         new_message = Message.objects.create(channel=channel, profile=profile, content=message)
         return new_message
@@ -131,7 +131,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def create_notification_and_get_profile(self, sender_username: str) -> Profile:
         #** db request for notif
-        return find_current_profile_with_username(sender_username)
+        return Queries.getCurrentProfileByUsername(sender_username)
 
         
     async def notification_incomingdialogcall(self, event):
@@ -218,10 +218,10 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         and friend request receiver (friend_username).
         """
 
-        sender_profile = find_current_profile_with_username(sender_username)
+        sender_profile = Queries.getCurrentProfileByUsername(sender_username)
         sender_profilename = sender_profile.profile_name
 
-        friend_profile = find_current_profile_with_username(friend_username)
+        friend_profile = Queries.getCurrentProfileByUsername(friend_username)
         friend_profilename = friend_profile.profile_name
 
         return {"sender_profilename": sender_profilename, "friend_profilename": friend_profilename}
@@ -243,8 +243,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend request records.
         """
 
-        sender_profile = find_current_profile_with_username(sender_username)
-        friend_profile = find_current_profile_with_username(friend_username)
+        sender_profile = Queries.getCurrentProfileByUsername(sender_username)
+        friend_profile = Queries.getCurrentProfileByUsername(friend_username)
 
         straight_friendship = Friendship.objects.get(sender=sender_profile, receiver=friend_profile)
 
@@ -328,8 +328,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         after that declines existing record in database.
         """
 
-        sender_profile = find_current_profile_with_username(sender_username)
-        friend_profile = find_current_profile_with_username(friend_username)
+        sender_profile = Queries.getCurrentProfileByUsername(sender_username)
+        friend_profile = Queries.getCurrentProfileByUsername(friend_username)
 
         straight_friendship = Friendship.objects.get(sender=sender_profile, receiver=friend_profile)
 
@@ -362,8 +362,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         FRIEND_REQUEST_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=1)
 
         Notification.objects.create(notification_type=FRIEND_REQUEST_NOTIFICATION_TYPE, \
-                                    owner_profile=find_current_profile_with_username(friend_username), \
-                                    sender_profile=find_current_profile_with_username(sender_username), \
+                                    owner_profile=Queries.getCurrentProfileByUsername(friend_username), \
+                                    sender_profile=Queries.getCurrentProfileByUsername(sender_username), \
                                     notification_status = FRIEND_REQUEST_NOTIFICATION_STATUS)
 
     async def friendrequest_sendrequest(self, event):

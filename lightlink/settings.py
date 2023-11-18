@@ -159,6 +159,9 @@ CACHES = {
     }
 }
 
+CACHE_TTL = 60 * 15 # 15 min
+CACHE_ENABLED = False
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
