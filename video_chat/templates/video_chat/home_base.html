@@ -11,7 +11,7 @@
     <link href="{% sass_src 'css/all_styles.scss' %}" rel="stylesheet" type="text/css"/>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script type="text/javascript" src="{% static 'js/AgoraRTC_N-4.18.2.js' %}"></script>
-    {% comment %} <link rel="stylesheet" href="{% static 'css/all_styles.css'%}" type="text/css"> {% endcomment %}
+    <script type="text/javascript" src="{% static 'js/reconnecting-websocket.min.js' %}"></script>
 </head>
 <body>
     <div class="content">
@@ -115,13 +115,13 @@
 
     const WebSocketConnections = new Set()
 
-    const myFriendSocket = new WebSocket(
+    const myFriendSocket = new ReconnectingWebSocket(
         ws_scheme
         + window.location.host
         + '/ws/service/friend-request/'
         + '{{ current_user.username }}'
         + '/'
-    )
+    ) // Unchecked
     WebSocketConnections.add(myFriendSocket)
 
     fix_scroll = () => {

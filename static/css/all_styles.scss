@@ -100,10 +100,14 @@ body{
     font-size: 1rem;
     font-weight: 500;
     color: white;
+    max-width: 120px;
+    overflow: hidden;
 }
 .user_nickname{
     font-size: 0.8rem;
     color: $main_font_grey_color_5;
+    max-width: 100px;
+    overflow: hidden;
 }
 .profile_options{
     display:flex;
@@ -303,6 +307,8 @@ body{
 .pure_page_user_nickname{
     font-weight: 600;
     font-size: 2rem;
+    max-width: 320px;
+    overflow: hidden;
 }
 .big_profile_info{
     height: 20%;
@@ -399,10 +405,18 @@ body{
     display: flex;
     flex-direction: column;
     align-items: center;
-}
-.login_status{
 
+    .login_status{
+        display: flex;
+        flex-direction: row;
+
+        .username_login_info_check{
+            max-width: 140px;
+            overflow: hidden;
+        }
+    }
 }
+
 .login_hint{
     font-size: 0.92rem;
 }
