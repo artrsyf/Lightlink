@@ -5,9 +5,6 @@ from .models import User, Profile, Channel, ChannelInfo, Friendship
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
-# from .utils import find_private_messages_list, find_friend_list, find_channels_list, \
-#     find_current_profile, findChannelDataWithSerializedMessages, convertItemDate, \
-#     convertChannelDialogName, findChannelAvatarUrl
 from .utils import Queries
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm, ProfileForm
@@ -145,6 +142,7 @@ def friendRequest(request):
         print(form.errors)
         if form.is_valid():
             form.save()
+            # cacheclear
             return JsonResponse({'result': 'Successfully sent request', 'status': 'success'})
         else:
             error_default_message = 'Something went wrong'
@@ -176,7 +174,7 @@ def getMemberChannelsIds(request, user_id):
 @login_required(login_url="/login/")
 def getChannelLastMessageInfo(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
-    current_profile = Queries.getCurrentProfileByUserId(request.user.id)
+    current_profile = Queries.getCurrentProfileByUserId(request.user.id, False)
     last_message = channel.all_messages.last()
     sender_profile = last_message.profile
     if channel.channel_type.id == 2:
@@ -203,7 +201,7 @@ def getChannelLastMessageInfo(request, channel_id):
 
 @login_required(login_url="/login/")
 def getMemberPrivateMessagesList(request, user_id):
-    current_profile = Queries.getCurrentProfileByUserId(user_id)
+    current_profile = Queries.getCurrentProfileByUserId(user_id, False)
     channels_ids = Queries.getChannelIdsListByUserId(user_id)
     channels_infos = []
     for channel_id in channels_ids:
@@ -267,7 +265,7 @@ def getChannelMeta(request, channel_id):
 
 @login_required(login_url="/login/")
 def editProfile(request):
-    profile = Queries.getCurrentProfileByUserId(request.user.id)
+    profile = Queries.getCurrentProfileByUserId(request.user.id, False)
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, updated_profile=profile)
         print(form.errors)
@@ -275,6 +273,8 @@ def editProfile(request):
             profile.profile_name = request.POST['profilename']
             profile.profile_avatar = request.FILES['profile_avatar']
             profile.save()
+            # cacheclear
+
             return JsonResponse({'result': 'ok'})
     default_form_profile_avatar = profile.profile_avatar \
         if profile.profile_avatar != 'default_profile_avatar.jpg' else None
@@ -286,7 +286,7 @@ def editProfile(request):
 
 @login_required(login_url="/login/")
 def getMemberNotifications(request, user_id):
-    current_profile = Queries.getCurrentProfileByUserId(user_id)
+    current_profile = Queries.getCurrentProfileByUserId(user_id, False)
     notifications_serialized = []
 
     notifications = current_profile.all_notifications.all().order_by('-created_at')

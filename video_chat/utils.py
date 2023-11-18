@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 CACHE_ENABLED = getattr(settings, 'CACHE_ENABLED', True)
 
+class DeleteCacheException(Exception):
+    pass
+
 def getOrSetCache(key: str, request_func: Callable, timeout: int=CACHE_TTL) -> Any:
     data_from_cache = cache.get(key) if CACHE_ENABLED else None
     if data_from_cache is not None:
@@ -20,6 +23,20 @@ def getOrSetCache(key: str, request_func: Callable, timeout: int=CACHE_TTL) -> A
         request_result_data = request_func()
         cache.set(key, request_result_data, timeout)
         return request_result_data
+    
+def clearCache(*keys: str) -> bool:
+    try:
+        for key in keys:
+            if '*' in key:
+                keys_through_pattern = cache.keys(key)
+                if keys_through_pattern:
+                    cache.delete_many(keys_through_pattern)
+            else:
+                cache.delete(key)
+        return True
+    except DeleteCacheException as ex:
+        print(f"*SERVER RESPONSE: Issues occured while cache cleaning - {ex}")
+        return False
 
 class Queries:
     """
@@ -27,13 +44,11 @@ class Queries:
 
     Cache table:
 
-    'cache__<<user_id>>__current_user' -> User
+    'cache__<<user_id>>__current_user' -> User 
     
-    'cache__<<username>>__current_user' -> User
+    'cache__<<username>>__current_user' -> User 
     
-    'cache__<<user_id>>__current_profile' -> Profile
-    
-    'cache__<<user_id>>__current_profile' -> Profile
+    'cache__<<user_id>>__current_profile' -> Profile 
     
     'cache__<<user_id>>__private_message_list' -> list[tuple[Channel, Message, channel_avatar_utl(str)]]
     
@@ -57,16 +72,22 @@ class Queries:
         current_user = getOrSetCache(cache_key, lambda: User.objects.get(username=username))
         return current_user
     
-    def getCurrentProfileByUserId(user_id: int) -> Profile:
+    def getCurrentProfileByUserId(user_id: int, cache_enabled: bool=CACHE_ENABLED) -> Profile:
         current_user = Queries.getCurrentUserById(user_id)
-        cache_key = f"cache__{user_id}__current_profile"
-        current_profile = getOrSetCache(cache_key, lambda: Profile.objects.get(user=current_user))
+        if cache_enabled:
+            cache_key = f"cache__{user_id}__current_profile"
+            current_profile = getOrSetCache(cache_key, lambda: Profile.objects.get(user=current_user))
+        else:
+            current_profile = Profile.objects.get(user=current_user)
         return current_profile
     
-    def getCurrentProfileByUsername(username: str) -> Profile:
+    def getCurrentProfileByUsername(username: str, cache_enabled: bool=CACHE_ENABLED) -> Profile:
         current_user = Queries.getCurrentUserByUsername(username)
-        cache_key = f"cache__{current_user.id}__current_profile"
-        current_profile = getOrSetCache(cache_key, lambda: Profile.objects.get(user=current_user))
+        if cache_enabled:
+            cache_key = f"cache__{current_user.id}__current_profile"
+            current_profile = getOrSetCache(cache_key, lambda: Profile.objects.get(user=current_user))
+        else:
+            current_profile = Profile.objects.get(user=current_user)
         return current_profile
     
     def getPrivateMessageListByUserId(user_id: int) -> list[tuple[Channel, Message, str]]:
@@ -76,7 +97,7 @@ class Queries:
         return private_message_list
     
     def __findPrivateMessageListByUserId(user_id: int) -> list[tuple[Channel, Message, str]]:
-        current_profile = Queries.getCurrentProfileByUserId(user_id)
+        current_profile = Queries.getCurrentProfileByUserId(user_id, False)
         private_messages = []
 
         current_profile_channels = current_profile.channels.all()
@@ -101,7 +122,7 @@ class Queries:
         return private_messages
     
     def __findChannelIdsListByUserId(user_id: int) -> list[int]:
-        current_profile = Queries.getCurrentProfileByUserId(user_id)
+        current_profile = Queries.getCurrentProfileByUserId(user_id, False)
         channels_data_list = list(current_profile.channels.all().values())
         channels_ids_list = [channel_data['id'] for channel_data in channels_data_list]
         return channels_ids_list
@@ -135,7 +156,7 @@ class Queries:
         return channel_data_dict | {"channel_avatar_url": channel_avatar_url}
 
     def __findFriendListByUserId(user_id: int) -> list[tuple[Profile, Channel]]:
-        current_profile = Queries.getCurrentProfileByUserId(user_id)
+        current_profile = Queries.getCurrentProfileByUserId(user_id, False)
         friendship = Friendship.objects.filter(Q(sender=current_profile, status_type=3) \
                                             | Q(receiver=current_profile, status_type=3))
         accepted_friend_with_channel_list = []
@@ -190,7 +211,7 @@ class Queries:
         
         channel_usernames.remove(owner_username)
         friend_username = channel_usernames[0]
-        channel_name = Queries.getCurrentProfileByUsername(friend_username).profile_name
+        channel_name = Queries.getCurrentProfileByUsername(friend_username, False).profile_name
 
         return channel_name
 
@@ -199,7 +220,7 @@ class Queries:
 
         if channel.channel_type.id == 2:
             friend_profile = channel.channel_infos \
-                .get(~Q(profile=Queries.getCurrentProfileByUserId(owner_user_id))).profile
+                .get(~Q(profile=Queries.getCurrentProfileByUserId(owner_user_id, False))).profile
             channel_avatar_url = friend_profile.profile_avatar.url
         else:
             channel_avatar_url = 'x'
