@@ -148,6 +148,19 @@ CHANNEL_LAYERS = {
     },
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{env("REDIS_HOST")}:{env("REDIS_PORT")}/{env("REDIS_CACHE_DB_ID")}',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'DB': env("REDIS_CACHE_DB_ID")
+        }
+    }
+}
+
+CACHE_TTL = 60 * 15 # 15 min
+CACHE_ENABLED = True
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

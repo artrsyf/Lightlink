@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Profile, User, Channel, ChannelType, ChannelInfo, \
     Message, Friendship, FriendRequestType, Notification, NotificationType, NotificationStatus
-from .utils import find_current_profile, find_current_profile_with_username
+from .utils import Queries, clearCache
 from channels.db import database_sync_to_async
 
 import redis
@@ -24,6 +24,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"chat_{self.room_name}"
+        self.user_id = self.scope["user"].id
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
@@ -33,18 +34,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     @database_sync_to_async
-    def create_and_get_profile(self, user_id: int, channel_id: int, message: str) -> Profile:
+    def create_and_get_message(self, user_id: int, channel_id: int, message: str) -> Message:
         """
         Makes async requests in database.
 
-        Create a new record Message in data base and returns sender Profile.
+        Create a new record Message in data base and returns it.
         """
         
-        profile = find_current_profile(user_id)
+        profile = Queries.getCurrentProfileByUserId(user_id, False)
         channel = Channel.objects.get(id=channel_id)
-        Message.objects.create(channel=channel, profile=profile, content=message)
-        profile_name = profile.profile_name
-        return profile_name
+        new_message = Message.objects.create(channel=channel, profile=profile, content=message)
+        clearCache(f'cache__{channel_id}__channel_messages', 
+                   f'cache__{channel_id}__channel_data_with_serialized_messages')
+        return new_message
 
     async def receive(self, text_data):
         """
@@ -60,23 +62,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user_id = text_data_json["user_id"]
         channel_id = text_data_json["channel_id"]
         message = text_data_json["message"]
-        profile_name = await self.create_and_get_profile(user_id, channel_id, message)
+        new_message = await self.create_and_get_message(user_id, channel_id, message)
+        serialized_message = new_message.to_dict()
         
         await self.channel_layer.group_send(
-            self.room_group_name, {"type": "chat.message", "profile_name": profile_name, "message": message}
+            self.room_group_name, {"type": "chat.message", "serialized_message": serialized_message}
         )
     
     async def chat_message(self, event):
         """
         Processes the distribution of the recieve(self, text_data) method with type: chat.message.
 
-        Sends to the client side JSON with following information: name of the sender profile, message body.
+        Sends to the client side JSON with serialized Message infromation (method to_dict() in models.py).
         """
             
-        profile_name = event["profile_name"]
-        message = event["message"]
+        serialized_message = event["serialized_message"]
+        clearCache(f'cache__{self.user_id}__private_message_list')
 
-        await self.send(text_data=json.dumps({"profile_name": profile_name, "message": message}))
+        await self.send(text_data=json.dumps({"serialized_message": serialized_message}))
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     """
@@ -132,7 +135,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def create_notification_and_get_profile(self, sender_username: str) -> Profile:
         #** db request for notif
-        return find_current_profile_with_username(sender_username)
+        return Queries.getCurrentProfileByUsername(sender_username, False)
 
         
     async def notification_incomingdialogcall(self, event):
@@ -170,6 +173,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["friend_username"]
         self.room_group_name = f"friend_request_{self.room_name}"
+        self.user_id = self.scope["user"].id
         self.username = self.scope["user"].username
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
@@ -219,10 +223,10 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         and friend request receiver (friend_username).
         """
 
-        sender_profile = find_current_profile_with_username(sender_username)
+        sender_profile = Queries.getCurrentProfileByUsername(sender_username, False)
         sender_profilename = sender_profile.profile_name
 
-        friend_profile = find_current_profile_with_username(friend_username)
+        friend_profile = Queries.getCurrentProfileByUsername(friend_username, False)
         friend_profilename = friend_profile.profile_name
 
         return {"sender_profilename": sender_profilename, "friend_profilename": friend_profilename}
@@ -244,8 +248,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         friend request records.
         """
 
-        sender_profile = find_current_profile_with_username(sender_username)
-        friend_profile = find_current_profile_with_username(friend_username)
+        sender_profile = Queries.getCurrentProfileByUsername(sender_username, False)
+        friend_profile = Queries.getCurrentProfileByUsername(friend_username, False)
 
         straight_friendship = Friendship.objects.get(sender=sender_profile, receiver=friend_profile)
 
@@ -329,8 +333,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         after that declines existing record in database.
         """
 
-        sender_profile = find_current_profile_with_username(sender_username)
-        friend_profile = find_current_profile_with_username(friend_username)
+        sender_profile = Queries.getCurrentProfileByUsername(sender_username, False)
+        friend_profile = Queries.getCurrentProfileByUsername(friend_username, False)
 
         straight_friendship = Friendship.objects.get(sender=sender_profile, receiver=friend_profile)
 
@@ -363,8 +367,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
         FRIEND_REQUEST_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=1)
 
         Notification.objects.create(notification_type=FRIEND_REQUEST_NOTIFICATION_TYPE, \
-                                    owner_profile=find_current_profile_with_username(friend_username), \
-                                    sender_profile=find_current_profile_with_username(sender_username), \
+                                    owner_profile=Queries.getCurrentProfileByUsername(friend_username, False), \
+                                    sender_profile=Queries.getCurrentProfileByUsername(sender_username, False), \
                                     notification_status = FRIEND_REQUEST_NOTIFICATION_STATUS)
 
     async def friendrequest_sendrequest(self, event):
@@ -394,6 +398,7 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                 friend_profilename = profiles_data["friend_profilename"]
 
                 await self.createFriendRequestNotification(sender_username, friend_username)
+                # clearCache for Notification
 
                 await self.send(text_data=json.dumps({"type": "request",
                                                       "sender_username": sender_username,
@@ -436,6 +441,8 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
 
                 try:
                     response = await self.permit_friend_request(sender_username, friend_username)
+                    clearCache(f"cache__{self.user_id}__channel_ids_list")
+                    clearCache(f"cache__{self.user_id}__friend_list")
                     status = response["status"]
                     channel_id = response["channel_id"]
                 except Exception as ex:
@@ -458,6 +465,9 @@ class FriendRequestConsumer(AsyncWebsocketConsumer):
                 print("*SERVER RESPONSE:"
                       "Sending signal about successfull permitting friend request to request sender:"
                       f"{sender_username}, when the receiver is {target}")
+                
+                clearCache(f"cache__{self.user_id}__channel_ids_list")
+                clearCache(f"cache__{self.user_id}__friend_list")
             
                 await self.send(text_data=json.dumps({"type": "permitted",
                                                     "state": "success",

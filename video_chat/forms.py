@@ -2,6 +2,7 @@ from django import forms
 from django.forms import ModelForm, TextInput, FileInput
 from .models import Friendship, FriendRequestType, Profile, User
 from django.db.models import Q
+from .utils import clearCache
 
 class ProfileForm(ModelForm):
     profilename = forms.CharField(label='profilename',
@@ -28,7 +29,6 @@ class ProfileForm(ModelForm):
 
     def clean(self):
         self.cleaned_data = super().clean()
-        print(self.cleaned_data)
         profilename = self.cleaned_data.get('profilename')
         profile_avatar = self.cleaned_data.get('profile_avatar')
 

@@ -11,7 +11,7 @@
     <link href="{% sass_src 'css/all_styles.scss' %}" rel="stylesheet" type="text/css"/>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script type="text/javascript" src="{% static 'js/AgoraRTC_N-4.18.2.js' %}"></script>
-    {% comment %} <link rel="stylesheet" href="{% static 'css/all_styles.css'%}" type="text/css"> {% endcomment %}
+    <script type="text/javascript" src="{% static 'js/reconnecting-websocket.min.js' %}"></script>
 </head>
 <body>
     <div class="content">
@@ -115,13 +115,13 @@
 
     const WebSocketConnections = new Set()
 
-    const myFriendSocket = new WebSocket(
+    const myFriendSocket = new ReconnectingWebSocket(
         ws_scheme
         + window.location.host
         + '/ws/service/friend-request/'
         + '{{ current_user.username }}'
         + '/'
-    )
+    ) // Unchecked
     WebSocketConnections.add(myFriendSocket)
 
     fix_scroll = () => {
@@ -175,7 +175,7 @@
                         create_new_message_notif(sender_profilename, message)
                     }
                     else{
-                        console.log('texchat is not turned')
+                        console.log('textchat is not turned')
                     }
                     
                     // refresh messages_list
@@ -441,10 +441,13 @@
 
                 channelSocket.onmessage = function(e){
                     const data = JSON.parse(e.data)
-                    const profile = data.profile_name
-                    const message_data = data.message
-                    const messages_area = document.querySelector('.messages_area_wrapper')
-                    const message = `<div class="message">${profile}||${message_data}</div>`
+                    const message_data = data.serialized_message
+                    const profilename = message_data.profilename
+                    const message_content = message_data.content
+                    const profile_avatar_url = message_data.profile_avatar_url
+                    const message_date = message_data.updated_at
+                    let messages_area = document.querySelector('.messages_area_wrapper')
+                    const message = textchat_message_generator(profilename, message_content, profile_avatar_url, message_date)
                     messages_area.innerHTML += message
                     fix_scroll()
                 }
@@ -479,12 +482,17 @@
                                 'channel_id': channel_id,
                                 'message': `${message}`
                             }))
-                            // channelNotificationSocket.close()
+                            
+                            channelNotificationSocket.onmessage = (e) => {
+                                const data = JSON.parse(e.data)
+                                if (data.type == 'message_notification'){
+                                    console.log('refresh private message on sender client only when message is ready')
+                                    refresh_private_message(channel_id)
+                                }
+                            }
                         }
                         // after message sending
                         message_input_field.value = ''
-            
-                        refresh_private_message(channel_id)
                     }
                 };
     }
@@ -931,9 +939,24 @@
         refresh_notifications_list({{ current_user.id }})
     }
 
-    textchat_message_generator = (profilename, message_content) => {
-        let message = `<div class="message">
-            ${profilename}||${message_content}
+    textchat_message_generator = (profilename, message_content, profile_avatar_url, message_date) => {
+        let message = `<div class="textchat_message">
+            <div class="textchat_message_avatar_wrapper">
+                <img class="messages_users_avatar" src="${profile_avatar_url}" alt="Avatar">
+            </div>
+            <div class="textchat_message_text_wrapper">
+                <div class="textchat_message_text_info">
+                    <div class="textchat_message_text_info_profilename">
+                        ${profilename}
+                    </div>
+                    <div class="textchat_message_text_info_date">
+                        ${message_date}
+                    </div>
+                </div>
+                <div class="textchat_message_text_content">
+                    ${message_content}
+                </div>
+            </div>
         </div>`
 
         return message
@@ -943,7 +966,7 @@
         let messages = ''
         if (channel_messages){
             for (message of channel_messages){
-                messages += textchat_message_generator(message.profilename, message.content)
+                messages += textchat_message_generator(message.profilename, message.content, message.profile_avatar_url, message.updated_at)
             }
          }
 

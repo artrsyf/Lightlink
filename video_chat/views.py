@@ -5,9 +5,7 @@ from .models import User, Profile, Channel, ChannelInfo, Friendship
 import json, time, environ
 from agora_token_builder import RtcTokenBuilder
 from sys import maxsize as MAX_INT
-from .utils import find_private_messages_list, find_friend_list, find_channels_list, \
-    find_current_profile, findChannelDataWithSerializedMessages, convertItemDate, \
-    convertChannelDialogName, findChannelAvatarUrl
+from .utils import Queries
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from .forms import FriendshipForm, ProfileForm
 from django.contrib.auth.decorators import login_required
@@ -18,14 +16,12 @@ environ.Env().read_env('../lightlink/')
 @login_required(login_url="/login/")
 def index(request):
     current_user_id = request.user.id
-    private_messages = find_private_messages_list(current_user_id)
+    private_messages = Queries.getPrivateMessageListByUserId(current_user_id)
     current_profile = Profile.objects.get(user=request.user)
-    friends = find_friend_list(current_user_id)
-    channels_ids = find_channels_list(current_user_id)
+    channels_ids = Queries.getChannelIdsListByUserId(current_user_id)
     context = {
         'current_user': request.user,
         'current_profile': current_profile,
-        'friends': friends,
         'private_messages': private_messages,
         'channels_ids': channels_ids
     }
@@ -58,21 +54,25 @@ def get_token(request):
 def channel(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
     current_user_id = request.user.id
+    current_profile = Profile.objects.get(user=request.user)
+    
+    try:
+        channel.channel_infos.get(profile=current_profile)
+    except ChannelInfo.DoesNotExist as ex:
+        print(F"*SERVER RESPONSE: {ex}")
+        return redirect("WebChatHome")
 
     channel_name_unprocessed = channel.channel_name
-    channel_name_processed = convertChannelDialogName(channel_name_unprocessed, current_user_id)
+    channel_name_processed = Queries.convertChannelDialogName(channel_name_unprocessed, current_user_id)
     channel_type_id = channel.channel_type.id
 
-    channel_messages_json = json.dumps(findChannelDataWithSerializedMessages(channel_id, current_user_id))
-    private_messages = find_private_messages_list(current_user_id)
-    current_profile = Profile.objects.get(user=request.user)
-    friends = find_friend_list(current_user_id)
-    channels_ids = find_channels_list(current_user_id)
-    channel_avatar_url = findChannelAvatarUrl(channel_id, current_user_id)
+    channel_messages_json = json.dumps(Queries.getChannelDataWithSerializedMessages(channel_id, current_user_id))
+    private_messages = Queries.getPrivateMessageListByUserId(current_user_id) 
+    channels_ids = Queries.getChannelIdsListByUserId(current_user_id)
+    channel_avatar_url = Queries.findChannelAvatarUrl(channel_id, current_user_id)
     context = {
         'current_user': request.user,
         'current_profile': current_profile,
-        'friends': friends,
         'private_messages': private_messages,
         'channels_ids': channels_ids,
         'channel_id': channel_id,
@@ -142,6 +142,7 @@ def friendRequest(request):
         print(form.errors)
         if form.is_valid():
             form.save()
+            # cacheclear
             return JsonResponse({'result': 'Successfully sent request', 'status': 'success'})
         else:
             error_default_message = 'Something went wrong'
@@ -158,7 +159,7 @@ def friendRequest(request):
 # Проверить работу на большом количестве пользователей
 @login_required(login_url="/login/")
 def getMemberFriends(request, user_id):
-    friends = find_friend_list(user_id)
+    friends = Queries.getFriendListByUserId(user_id)
     friends_serialized = []
     for friend in friends:
         friend_info = friend[0].to_dict()
@@ -168,19 +169,19 @@ def getMemberFriends(request, user_id):
 
 @login_required(login_url="/login/")
 def getMemberChannelsIds(request, user_id):
-    return JsonResponse({'channels_ids': find_channels_list(user_id)})
+    return JsonResponse({'channels_ids': Queries.getChannelIdsListByUserId(user_id)})
 
 @login_required(login_url="/login/")
 def getChannelLastMessageInfo(request, channel_id):
     channel = Channel.objects.get(id=channel_id)
-    current_profile = find_current_profile(request.user.id)
+    current_profile = Queries.getCurrentProfileByUserId(request.user.id, False)
     last_message = channel.all_messages.last()
     sender_profile = last_message.profile
     if channel.channel_type.id == 2:
         # check on multy
         channel_name = ChannelInfo.objects \
             .filter(Q(channel=channel) & ~Q(profile=current_profile)).last().profile.profile_name
-        channel_avatar_url = findChannelAvatarUrl(channel_id, request.user.id)
+        channel_avatar_url = Queries.findChannelAvatarUrl(channel_id, request.user.id)
     else:
             channel_name = 'x'
             channel_avatar_url = 'x'
@@ -188,7 +189,7 @@ def getChannelLastMessageInfo(request, channel_id):
     sender_profilename = sender_profile.profile_name
     content = last_message.content
     unprocessed_updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
-    processed_updated_at = convertItemDate(unprocessed_updated_at)
+    processed_updated_at = Queries.convertItemDate(unprocessed_updated_at)
 
     return JsonResponse({'channel_id': channel_id,
                          'channel_name': channel_name,
@@ -200,8 +201,8 @@ def getChannelLastMessageInfo(request, channel_id):
 
 @login_required(login_url="/login/")
 def getMemberPrivateMessagesList(request, user_id):
-    current_profile = find_current_profile(user_id)
-    channels_ids = find_channels_list(user_id)
+    current_profile = Queries.getCurrentProfileByUserId(user_id, False)
+    channels_ids = Queries.getChannelIdsListByUserId(user_id)
     channels_infos = []
     for channel_id in channels_ids:
         channel = Channel.objects.get(id=channel_id)
@@ -223,8 +224,9 @@ def getMemberPrivateMessagesList(request, user_id):
             # else from groups
         sender_profilename = sender_profile.profile_name
         content = last_message.content
-        unprocessed_updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
-        processed_updated_at = convertItemDate(unprocessed_updated_at)
+        unprocessed_updated_at = last_message.updated_at
+        processed_updated_at = Queries.convertItemDate(
+            last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p"))
 
         channels_infos.append({'channel_id': channel_id,
                                'channel_name': channel_name,
@@ -234,14 +236,15 @@ def getMemberPrivateMessagesList(request, user_id):
                                'updated_at_unprocessed': unprocessed_updated_at,
                                'updated_at': processed_updated_at
                                })
-        channels_infos.sort(key=lambda channel_info: channel_info["updated_at_unprocessed"], 
-                            reverse=True)
+    channels_infos.sort(key=lambda channel_info: channel_info["updated_at_unprocessed"], 
+                        reverse=True)
+    print(channels_infos)
     return JsonResponse(channels_infos, safe=False)
 
 @login_required(login_url="/login/")
 def getChannelData(request, channel_id):
     user_id = request.user.id
-    full_channel_data_dict = findChannelDataWithSerializedMessages(channel_id, user_id)
+    full_channel_data_dict = Queries.getChannelDataWithSerializedMessages(channel_id, user_id)
 
     return JsonResponse(full_channel_data_dict)
 
@@ -264,7 +267,7 @@ def getChannelMeta(request, channel_id):
 
 @login_required(login_url="/login/")
 def editProfile(request):
-    profile = find_current_profile(request.user.id)
+    profile = Queries.getCurrentProfileByUserId(request.user.id, False)
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, updated_profile=profile)
         print(form.errors)
@@ -272,6 +275,8 @@ def editProfile(request):
             profile.profile_name = request.POST['profilename']
             profile.profile_avatar = request.FILES['profile_avatar']
             profile.save()
+            # cacheclear
+
             return JsonResponse({'result': 'ok'})
     default_form_profile_avatar = profile.profile_avatar \
         if profile.profile_avatar != 'default_profile_avatar.jpg' else None
@@ -283,7 +288,7 @@ def editProfile(request):
 
 @login_required(login_url="/login/")
 def getMemberNotifications(request, user_id):
-    current_profile = find_current_profile(user_id)
+    current_profile = Queries.getCurrentProfileByUserId(user_id, False)
     notifications_serialized = []
 
     notifications = current_profile.all_notifications.all().order_by('-created_at')

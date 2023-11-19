@@ -82,9 +82,10 @@ class Message(models.Model):
             'channel_id': self.channel.id,
             'profile_id': self.profile.id if self.profile else None,
             'profilename': self.profile.profile_name if self.profile else None,
+            'profile_avatar_url': self.profile.profile_avatar.url if self.profile else None,
             'content': self.content,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'created_at': self.created_at.strftime('%d.%m.%Y %H:%M'),
+            'updated_at': self.updated_at.strftime('%d.%m.%Y %H:%M'),
         }
     
 class NotificationType(models.Model):
