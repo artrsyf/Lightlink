@@ -1,0 +1,81 @@
+version: '3.7'
+
+services:
+  lightlink_app:
+    container_name: lightlink_app
+    image: lightlink_app
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8001"
+    env_file:
+      - ./lightlink/prod.env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/apps/lightlink/
+    ports:
+      - "8001:8001"
+    expose:
+      - 8001
+    depends_on:
+      - lightlink_db
+      - lightlink_redis
+
+  lightlink_app_gunicorn:
+    container_name: lightlink_app_gunicorn
+    image: lightlink_app
+    command: >
+      sh -c "gunicorn lightlink.wsgi:application --bind 0.0.0.0:8000"
+    env_file:
+      - ./lightlink/prod.env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/usr/src/apps/lightlink/
+    ports:
+      - "8000:8000"
+    expose:
+      - 8000
+    depends_on:
+      - lightlink_db
+      - lightlink_redis
+
+  lightlink_nginx:
+    container_name: lightlink_nginx
+    image: lightlink_nginx:1.25-alpine
+    build:
+      context: ./nginx/
+      dockerfile: Dockerfile
+    ports:
+      - "1234:80"
+    expose:
+      - 80
+    depends_on:
+      - lightlink_app
+      - lightlink_app_gunicorn
+  
+  lightlink_db:
+    container_name: lightlink_db
+    image: postgres:14-alpine
+    env_file:
+      - ./lightlink/dev.env
+    volumes:
+      - lightlink_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    expose:
+      - 5432
+  
+  lightlink_redis:
+    container_name: lightlink_redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    expose:
+      - 6379
+
+volumes:
+  lightlink_db_data:
+    driver: "local"
