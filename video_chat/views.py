@@ -224,8 +224,9 @@ def getMemberPrivateMessagesList(request, user_id):
             # else from groups
         sender_profilename = sender_profile.profile_name
         content = last_message.content
-        unprocessed_updated_at = last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p")
-        processed_updated_at = Queries.convertItemDate(unprocessed_updated_at)
+        unprocessed_updated_at = last_message.updated_at
+        processed_updated_at = Queries.convertItemDate(
+            last_message.updated_at.strftime("%b. %d, %Y, %I:%M %p"))
 
         channels_infos.append({'channel_id': channel_id,
                                'channel_name': channel_name,
@@ -235,8 +236,9 @@ def getMemberPrivateMessagesList(request, user_id):
                                'updated_at_unprocessed': unprocessed_updated_at,
                                'updated_at': processed_updated_at
                                })
-        channels_infos.sort(key=lambda channel_info: channel_info["updated_at_unprocessed"], 
-                            reverse=True)
+    channels_infos.sort(key=lambda channel_info: channel_info["updated_at_unprocessed"], 
+                        reverse=True)
+    print(channels_infos)
     return JsonResponse(channels_infos, safe=False)
 
 @login_required(login_url="/login/")

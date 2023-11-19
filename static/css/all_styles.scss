@@ -59,6 +59,7 @@ body{
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
 }
 .profile_info{
     display: flex;
@@ -77,6 +78,7 @@ body{
 
 .profile_options{
     color: $active_panel_font_grey_color_7;
+    max-width: 111px;
 
     .profile_options_btn{
         padding: 5px 7px 5px 7px;

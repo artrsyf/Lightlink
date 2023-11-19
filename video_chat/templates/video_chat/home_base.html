@@ -482,12 +482,17 @@
                                 'channel_id': channel_id,
                                 'message': `${message}`
                             }))
-                            // channelNotificationSocket.close()
+                            
+                            channelNotificationSocket.onmessage = (e) => {
+                                const data = JSON.parse(e.data)
+                                if (data.type == 'message_notification'){
+                                    console.log('refresh private message on sender client only when message is ready')
+                                    refresh_private_message(channel_id)
+                                }
+                            }
                         }
                         // after message sending
                         message_input_field.value = ''
-            
-                        refresh_private_message(channel_id)
                     }
                 };
     }
