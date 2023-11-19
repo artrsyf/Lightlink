@@ -18,11 +18,9 @@ from django.contrib.auth import get_user_model
 
 from allauth.account.models import EmailAddress
 
-from django.shortcuts import HttpResponseRedirect
+from video_chat.utils import clearCache
 
 def index(request):
-    # print('huy', get_current_site(request).domain, 'huy')
-    # User.objects.create(password='11223344', is_superuser=False, email='rom.fadeev2017@yandex.ru', is_staff=False, is_active=True, username='eeQeq')
     return render(request, 'base/index.html')
 
 def activate(request, uidb64, token):
@@ -36,6 +34,7 @@ def activate(request, uidb64, token):
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True
         user.save()
+        clearCache(f'cache__{user.id}__current_user', f'cache__{user.username}__current_user')
 
         email = user.email
         EmailAddress.objects.create(user=user, email=email, verified=True, primary=True)

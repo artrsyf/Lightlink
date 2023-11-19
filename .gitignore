@@ -7,3 +7,4 @@ __pycache__
 *.pem
 media/profile_avatars
 sql_scripts/
+*.css.map
