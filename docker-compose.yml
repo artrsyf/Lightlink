@@ -6,6 +6,7 @@ services:
     image: lightlink_app
     command: >
       sh -c "python manage.py migrate &&
+             python lightlink/db_preset.py &&
              python manage.py runserver 0.0.0.0:8000"
     env_file:
       - ./lightlink/dev.env
