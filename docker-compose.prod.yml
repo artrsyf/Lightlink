@@ -8,7 +8,7 @@ services:
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8001"
     env_file:
-      - ./lightlink/prod.env
+      - ./lightlink/prod_test.env
     build:
       context: .
       dockerfile: Dockerfile
@@ -28,7 +28,7 @@ services:
     command: >
       sh -c "gunicorn lightlink.wsgi:application --bind 0.0.0.0:8000"
     env_file:
-      - ./lightlink/prod.env
+      - ./lightlink/prod_test.env
     build:
       context: .
       dockerfile: Dockerfile
@@ -60,7 +60,7 @@ services:
     container_name: lightlink_db
     image: postgres:14-alpine
     env_file:
-      - ./lightlink/dev.env
+      - ./lightlink/prod_test.env
     volumes:
       - lightlink_db_data:/var/lib/postgresql/data
     ports:
