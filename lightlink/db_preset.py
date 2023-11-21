@@ -5,6 +5,7 @@ env = environ.Env()
 environ.Env().read_env()
 
 def executSqlScript(sql_file_path):
+    print(f"*SERVER RESPONSE: Chosen sql script path: {sql_file_path}")
     try:
         conn = psycopg2.connect(
             dbname=env("POSTGRES_DB"),
