@@ -6,6 +6,8 @@ services:
     image: lightlink_app
     command: >
       sh -c "python manage.py migrate &&
+             python lightlink/db_preset.py &&
+             python manage.py collectstatic --no-input &&
              python manage.py runserver 0.0.0.0:8001"
     env_file:
       - ./lightlink/prod_test.env
@@ -13,7 +15,8 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - .:/usr/src/apps/lightlink/
+      - lightlink_app_static_data:/usr/src/apps/lightlink/static_root/
+      - lightlink_app_media_data:/usr/src/apps/lightlink/media/
     ports:
       - "8001:8001"
     expose:
@@ -32,8 +35,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - .:/usr/src/apps/lightlink/
     ports:
       - "8000:8000"
     expose:
@@ -48,6 +49,9 @@ services:
     build:
       context: ./nginx/
       dockerfile: Dockerfile
+    volumes:
+      - lightlink_app_static_data:/usr/src/apps/lightlink/static_root/
+      - lightlink_app_media_data:/usr/src/apps/lightlink/media/
     ports:
       - "1234:80"
     expose:
@@ -62,7 +66,7 @@ services:
     env_file:
       - ./lightlink/prod_test.env
     volumes:
-      - lightlink_db_data:/var/lib/postgresql/data
+      - lightlink_db_prod_test_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     expose:
@@ -77,5 +81,9 @@ services:
       - 6379
 
 volumes:
-  lightlink_db_data:
+  lightlink_db_prod_test_data:
+    driver: "local"
+  lightlink_app_static_data:
+    driver: "local"
+  lightlink_app_media_data:
     driver: "local"
