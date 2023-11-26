@@ -143,10 +143,12 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         channel_id = event["channel_id"]
         sender_profile = await self.create_notification_and_get_profile(sender_username)
         sender_profilename = sender_profile.profile_name
+        sender_profilename_avatar_url = sender_profile.profile_avatar.url
 
         await self.send(text_data=json.dumps({"type": "incoming_dialog_call",
                                               "sender_username": sender_username,
                                               "sender_profilename": sender_profilename,
+                                              "sender_profilename_avatar_url": sender_profilename_avatar_url,
                                               "channel_id": channel_id
                                               }))
         

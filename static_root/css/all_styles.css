@@ -122,13 +122,14 @@ body {
   flex-direction: row;
   justify-content: center;
   align-items: center; }
-  .search_panel .search_input_default {
-    padding: 3px 3px 3px 5px;
-    border-radius: 5px;
-    border: none;
-    outline: none;
-    background-color: #2d2d3c;
-    color: #cfcfcf; }
+
+.search_input_default {
+  padding: 3px 3px 3px 5px;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  background-color: #2d2d3c;
+  color: #cfcfcf; }
 
 .call_manage_buttons {
   display: flex;
@@ -411,7 +412,7 @@ body {
         word-break: break-all; }
 
 .message_input_wrapper {
-  min-height: 40px;
+  min-height: 69px;
   height: 8%;
   width: 80%;
   display: flex;
@@ -552,128 +553,60 @@ body {
 .videochat_wrapper {
   width: 100%;
   height: 50%;
-  background-color: burlywood; }
-
-.videochat_content {
-  width: 100%;
-  height: 100%;
-  padding: 10px 10px 10px 10px;
-  display: flex;
-  flex-direction: column; }
-
-.videochat_info {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between; }
-
-.videocall_status {
-  display: flex;
-  flex-direction: row;
-  width: 13%;
-  align-items: center;
-  justify-content: space-between; }
-
-.videocall_toolbar {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: 26%; }
-
-.videostreams_wrapper {
-  flex-grow: 1;
-  padding-top: 30px;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  position: relative; }
-
-.videostreams {
-  width: fit-content;
-  height: 100%;
-  display: grid;
-  gap: 10px; }
+  background-color: #181822; }
+  .videochat_wrapper .videochat_content {
+    width: 100%;
+    height: 100%;
+    padding: 10px 10px 10px 10px;
+    display: flex;
+    flex-direction: column; }
+    .videochat_wrapper .videochat_content .videochat_info {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      color: #858585; }
+      .videochat_wrapper .videochat_content .videochat_info .videocall_status {
+        display: flex;
+        flex-direction: row;
+        width: 13%;
+        align-items: center;
+        justify-content: space-between; }
+      .videochat_wrapper .videochat_content .videochat_info .videocall_toolbar {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width: 26%; }
+    .videochat_wrapper .videochat_content .videostreams_wrapper {
+      flex-grow: 1;
+      padding-top: 30px;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      position: relative; }
+      .videochat_wrapper .videochat_content .videostreams_wrapper .videostreams {
+        width: fit-content;
+        height: 100%;
+        display: grid;
+        gap: 10px; }
+      .videochat_wrapper .videochat_content .videostreams_wrapper .control_panel_wrapper {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        position: absolute;
+        bottom: 0;
+        width: 100%; }
 
 .videostream {
   background-color: #ddd; }
-
-.control_panel_wrapper {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  position: absolute;
-  bottom: 0;
-  width: 100%; }
 
 .control_panel {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: centers; }
-
-.videochat_wrapper {
-  width: 100%;
-  height: 50%;
-  background-color: burlywood; }
-
-.videochat_content {
-  width: 100%;
-  height: 100%;
-  padding: 10px 10px 10px 10px;
-  display: flex;
-  flex-direction: column; }
-
-.videochat_info {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between; }
-
-.videocall_status {
-  display: flex;
-  flex-direction: row;
-  width: 13%;
   align-items: center;
-  justify-content: space-between; }
-
-.videocall_toolbar {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: 26%; }
-
-.videostreams_wrapper {
-  flex-grow: 1;
-  padding-top: 30px;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  position: relative; }
-
-.videostreams {
-  width: fit-content;
-  height: 100%;
-  display: grid;
-  gap: 10px; }
-
-.videostream {
-  background-color: #ddd; }
-
-.control_panel_wrapper {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  position: absolute;
-  bottom: 0;
-  width: 100%; }
-
-.control_panel {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: centers; }
+  width: 20%; }
 
 /* {% comment %}  {% endcomment %}
 
@@ -684,22 +617,6 @@ body {
   width: 100%;
   padding: 10px 30px 10px 10px;
   border-bottom: 1px solid #3c3c53; }
-  .call_panel_wrapper .friend_data_wrapper {
-    display: flex;
-    flex-direction: row;
-    min-width: 160px;
-    width: 20%; }
-    .call_panel_wrapper .friend_data_wrapper .channel_avatar .channel_avatar_img {
-      width: 30px;
-      height: 30px;
-      border-radius: 50px; }
-    .call_panel_wrapper .friend_data_wrapper .channel_name {
-      padding-left: 12px;
-      display: flex;
-      align-items: center;
-      color: #cfcfcf;
-      max-width: calc(100% - 30px);
-      overflow: hidden; }
   .call_panel_wrapper .call_active_panel_wrapper {
     margin-left: auto; }
     .call_panel_wrapper .call_active_panel_wrapper .call_button {
@@ -712,7 +629,70 @@ body {
       .call_panel_wrapper .call_active_panel_wrapper .call_button:hover {
         color: #edecec; }
 
+.friend_data_wrapper {
+  display: flex;
+  flex-direction: row;
+  min-width: 160px;
+  width: 20%; }
+  .friend_data_wrapper .channel_avatar .channel_avatar_img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50px; }
+  .friend_data_wrapper .channel_name {
+    padding-left: 12px;
+    display: flex;
+    align-items: center;
+    color: #cfcfcf;
+    max-width: calc(100% - 30px);
+    overflow: hidden; }
+
 /* 
 {% comment %}  {% endcomment %} */
+.width_icon_fix {
+  max-width: 12px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center; }
+
+#profile_options_sound {
+  position: relative;
+  display: flex;
+  justify-content: center; }
+
+.headphones-slash {
+  position: absolute; }
+
+.video_chat_tool_bar_prm_color {
+  color: #858585 !important; }
+
+.video_chat_buttons {
+  border-radius: 50%;
+  border-style: none;
+  padding: 10px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #edecec;
+  cursor: pointer;
+  transition: background-color 0.2s ease; }
+  .video_chat_buttons:hover {
+    background-color: rgba(87, 87, 87, 0.7); }
+
+.share_stream_btn {
+  background-color: #575757; }
+
+.mute_video_btn {
+  background-color: #575757; }
+
+.mute_mic_btn {
+  background-color: #575757; }
+
+.leave_room_btn {
+  background-color: #e94d4d; }
+  .leave_room_btn:hover {
+    background-color: rgba(233, 77, 77, 0.7) !important; }
 
 /*# sourceMappingURL=all_styles.css.map */

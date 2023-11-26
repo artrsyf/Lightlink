@@ -140,7 +140,7 @@ class Queries:
     
     def __findChannelDataWithSerializedMessages(channel_id: int, owner_user_id: int) -> dict:
         channel = Channel.objects.get(id=channel_id)
-        channel.channel_name = Queries.convertChannelDialogName(channel.channel_name, owner_user_id)
+        # channel.channel_name = Queries.convertChannelDialogName(channel.channel_name, owner_user_id)
         channel_messages = Queries.getChannelMessages(channel)
 
         serialized_channel_messages = [channel_message.to_dict() for channel_message in channel_messages]
@@ -152,6 +152,8 @@ class Queries:
         channel_data_dict = getOrSetCache(cache_key, 
                                           lambda: Queries.__findChannelDataWithSerializedMessages(channel_id, owner_user_id))
         channel_avatar_url = Queries.findChannelAvatarUrl(channel_id, owner_user_id)
+        channel_data_dict["channel_name"] = Queries.convertChannelDialogName(
+            channel_data_dict["channel_name"], owner_user_id)
 
         return channel_data_dict | {"channel_avatar_url": channel_avatar_url}
 

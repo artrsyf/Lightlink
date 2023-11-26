@@ -2,6 +2,7 @@ $dark_contrast_element_violet_8: #454483;
 $dark_contrast_element_violet_5: #59589f;
 $dark_background_violet_color_10: #3c3c53;
 $dark_background_violet_color_9: #4d4d67;
+$darkest_background_violet_10: #181822;
 $light_background_white_color: white;
 $auxiliary_light_color: white;
 $dark_button_hover_violet_color_6: #45455d;
@@ -11,6 +12,8 @@ $active_panel_font_grey_color_7: #a0a0a0;
 $aux_font_grey_color_6: #cfcfcf;
 $aux_font_grey_color_3: #edecec;
 $main_scroll_violet_color: #2d2d3c;
+$leave_channel_red_button: rgb(233, 77, 77);
+$dark_control_panel_grey: #575757;
 
 $side_panel_width: 272px;
 
@@ -151,16 +154,17 @@ body{
     flex-direction: row;
     justify-content: center;
     align-items: center;
-
-    .search_input_default{
-        padding: 3px 3px 3px 5px;
-        border-radius: 5px;
-        border: none;
-        outline: none;
-        background-color: $main_scroll_violet_color;
-        color: $aux_font_grey_color_6;
-    }
 }
+
+.search_input_default{
+    padding: 3px 3px 3px 5px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    background-color: $main_scroll_violet_color;
+    color: $aux_font_grey_color_6;
+}
+
 .call_manage_buttons{
     display: flex;
     flex-direction: row;
@@ -509,7 +513,7 @@ body{
     }
 }
 .message_input_wrapper{
-    min-height: 40px;
+    min-height: 69px;
     height: 8%;
     width: 80%;
     display: flex;
@@ -660,129 +664,76 @@ body{
 .videochat_wrapper{
     width: 100%;
     height: 50%;
-    background-color: burlywood;
-}
-.videochat_content{
-    width: 100%;
-    height: 100%;
-    padding: 10px 10px 10px 10px;
-    display: flex;
-    flex-direction: column;
-}
-.videochat_info{
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-}
-.videocall_status{
-    display: flex;
-    flex-direction: row;
-    width: 13%;
-    align-items: center;
-    justify-content: space-between;
-}
-.videocall_toolbar{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 26%;
-}
-.videostreams_wrapper{
-    flex-grow: 1;
-    padding-top: 30px;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    position: relative;
-}
-.videostreams{
-    width: fit-content;
-    height: 100%;
-    display: grid;
-    gap: 10px;
-}
-.videostream{
-    background-color: #ddd;
-}
-.control_panel_wrapper{
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-}
-.control_panel{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: centers;
+    background-color: $darkest_background_violet_10;
+
+    .videochat_content{
+        width: 100%;
+        height: 100%;
+        padding: 10px 10px 10px 10px;
+        display: flex;
+        flex-direction: column;
+
+        .videochat_info{
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            color: $main_font_grey_color_5;
+
+            .videocall_status{
+                display: flex;
+                flex-direction: row;
+                width: 13%;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .videocall_toolbar{
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                width: 26%;
+            }
+        }
+
+        .videostreams_wrapper{
+            flex-grow: 1;
+            padding-top: 30px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            position: relative;
+
+            .videostreams{
+                width: fit-content;
+                height: 100%;
+                display: grid;
+                gap: 10px;
+            }
+
+            .control_panel_wrapper{
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                position: absolute;
+                bottom: 0;
+                width: 100%;
+            }
+        }
+    }
 }
 
-.videochat_wrapper{
-    width: 100%;
-    height: 50%;
-    background-color: burlywood;
-}
-.videochat_content{
-    width: 100%;
-    height: 100%;
-    padding: 10px 10px 10px 10px;
-    display: flex;
-    flex-direction: column;
-}
-.videochat_info{
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-}
-.videocall_status{
-    display: flex;
-    flex-direction: row;
-    width: 13%;
-    align-items: center;
-    justify-content: space-between;
-}
-.videocall_toolbar{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 26%;
-}
-.videostreams_wrapper{
-    flex-grow: 1;
-    padding-top: 30px;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    position: relative;
-}
-.videostreams{
-    width: fit-content;
-    height: 100%;
-    display: grid;
-    gap: 10px;
-}
 .videostream{
     background-color: #ddd;
 }
-.control_panel_wrapper{
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-}
+
 .control_panel{
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    align-items: centers;
+    align-items: center;
+    width: 20%;
 }
 
 /* {% comment %}  {% endcomment %}
@@ -795,30 +746,6 @@ body{
     width: 100%;
     padding: 10px 30px 10px 10px;
     border-bottom: 1px solid $dark_background_violet_color_10;
-
-    .friend_data_wrapper{
-        display: flex;
-        flex-direction: row;
-        min-width: 160px;
-        width: 20%;
-
-        .channel_avatar{
-            .channel_avatar_img{
-                width: 30px;
-                height: 30px;
-                border-radius: 50px;
-            }
-        }
-
-        .channel_name{
-            padding-left: 12px;
-            display: flex;
-            align-items: center;
-            color: $aux_font_grey_color_6;
-            max-width: calc(100% - 30px);
-            overflow: hidden;
-        }
-    }
 
     .call_active_panel_wrapper{
         margin-left: auto;
@@ -837,5 +764,90 @@ body{
         }
     }
 }
+
+.friend_data_wrapper{
+    display: flex;
+    flex-direction: row;
+    min-width: 160px;
+    width: 20%;
+
+    .channel_avatar{
+        .channel_avatar_img{
+            width: 30px;
+            height: 30px;
+            border-radius: 50px;
+        }
+    }
+
+    .channel_name{
+        padding-left: 12px;
+        display: flex;
+        align-items: center;
+        color: $aux_font_grey_color_6;
+        max-width: calc(100% - 30px);
+        overflow: hidden;
+    }
+}
+
 /* 
 {% comment %}  {% endcomment %} */
+
+.width_icon_fix{
+    max-width: 12px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+#profile_options_sound{
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.headphones-slash{
+    position: absolute;
+}
+
+.video_chat_tool_bar_prm_color{
+    color: $main_font_grey_color_5 !important;
+}
+
+.video_chat_buttons{
+    border-radius: 50%;
+    border-style: none;
+    padding: 10px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: $aux_font_grey_color_3;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover{
+        background-color: rgba($dark_control_panel_grey, 0.7);
+    }
+}
+
+.share_stream_btn{
+    background-color: $dark_control_panel_grey;
+}
+
+.mute_video_btn{
+    background-color: $dark_control_panel_grey;
+}
+
+.mute_mic_btn{
+    background-color: $dark_control_panel_grey;
+}
+
+.leave_room_btn{
+    background-color: $leave_channel_red_button;
+
+    &:hover{
+        background-color: rgba($leave_channel_red_button, 0.7) !important;
+    }
+}
