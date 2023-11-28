@@ -90,7 +90,7 @@
                             </div>
                         </div>
                         <div class="profile_options">
-                            <div class="profile_options_btn" id="profile_options_mic" onclick="clickOnMicButton()">
+                            <div class="profile_options_btn" id="profile_options_mic" onclick="syncMicButton()">
                                 <i class="fa-solid fa-microphone"></i>
                             </div>
                             <div class="profile_options_btn" id="profile_options_sound" onclick="clickOnHeadphonesButton()">
@@ -112,6 +112,9 @@
 <script>
     const ws_scheme = window.location.protocol == "https:" ? "wss://" : "ws://";
     console.log(`*CLIENT RESPONSE: Configured protocol scheme: ${ws_scheme}`)
+
+    const ACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR = "#575757"
+    const INACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR = "#1c1c1c"
 
     const WebSocketConnections = new Set()
 
@@ -194,7 +197,7 @@
                 }
                 else if (data.type == 'call_declining'){
                     // Actions after call declining
-                    alert('Declined')
+                    {% comment %} alert('Declined') {% endcomment %}
                 }
                 else{
                     console.error("Unrecognized ws input type")
@@ -501,7 +504,17 @@
                 };
     }
 
+    deleteUnusedAgoraClient = () => {
+        if (AgoraClient.instance){
+            AgoraClient.instance.destroy().then(() => {
+                delete AgoraClient.instance
+            })
+        }
+    }
+
     handleFriendClick = (channel_id, open_video_chat=false) => {
+        deleteUnusedAgoraClient()
+
         $.ajax({
             url: `/vw/get-channel-data/${channel_id}`,
             dataType: "json",
@@ -1106,21 +1119,6 @@
                 </div>
                 <div class="videostreams_wrapper" id="streams_wrapper">
                     <div class="videostreams" id="streams_store">
-                        <!-- <div class="videostream">
-     
-                        </div>
-                        <div class="videostream">
-                            
-                        </div>
-                        <div class="videostream">
-                            
-                        </div>
-                        <div class="videostream">
-                            
-                        </div>
-                        <div class="videostream">
-                            
-                        </div> -->
                     </div>
                     <div class="control_panel_wrapper">
                         <div class="control_panel">
@@ -1147,10 +1145,9 @@
     }
 
     class AgoraClient{
-        constructor(_chanel_id, _csrf_token, _app_id=0, _stream_token=0, _stream_id=0, _token=0, _user_id=0){
-            if (AgoraClient.instance){
-                AgoraClient.instance.destroy()
-            }
+        constructor(_chanel_id, _csrf_token, _app_id=0, _stream_token=0, _stream_id=0, _token=0, _user_id=0, _profilename="undefined"){
+            deleteUnusedAgoraClient()
+
             AgoraClient.instance = this
             console.log("Create new AgoraClient adapter")
             
@@ -1166,14 +1163,16 @@
             this.stream_id = _stream_id
             this.token = _token
             this.user_id = _user_id
+            this.profilename = _profilename
             this.isSharingEnabled = false
             this.screenTrack = []
         }
 
-        destroy(){
-            this.leaveAndRemovLocalStreams()
-            delete this
-            console.log("Destroy previous Agora adapter")
+        destroy = async () => {
+            let leave_promise = this.leaveAndRemovLocalStreams();
+            leave_promise.then(() => {
+                console.log("Destroy previous Agora adapter")
+            });
         }
 
         getSessionUserData = async () => {
@@ -1230,18 +1229,36 @@
             catch(ex){
                 console.error('*CLIENT RESPONSE: Could not create client, check Agora logs')
             }
+
+            try{
+                this.localTracks[0] = await AgoraRTC.createMicrophoneAudioTrack()
+                await syncMicButton(false)
+            }
+            catch(ex){
+                console.error('*CLIENT RESPONSE: Could not enable microphone track')
+                console.error(ex)
+            }
+            try{
+                this.localTracks[1] = await AgoraRTC.createCameraVideoTrack()
+                await this.localTracks[0].setMuted(true)
+            }
+            catch(ex){
+                console.error('*CLIENT RESPONSE: Could not enable camera track')
+                console.error(ex)
+            }
+            if (this.localTracks[1]){
         
-            this.localTracks = await AgoraRTC.createMicrophoneAndCameraTracks()
+                let player = `<div class="videostream" id="user-container-${this.user_id}">
+                                <div class="video-player" id="user-${this.user_id}"></div>
+                                <div class="video-player-user-name id="name-user-${this.user_id}">${this.profilename}</div>
+                            </div>`
         
-            let player = `<div class="videostream" id="user-container-${USER_ID}">
-                            <div class="video-player" id="user-${USER_ID}"></div>
-                            <div class="video-player-user-name id="name-user-${USER_ID}">${USER_PROFILENAME}</div>
-                        </div>`
+                document.getElementById('streams_store').insertAdjacentHTML("beforeend", player)
+            
+                this.localTracks[1].play(`user-${this.user_id}`)
+            }
         
-            document.getElementById('streams_store').insertAdjacentHTML("beforeend", player)
-            this.localTracks[1].play(`user-${USER_ID}`)
-        
-            await this.client.publish([this.localTracks[0], this.localTracks[1]])
+            await this.client.publish(this.localTracks)
         }
         
         handleUserJoined = async (user, mediaType) => {
@@ -1260,16 +1277,17 @@
                 }
                 catch(ex){
                     console.error("*CLIENT RESPONSE: Could not parse member name")
+                    console.error(ex)
                     member = {name: 'Undefined'}
                 }
         
-                player = `<div class="videostream" id="user-container-${user.uid}">
+                {% comment %} player = `<div class="videostream" id="user-container-${user.uid}">
                     <div class="video-player" id="user-${user.uid}" name="${member.name}"></div>
                     <div class="video-player-user-name">${member.name}</div>
                 </div>`
         
                 document.getElementById('streams_store').insertAdjacentHTML('beforeend', player)
-                user.videoTrack.play(`user-${user.uid}`)
+                user.videoTrack.play(`user-${user.uid}`) {% endcomment %}
             }
         
             if (mediaType == 'audio'){
@@ -1299,9 +1317,10 @@
         }
 
         endVideoCall = async () => {
-            this.leaveAndRemovLocalStreams()
-            // todo
-            handleFriendClick(this.channel_id)
+            let destroyPromise = this.destroy()
+            destroyPromise.then(() => {
+                handleFriendClick(this.channel_id)
+            })
         }
         
         toggleCamera = async (e) => {
@@ -1316,14 +1335,7 @@
         }
         
         toggleMicrophone = async (e) => {
-            if (this.localTracks[0].muted){
-                await this.localTracks[0].setMuted(false)
-                e.target.style.backgroundColor = 'green'
-            }
-            else{
-                await this.localTracks[0].setMuted(true)
-                e.target.style.backgroundColor = 'blue'
-            }
+            await syncMicButton()
         }
         
         toggleSharing = async (e) => {
@@ -1358,35 +1370,27 @@
                 content_wrapper.removeChild(call_panel_element)
             }
             content_wrapper.insertBefore(video_chat_element, content_wrapper.firstChild)
+            
+            // will change color for mic button immediately.
+            // Not neccessary to wait async functions in AgoraClient object.
+            changeVideoChatMicIcon()
+
             fix_scroll()
 
             let videostreams = document.getElementById('streams_store')
             let observer = new MutationObserver(handleChanges);
             observer.observe(videostreams, observerOptions);
 
-            // optimizeVideostreamsWrapper()
-
-            // close other video_chats
-            // ...
-
-            // open new one
-
-            // if (typeof(obj) !== 'undefined' && obj){
-            //     console.log("clear agora adapter for previous channel")
-            //     obj.leaveAndRemovLocalStreams()
-            //     delete obj
-            // }
             var obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
-            // constructor(_chanel_id, _csrf_token, _app_id, _stream_token, _stream_id, _token, _user_id)
+           
             obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
-                // APP_ID = data.app_id
+
                 obj.app_id = data.app_id
                 fetch(`/vw/get_token/?channel=${input_channel_id}`)
                     .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
                     .then(CONVERSATION_DATA =>{
                         console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
             
-                        // USER_ID = CONVERSATION_DATA.user_id
                         obj.user_id = CONVERSATION_DATA.user_id
                         obj.token = CONVERSATION_DATA.token
                         obj.stream_id = CONVERSATION_DATA.stream_id
@@ -1495,8 +1499,26 @@
 
     // devices control panel
 
-    clickOnMicButton = () => {
-        MicrophoneGlobalStatus = !MicrophoneGlobalStatus
+    changeVideoChatMicIcon = () => {
+        let video_chat_mic_icon = document.querySelector("#mic-btn")
+        if (MicrophoneGlobalStatus){
+            video_chat_mic_icon.style.backgroundColor = ACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
+        }
+        else{
+            video_chat_mic_icon.style.backgroundColor = INACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
+        }
+    }
+
+    syncMicButton = async (is_button_clicked = true) => {
+        if (is_button_clicked){
+            MicrophoneGlobalStatus = !MicrophoneGlobalStatus
+        }
+        if (AgoraClient.instance && AgoraClient.instance.localTracks[0]){
+            await AgoraClient.instance.localTracks[0].setMuted(!MicrophoneGlobalStatus)
+            changeVideoChatMicIcon()
+        }
+        else if (AgoraClient.instance && !AgoraClient.instance.localTracks[0]) return
+
         let buttonWrapper = document.querySelector("#profile_options_mic")
         const UNMUTED_MIC_HTML = "<i class='fa-solid fa-microphone'></i>"
         const MUTED_MIC = "<i class='fa-solid fa-microphone-slash width_icon_fix'></i>"
