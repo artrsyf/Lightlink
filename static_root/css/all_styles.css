@@ -598,8 +598,20 @@ body {
         bottom: 0;
         width: 100%; }
 
+.video-player {
+  height: 100%;
+  width: 100%; }
+  .video-player div {
+    border-radius: 10px; }
+
 .videostream {
-  background-color: #ddd; }
+  background-color: #ddd;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative; }
 
 .control_panel {
   display: flex;
@@ -694,5 +706,16 @@ body {
   background-color: #e94d4d; }
   .leave_room_btn:hover {
     background-color: rgba(233, 77, 77, 0.7) !important; }
+
+.user_video_chat_icon {
+  height: 100px;
+  width: 100px;
+  border-radius: 50%;
+  position: absolute;
+  z-index: 1; }
+
+.agora_video_player {
+  border-radius: 10px;
+  background-color: #ddd; }
 
 /*# sourceMappingURL=all_styles.css.map */

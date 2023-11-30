@@ -724,8 +724,23 @@ body{
     }
 }
 
+.video-player{
+    height: 100%;
+    width: 100%;
+
+    div{
+        border-radius: 10px;
+    }
+}
+
 .videostream{
     background-color: #ddd;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
 
 .control_panel{
@@ -850,4 +865,17 @@ body{
     &:hover{
         background-color: rgba($leave_channel_red_button, 0.7) !important;
     }
+}
+
+.user_video_chat_icon{
+    height: 100px;
+    width: 100px;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 1;
+}
+
+.agora_video_player{
+    border-radius: 10px;
+    background-color: #ddd;
 }

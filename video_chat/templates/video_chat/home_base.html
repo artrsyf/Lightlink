@@ -1145,7 +1145,7 @@
     }
 
     class AgoraClient{
-        constructor(_chanel_id, _csrf_token, _app_id=0, _stream_token=0, _stream_id=0, _token=0, _user_id=0, _profilename="undefined"){
+        constructor(_chanel_id, _csrf_token, _app_id=0, _stream_token=0, _stream_id=0, _token=0, _user_id=0, _profilename="undefined", _profile_avatar_url="/"){
             deleteUnusedAgoraClient()
 
             AgoraClient.instance = this
@@ -1164,6 +1164,7 @@
             this.token = _token
             this.user_id = _user_id
             this.profilename = _profilename
+            this.profile_avatar_url = _profile_avatar_url
             this.isSharingEnabled = false
             this.screenTrack = []
         }
@@ -1210,8 +1211,9 @@
         }
         
         joinAndDisplayLocalStream = async () => {
-        
-            this.client.on('user-published', this.handleUserJoined)
+            this.client.on('user-joined', this.handleUserJoined)
+            this.client.on('user-unpublished', this.handleUserUnpublished)
+            this.client.on('user-published', this.handleUserPublished)
             this.client.on('user-left', this.handleUserLeft)
         
             try{
@@ -1240,54 +1242,110 @@
             }
             try{
                 this.localTracks[1] = await AgoraRTC.createCameraVideoTrack()
-                await this.localTracks[0].setMuted(true)
+                await this.localTracks[1].setMuted(true)
             }
             catch(ex){
                 console.error('*CLIENT RESPONSE: Could not enable camera track')
                 console.error(ex)
             }
+
+            let video_chat_camera_icon = document.querySelector("#video-btn")
+            video_chat_camera_icon.style.backgroundColor = INACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
+
+            let video_chat_share_icon = document.querySelector("#share-btn")
+            video_chat_share_icon.style.backgroundColor = INACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
+            
             if (this.localTracks[1]){
         
                 let player = `<div class="videostream" id="user-container-${this.user_id}">
+                                <img class="user_video_chat_icon" id="user_video_chat_icon_${this.user_id}" src="${this.profile_avatar_url}">
                                 <div class="video-player" id="user-${this.user_id}"></div>
-                                <div class="video-player-user-name id="name-user-${this.user_id}">${this.profilename}</div>
+                                {% comment %} <div class="video-player-user-name id="name-user-${this.user_id}">${this.profilename}</div> {% endcomment %}
                             </div>`
         
                 document.getElementById('streams_store').insertAdjacentHTML("beforeend", player)
             
                 this.localTracks[1].play(`user-${this.user_id}`)
+                document.getElementById(`user-${this.user_id}`).firstChild.style.opacity = "0"
+            }
+            else{
+                let user_ico = `<div class="videostream" id="user-ico-container-${this.user_id}">
+                    <img class="user_video_chat_icon" id="user_video_chat_icon_${this.user_id}" src="${this.profile_avatar_url}">
+                </div>`
+
+                document.getElementById('streams_store').insertAdjacentHTML("beforeend", user_ico)
             }
         
             await this.client.publish(this.localTracks)
         }
-        
+
+        getMemberData = async (user) => {
+            let response = await fetch(`/vw/get_member/?uid=${user.uid}`)
+            let member = await response.json()
+            return member
+        }
+
+        handleUserUnpublished = async (user, mediaType) => {
+            if (mediaType != "video") return
+
+            let player = document.getElementById(`user-container-${user.uid}`)
+            if (!player) return
+
+            if (user.uid < 90000){
+                let agora_player_wrapper = player.firstChild
+                agora_player_wrapper.style.opacity = "0"
+            }
+            else{
+                player.remove()
+            }   
+        }
+
         handleUserJoined = async (user, mediaType) => {
+            if (user.uid > 90000) return
+            let member_profile_data = {profilename: "Undefined", profile_avatar_url: "/"}
+            try{
+                member_profile_data = await this.getMemberData(user)
+            }
+            catch(ex){
+                console.error("*CLIENT RESPONSE: Could not parse member data")
+                console.error(ex)
+            }
+
+            let user_ico = `<div class="videostream" id="user-ico-container-${user.uid}">
+                <img class="user_video_chat_icon" id="user_video_chat_icon_${user.uid}" src="${member_profile_data.profile_avatar_url}">
+            </div>`
+
+            document.getElementById('streams_store').insertAdjacentHTML("beforeend", user_ico)
+        }
+        
+        handleUserPublished = async (user, mediaType) => {
             this.remoteUsers[user.uid] = user
             await this.client.subscribe(user, mediaType)
-        
+            let member_profile_data = {profilename: "Undefined", profile_avatar_url: "/"}
+            try{
+                member_profile_data = await this.getMemberData(user)
+            }
+            catch(ex){
+                console.error("*CLIENT RESPONSE: Could not parse member data")
+                console.error(ex)
+            }
+
             if (mediaType == 'video'){
                 let player = document.getElementById(`user-container-${user.uid}`)
-                if (player != null){
-                    player.remove()
-                }
-                let member;
-        
-                try{
-                    member = await getMember(user)
-                }
-                catch(ex){
-                    console.error("*CLIENT RESPONSE: Could not parse member name")
-                    console.error(ex)
-                    member = {name: 'Undefined'}
-                }
-        
-                {% comment %} player = `<div class="videostream" id="user-container-${user.uid}">
-                    <div class="video-player" id="user-${user.uid}" name="${member.name}"></div>
-                    <div class="video-player-user-name">${member.name}</div>
+                if (player != null) player.remove()
+
+                let user_ico = document.getElementById(`user-ico-container-${user.uid}`)
+                if (user_ico) user_ico.remove()
+
+                player = `<div class="videostream" id="user-container-${user.uid}">
+                    <img class="user_video_chat_icon" id="user_video_chat_icon_${user.uid}" src="${member_profile_data.profile_avatar_url}">
+                    <div class="video-player" id="user-${user.uid}" name="${member_profile_data.profilename}"></div>
+                    {% comment %} <div class="video-player-user-name">${member_profile_data.profilename}</div> {% endcomment %}
                 </div>`
         
                 document.getElementById('streams_store').insertAdjacentHTML('beforeend', player)
-                user.videoTrack.play(`user-${user.uid}`) {% endcomment %}
+                document.getElementById(`user_video_chat_icon_${user.uid}`).style.zIndex = "0"
+                user.videoTrack.play(`user-${user.uid}`)
             }
         
             if (mediaType == 'audio'){
@@ -1297,13 +1355,10 @@
         
         handleUserLeft = async (user) => {
             delete this.remoteUsers[user.uid]
-            document.getElementById(`user-container-${user.uid}`).remove()
-        }
-        
-        getMember = async (user) => {
-            let response = await fetch(`/vw/get_member/?uid=${user.uid}`)
-            let member = await response.json()
-            return member
+            let player = document.getElementById(`user-container-${user.uid}`)
+            let user_ico = document.getElementById(`user-ico-container-${user.uid}`)
+            if (player) player.remove()
+            if (user_ico) user_ico.remove()
         }
         
         leaveAndRemovLocalStreams = async () => {
@@ -1311,8 +1366,13 @@
                 this.localTracks[i].stop()
                 this.localTracks[i].close()
             }
+            for (let i = 0; i < this.screenTrack.length; i++){
+                this.screenTrack[i].stop()
+                this.screenTrack[i].close()
+            }
         
             await this.client.leave()
+            await this.share_client.leave()
             console.log('Successfully leave from videocall')
         }
 
@@ -1324,13 +1384,21 @@
         }
         
         toggleCamera = async (e) => {
+            let video_chat_camera_icon = document.querySelector("#video-btn")
+            let user_ico = document.getElementById(`user_video_chat_icon_${this.user_id}`)
+            let video_player = document.getElementById(`user-${this.user_id}`)
+            let agora_player_wrapper = video_player.firstChild
             if (this.localTracks[1].muted){
                 await this.localTracks[1].setMuted(false)
-                e.target.style.backgroundColor = 'green'
+                if (user_ico) user_ico.style.zIndex = "0"
+                video_chat_camera_icon.style.backgroundColor = ACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
+                agora_player_wrapper.style.opacity = "1"
             }
             else{
                 await this.localTracks[1].setMuted(true)
-                e.target.style.backgroundColor = 'blue'
+                if (user_ico) user_ico.style.zIndex = "1"
+                video_chat_camera_icon.style.backgroundColor = INACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
+                agora_player_wrapper.style.opacity = "0"
             }
         }
         
@@ -1339,23 +1407,28 @@
         }
         
         toggleSharing = async (e) => {
+            let video_chat_share_icon = document.querySelector("#share-btn")
             if (!this.isSharingEnabled){
+                this.isSharingEnabled = true
+                video_chat_share_icon.style.backgroundColor = ACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
                 let withAudio = "enable"
                 let defaultConfig = {}
                 this.screenTrack = await AgoraRTC.createScreenVideoTrack(defaultConfig, withAudio)
         
                 await this.share_client.publish([this.screenTrack[0], this.screenTrack[1]])
-                this.isSharingEnabled = true
             }
             else{
+                video_chat_share_icon.style.backgroundColor = INACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR
                 for (const track of this.screenTrack){
                     track.stop()
                     track.close()
                 }
+
+                let still_existing_player = document.getElementById(`user-container-${this.stream_id}`)
+                if (still_existing_player) still_existing_player.remove()
+                this.isSharingEnabled = false
         
                 await this.share_client.unpublish([this.screenTrack[0], this.screenTrack[1]])
-                document.getElementById(`user-container-${this.stream_id}`).remove()
-                isSharingEnabled = false
             }
         }
     }
@@ -1395,6 +1468,9 @@
                         obj.token = CONVERSATION_DATA.token
                         obj.stream_id = CONVERSATION_DATA.stream_id
                         obj.stream_token = CONVERSATION_DATA.stream_token
+
+                        obj.profilename = "{{ current_profile.profile_name }}"
+                        obj.profile_avatar_url = "{{ current_profile.profile_avatar.url }}"
             
                         document.getElementById('leave-btn').addEventListener('click', obj.endVideoCall)
             
