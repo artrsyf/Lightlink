@@ -16,6 +16,8 @@ from channels.auth import AuthMiddlewareStack
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lightlink.settings')
 
+django_asgi_app = get_asgi_application()
+
 from video_chat.routing import websocket_urlpatterns
 
 application = ProtocolTypeRouter(

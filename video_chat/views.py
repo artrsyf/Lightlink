@@ -113,25 +113,18 @@ def get_agora_sdk_data(request):
 @login_required(login_url="/login/")
 def get_member(request):
     try:
-        uid = request.GET.get('uid')
-        member = User.objects.get(id=uid)
-        member_profile = Profile.objects.get(user=member)
-        name = member_profile.profile_name
-        return JsonResponse({'name': name}, safe=False)
+        user_id = request.GET.get('uid')
+        member_profile = Queries.getCurrentProfileByUserId(user_id)
+        profilename = member_profile.profile_name
+        profile_avatar_url = member_profile.profile_avatar.url
+        return JsonResponse({"profilename": profilename,
+                            "profile_avatar_url": profile_avatar_url}, safe=False)
     except ValueError:
         print(f'*SERVER RESPONSE: Incorrect request URL')
         return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Incorrect request URL'}}, status=400)
     except ObjectDoesNotExist:
-        try:
-            print(f'*SERVER RESPONSE: Can\'t find user by id, trying to find by stream_id')
-            possible_id = MAX_INT // 100_000_000_000 - int(uid)
-            member = User.objects.get(id=possible_id)
-            member_profile = Profile.objects.get(user=member)
-            name = ""
-            return JsonResponse({'name': name}, safe=False)
-        except ObjectDoesNotExist:
-            print(f'*SERVER RESPONSE: Requested user does not exist')
-            return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Requested user does not exist'}}, status=400)
+        print(f'*SERVER RESPONSE: Requested user does not exist')
+        return JsonResponse({'*JSON_RESPONSE': {'ERROR_MESSAGE': 'Requested user does not exist'}}, status=400)
 
 @login_required(login_url="/login/")
 def friendRequest(request):
