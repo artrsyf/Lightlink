@@ -30,6 +30,7 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS").split(' ')
+CSRF_TRUSTED_ORIGINS = env("NGINX_ORIGIN").split(' ')
 
 # Emailing settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

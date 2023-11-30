@@ -8,7 +8,7 @@ services:
       sh -c "python manage.py migrate &&
              python lightlink/db_preset.py &&
              python manage.py collectstatic --no-input &&
-             python manage.py runserver 0.0.0.0:8001"
+             daphne -b 0.0.0.0 -p 8001 lightlink.asgi:application"
     env_file:
       - ./lightlink/prod_test.env
     build:
