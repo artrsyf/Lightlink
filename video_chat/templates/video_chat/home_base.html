@@ -19,7 +19,7 @@
             <div class="side_panel">
                 <div class="interactive_panel">
                     <div class="search_panel">
-                        <input placeholder="Search" class="search_input_default" type="search" name="groupSearch" id="search_group">
+                        <input placeholder="Найти беседу" class="search_input_default" type="search" name="groupSearch" id="search_group">
                     </div>
                     <div class="call_manage_buttons">
                         <button class="side_panel_button" onclick="show_friend_request_field()" role="button" title="Новый чат" aria-label="Новый чат">
@@ -93,7 +93,7 @@
                             <div class="profile_options_btn" id="profile_options_mic" onclick="syncMicButton()">
                                 <i class="fa-solid fa-microphone"></i>
                             </div>
-                            <div class="profile_options_btn" id="profile_options_sound">
+                            <div class="profile_options_btn" id="profile_options_sound" onclick="clickOnHeadphonesButton()">
                                 <i class="fa-solid fa-headphones"></i>
                             </div>
                             <div class="profile_options_btn" id="profile_options_settings">
@@ -139,6 +139,9 @@
     }
 
     var ids = {{ channels_ids }}
+
+    var MicrophoneGlobalStatus = true
+    var SoundGlobalStatus = true
 
     ids.forEach((channel_id) => {
         const channel_socket = new WebSocket(
@@ -187,9 +190,10 @@
                 else if (data.type == 'incoming_dialog_call'){
                     let sender_profilename = data.sender_profilename
                     let channel_id = data.channel_id
+                    let sender_profilename_avatar_url = data.sender_profilename_avatar_url
                     // Actions after user got incoming dialog come
                     close_incoming_call_modal()
-                    create_incoming_call_modal_window(sender_profilename, channel_id)
+                    create_incoming_call_modal_window(sender_profilename, sender_profilename_avatar_url, channel_id)
                 }
                 else if (data.type == 'call_declining'){
                     // Actions after call declining
@@ -523,6 +527,9 @@
                 let current_user_id = {{ current_user.id }}
 
                 createDefaultChannelElement(channel_id, channel_name, channel_type_id, channel_messages, current_user_id, channel_avatar_url)
+                if (open_video_chat){
+                    create_video_chat_element(channel_id, channel_name, channel_avatar_url)
+                }
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -536,12 +543,22 @@
         return data
     }
 
+    findWebSocketByUrl = (ws_url, WebSocketConnections) => {
+        for(const ws of WebSocketConnections){
+            if (ws.url === ws_url){
+                return ws
+            }
+        }
+        return null
+    }
+
     start_call = (channel_id) => {
         fetch(`/vw/get-channel-meta/${channel_id}`)
         .then(response => response.json())
         .then((data) => {
             channel_type_id = data.channel_type
             channel_name = data.channel_name
+            channel_avatar_url = data.channel_avatar_url
 
             // For dialog channels
             if (channel_type_id == 2){
@@ -568,7 +585,7 @@
                 // redeirect on the channel page after call is starting
                 //window.open(`/vw/channel/${channel_id}`, '_self')
 
-                create_video_chat_element(channel_id, channel_name)
+                create_video_chat_element(channel_id, channel_name, channel_avatar_url)
             }
         })
     }
@@ -997,7 +1014,7 @@
          return textchat_html
     }
 
-    get_incoming_call_modal_window = (profilename, channel_id) => {
+    get_incoming_call_modal_window = (profilename, sender_profilename_avatar_url, channel_id) => {
         let call_modal_window = document.createElement('div')
         call_modal_window.className = "incoming_call_wrapper"
         call_modal_window.innerHTML = `<div class="incoming_call_modal_background">
@@ -1016,7 +1033,7 @@
                     ${profilename} is calling you
                 </div>
                 <div class="incoming_call_modal_content_panel">
-                    <button role="button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id})">Apply</button>
+                    <button role="button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id}, '${profilename}', '${sender_profilename_avatar_url}')">Apply</button>
                     <button role="button" id="decline_incoming_call_button" onclick="decline_incoming_call(${channel_id})">Decline</button>
                 </div>
             </div>
@@ -1025,16 +1042,17 @@
         return call_modal_window
     }
 
-    create_incoming_call_modal_window = (profilename, channel_id) => {
-        let call_modal_window = get_incoming_call_modal_window(profilename, channel_id)
+    create_incoming_call_modal_window = (profilename, sender_profilename_avatar_url, channel_id) => {
+        let call_modal_window = get_incoming_call_modal_window(profilename, sender_profilename_avatar_url, channel_id)
 
         let content_wrapper = document.querySelector('.content_wrapper')
         content_wrapper.appendChild(call_modal_window)
         setTimeout(() => decline_incoming_call(channel_id, "timeout"), 15_000)
     }
 
-    apply_incoming_call = (channel_id) => {
-        window.open(`/vw/channel/${channel_id}`, '_self')
+    apply_incoming_call = (channel_id, channel_name, channel_avatar_url) => {
+        close_incoming_call_modal()
+        handleFriendClick(channel_id, true)
     }
 
     decline_incoming_call = (channel_id, status="declined") => {
@@ -1070,7 +1088,7 @@
         }
     }
 
-    get_video_chat_wrapper = (channel_name, friend_status="") => {
+    get_video_chat_wrapper = (channel_name, channel_avatar_url, friend_status="") => {
         let video_chat_element = document.createElement('div')
         video_chat_element.classList = "videochat_wrapper"
         video_chat_element.setAttribute("turned", "false")
@@ -1078,16 +1096,11 @@
         let video_chat_html = `
             <div class="videochat_content">
                 <div class="videochat_info">
-                    <div class="videocall_status">
-                        <div class="info_button">
-                            <i class="fa-solid fa-circle-info"></i>
+                    <div class="friend_data_wrapper">
+                        <div class="channel_avatar">
+                            <img class="channel_avatar_img" src="${channel_avatar_url}" alt="Avatar">
                         </div>
-                        <div class="room_name">
-                            CompanionName 
-                        </div>
-                        <div class="companion_status"> <!-- If room is not channel -->
-                            <i class="fa-solid fa-circle"></i>
-                        </div>
+                        <div class="channel_name video_chat_tool_bar_prm_color">${channel_name}</div>
                     </div>
                     <div class="videocall_toolbar">
                         <div class="notifications">
@@ -1100,7 +1113,7 @@
                             <i class="fa-solid fa-user-group"></i>
                         </div>
                         <div class="smart_search">
-                            <input type="search" name="" id="">
+                            <input type="search" class="search_input_default" placeholder="Поиск">
                         </div>
                     </div>
                 </div>
@@ -1109,25 +1122,17 @@
                     </div>
                     <div class="control_panel_wrapper">
                         <div class="control_panel">
-                            <div class="share_stream_btn" id="share-btn">
-                                <button type="submit">
-                                    <i class="fa-solid fa-desktop"></i>
-                                </button>
+                            <div class="video_chat_buttons share_stream_btn" id="share-btn">
+                                    <i class="fa-solid fa-lg fa-desktop"></i>
                             </div>
-                            <div class="mute_video_btn" id="video-btn">
-                                <button type="submit">
-                                    <i class="fa-solid fa-video"></i>
-                                </button>
+                            <div class="video_chat_buttons mute_video_btn" id="video-btn">
+                                    <i class="fa-solid fa-lg fa-video"></i>
                             </div>
-                            <div class="mute_mic_btn" id="mic-btn">
-                                <button type="submit">
-                                    <i class="fa-solid fa-microphone-lines"></i>
-                                </button>
+                            <div class="video_chat_buttons mute_mic_btn" id="mic-btn">
+                                    <i class="fa-solid fa-lg fa-microphone-lines"></i>
                             </div>
-                            <div class="leave_room_btn" id="leave-btn">
-                                <button type="submit">
-                                    <i class="fa-solid fa-phone-slash fa-flip-horizontal"></i>
-                                </button>
+                            <div class="video_chat_buttons leave_room_btn" id="leave-btn">
+                                    <i class="fa-solid fa-lg fa-phone-slash fa-flip-horizontal"></i>
                             </div>
                         </div>
                     </div>
@@ -1428,8 +1433,8 @@
         }
     }
 
-    create_video_chat_element = (input_channel_id, channel_name, friend_status="") => {
-        let video_chat_element = get_video_chat_wrapper(channel_name, friend_status)
+    create_video_chat_element = (input_channel_id, channel_name, channel_avatar_url, friend_status="") => {
+        let video_chat_element = get_video_chat_wrapper(channel_name, channel_avatar_url, friend_status)
 
         let content_wrapper = document.querySelector('.content_wrapper')
         if (content_wrapper){
@@ -1467,7 +1472,7 @@
                         obj.profilename = "{{ current_profile.profile_name }}"
                         obj.profile_avatar_url = "{{ current_profile.profile_avatar.url }}"
             
-                        document.getElementById('leave-btn').addEventListener('click', obj.leaveAndRemovLocalStreams)
+                        document.getElementById('leave-btn').addEventListener('click', obj.endVideoCall)
             
                         document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
             

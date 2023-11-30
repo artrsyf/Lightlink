@@ -231,24 +231,24 @@ def getMemberPrivateMessagesList(request, user_id):
                                })
     channels_infos.sort(key=lambda channel_info: channel_info["updated_at_unprocessed"], 
                         reverse=True)
-    print(channels_infos)
     return JsonResponse(channels_infos, safe=False)
 
 @login_required(login_url="/login/")
 def getChannelData(request, channel_id):
     user_id = request.user.id
     full_channel_data_dict = Queries.getChannelDataWithSerializedMessages(channel_id, user_id)
-
     return JsonResponse(full_channel_data_dict)
 
 @login_required(login_url="/login/")
 def getChannelMeta(request, channel_id):
     try:
         channel = Channel.objects.get(id=channel_id)
-        channel_name = channel.channel_name
+        channel_name = Queries.convertChannelDialogName(channel.channel_name, request.user.id)
+        channel_avatar_url = Queries.findChannelAvatarUrl(channel_id, request.user.id)
         channel_type_id = channel.channel_type.id
         return JsonResponse({'channel_id': channel_id,
                              'channel_name': channel_name,
+                             'channel_avatar_url': channel_avatar_url,
                              'channel_type': channel_type_id
                              })
     except Channel.DoesNotExist:
