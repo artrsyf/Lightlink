@@ -1,14 +1,59 @@
-{% extends '../base.html' %}
+{% load static %}
+{% load sass_tags %}
 
-{% block inner_content %}
-    <h1>Reg</h1>
-    <form method='POST'>
-        {% csrf_token %}
-        {% comment %} {{ form.as_p }} {% endcomment %}
-        {% for f in form %}
-            <p><label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}: {{ f }}</label></p>
-            <div class="form-error">{{ f.errors }}</div>
-        {% endfor %}
-        <button class="btn btn-success" type="submit">Регистрация</button>
-    </form>
-{% endblock  %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="{% sass_src 'css/auth.scss' %}" rel="stylesheet" type="text/css"/>
+    <script src="https://kit.fontawesome.com/3c928d185b.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="content_wrapper">
+        <div class="login_window">
+            <form class="form_wrapper" method="POST">
+                {% csrf_token %}
+                <div class="login_header">
+                    Sign up
+                </div>
+                {% comment %} <div class="form-error">{{ form.non_field_errors }}</div>
+                <div class="form-error">{{ form.errors }}</div> {% endcomment %}
+                <div class="form_text_input_wrapper">
+                    <div class="frame" id="username_frame"></div>
+                    <input class="form_text_input" type="text" name="username" id="username_input" placeholder="Username">
+                </div>
+                <div class="form_text_input_wrapper">
+                    <div class="frame" id="email_frame"></div>
+                    <input class="form_text_input" type="text" name="email" id="email_input" placeholder="Email">
+                </div>
+                <div class="form_text_input_wrapper">
+                    <div class="frame" id="password_frame"></div>
+                    <input class="form_text_input" type="password" name="password" id="password_input" placeholder="Password">
+                </div>
+                <div class="form_text_input_wrapper">
+                    <div class="frame" id="password2_frame"></div>
+                    <input class="form_text_input" type="password" name="password2" id="password2_input" placeholder="Repeat password">
+                </div>
+                <div class="login_button_wrapper">
+                    <button class="login_button" type="submit">Sign up</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+
+{% comment %} <h1>Reg</h1>
+<form method='POST'>
+    {% csrf_token %}
+    {% for f in form %}
+        <p><label class="form-label" for="{{ f.id_for_label }}">{{ f.label }}: {{ f }}</label></p>
+        <div class="form-error">{{ f.errors }}</div>
+    {% endfor %}
+    <button class="btn btn-success" type="submit">Регистрация</button>
+</form> 
+{% endcomment %}
+
+<script src={% static "js/auth.js" %}></script>

@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
-    <title>Document</title>
+    <title>Lightlink</title>
     <script src="https://kit.fontawesome.com/3c928d185b.js" crossorigin="anonymous"></script>
     <link href="{% sass_src 'css/all_styles.scss' %}" rel="stylesheet" type="text/css"/>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
@@ -76,7 +76,7 @@
                 </div>
                 <div class="profile_panel">
                     <div class="profile_part">
-                        <div class="profile_info">
+                        <div class="profile_info" onclick="openProfileOptions('{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}')">
                             <div class="profile_img_wrapper">
                                 <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
                             </div>
@@ -583,25 +583,38 @@
         this.name = `*CLIENT RESPONSE: Multiple notification error: count = ${message}`
     }
 
+    get_friend_request_window = () => {
+        let friend_request_wrapper = `<div class="send_request_base_wrapper">
+            <div class="send_request_panel_wrapper">
+                <div class="send_request_input_panel_wrapper">
+                    <div class="main_send_requsest_input_panel_header">
+                        Добавить в друзья
+                    </div>
+                    <div class="secondary_send_requsest_input_panel_header">
+                        Вы можете добавить в друзья с помощью имени пользователя
+                    </div>
+                    <div class="send_request_input_wrapper">
+                        <form method="post" id="send_friend_request_form">
+                            {% csrf_token %}
+                            <input class="friend_request_input_field" type="text" name="receiver_username" maxlength="40" autocomplete="off" placeholder="Вы можете добавить дрезуй по имени пользователя">
+                            <button type="submit" class="send_friend_request_button">Отправить запрос дружбы</button>
+                        </form>
+                    </div>
+                    <div id="friend_request_form_errors">{{ error }}</div>
+                </div>
+                <div class="send_request_show_panel_wrapper">
+                </div>
+            </div>
+        </div>`
+    
+        return friend_request_wrapper
+    }
+
     show_friend_request_field = () => {
-        fetch('/vw/add-friend/')
-        .then(response => response.text())
-        .then((data) => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data, 'text/html');
-            const sendRequestPanel = doc.querySelector('.send_request_panel_wrapper');
-            if (sendRequestPanel) {
-                let content_wrapper = document.querySelector('.content_wrapper')
-                content_wrapper.innerHTML = ''
-                content_wrapper.appendChild(sendRequestPanel)
-                document.getElementById('send_friend_request_form').addEventListener('submit', post_friend_request_ajax)
-            } else {
-                error('*CLIENT RESPONSE: Could not find friend request panel from template');
-            }
-        })
-        .catch(error => {
-            console.error('*CLIENT RESPONSE: Unprocessed exception', error);
-        })
+        let content_wrapper = document.querySelector('.content_wrapper')
+        let send_request_panel = get_friend_request_window()
+        content_wrapper.innerHTML = send_request_panel
+        document.getElementById('send_friend_request_form').addEventListener('submit', post_friend_request_ajax)
     }
 
     post_friend_request_ajax = (e) => {
@@ -625,8 +638,18 @@
             },
             success: function(data){
                 const resultElement = document.getElementById('friend_request_form_errors');
+                let input_field = document.querySelector(".friend_request_input_field")
                 let messages = data.result
+                let status = data.status
                 resultElement.innerHTML = ''
+                if (status == "success"){
+                    resultElement.style.color = "#5fc35f"
+                    if (input_field) input_field.style.border = "1px solid #5fc35f"
+                }
+                else{
+                    resultElement.style.color = "#c35b5b"
+                    if (input_field) input_field.style.border = "1px solid #c35b5b"
+                }
                 if (Array.isArray(messages)){
                     for (let message_index in messages){
                         resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-${message_index}" >${messages[message_index]}</div>`;
@@ -635,7 +658,6 @@
                 else{
                     resultElement.innerHTML += `<div class="friend_request_form_error" id="friend_request_form_error-0" >${messages}</div>`;
                 }
-                let status = data.status
                 if (status == 'success'){
                     const friendRequestSocket = new WebSocket(
                         ws_scheme
@@ -1621,6 +1643,58 @@
     }
 
     //
+
+    getProfileOptionsWindow = (profilename, profile_avatar_url) => {
+        let profile_modal = `<div class="profile_options_wrapper">
+            <div class="profile_options_header"></div>
+            <div class="profile_options_content">
+                <form method="post" id="edit_profile_form" class="profile_options_form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input class="profilename_edit_input_field" type="text" name="profilename" maxlength="40" autocomplete="off" placeholder="Новое имя профиля">
+                    <input class="profile_avatar_edit_input_field" type="file" name="profile_avatar" accept="image/*">
+                    <button type="submit" class="profile_options_apply_button">Сохранить</button>
+                </form>
+            </div>
+        </div>`
+
+        return profile_modal
+    }
+
+    openProfileOptions = (profilename, profile_avatar_url) => {
+        let profile_modal = getProfileOptionsWindow(profilename, profile_avatar_url)
+
+        let global_wrapper = document.querySelector(".global_wrapper")
+        global_wrapper.innerHTML += profile_modal
+
+        document.querySelector('.profilename_edit_input_field').value = profilename;
+        document.querySelector('.profile_avatar_edit_input_field').src = profile_avatar_url;
+
+        document.getElementById('edit_profile_form').addEventListener('submit', post_edit_profile_ajax)
+    }
+
+    post_edit_profile_ajax = (e) => {
+        alert(1)
+        e.preventDefault();
+        const formElement = document.getElementById('edit_profile_form');
+        const formData = new FormData(formElement);
+        $.ajax({
+            url: '/vw/edit-profile',
+            dataType: 'json',
+            data: formData,
+            method: 'POST',
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+                alert(322)
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
+        })
+    }
 
 </script>
 

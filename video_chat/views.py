@@ -128,7 +128,6 @@ def get_member(request):
 
 @login_required(login_url="/login/")
 def friendRequest(request):
-    print('friendrequest ', request.method)
     error_default_message = ''
     if request.method == 'POST':
         form = FriendshipForm(request.POST, sender=request.user)
@@ -141,13 +140,10 @@ def friendRequest(request):
             error_default_message = 'Something went wrong'
             error_messages = [str(error) for field, errors in form.errors.items() for error in errors]
             return JsonResponse({'result': error_messages, 'status': 'failure'})
-    form = FriendshipForm(sender=request.user)
-    context = {
-        'current_user': request.user,
-        'form': form,
-        'error': error_default_message
-    }
-    return render(request, 'video_chat/friend_request.html', context)
+    elif request.method == 'GET':
+        return JsonResponse({'result': "Not allowed for GET request", 'status': 'failure'})
+    else:
+        return JsonResponse({'result': "Unexpexcted request", 'status': 'failure'})
 
 # Проверить работу на большом количестве пользователей
 @login_required(login_url="/login/")
@@ -266,7 +262,8 @@ def editProfile(request):
         print(form.errors)
         if form.is_valid():
             profile.profile_name = request.POST['profilename']
-            profile.profile_avatar = request.FILES['profile_avatar']
+            if request.FILES:
+                profile.profile_avatar = request.FILES['profile_avatar']
             profile.save()
             # cacheclear
 
