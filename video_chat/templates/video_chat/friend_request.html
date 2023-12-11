@@ -1,24 +1,25 @@
 {% extends 'video_chat/home_base.html' %}
 {% block main_panel %}
-<div class="send_request_panel_wrapper">
-    <div class="send_request_input_panel_wrapper">
-        <div class="main_send_requsest_input_panel_header">
-            Добавить в друзья
+<div class="send_request_base_wrapper">
+    <div class="send_request_panel_wrapper">
+        <div class="send_request_input_panel_wrapper">
+            <div class="main_send_requsest_input_panel_header">
+                Добавить в друзья
+            </div>
+            <div class="secondary_send_requsest_input_panel_header">
+                Вы можете добавить в друзья с помощью имени пользователя
+            </div>
+            <div class="send_request_input_wrapper">
+                <form method="post" id="send_friend_request_form">
+                    {% csrf_token %}
+                    <input class="friend_request_input_field" type="text" name="receiver_username" maxlength="40" placeholder="Вы можете добавить дрезуй по имени пользователя">
+                    <button type="submit" class="send_friend_request_button">Отправить запрос дружбы</button>
+                </form>
+                <div id="friend_request_form_errors">{{ error }}</div>
+            </div>
         </div>
-        <div class="secondary_send_requsest_input_panel_header">
-            Вы можете добавить в друзья с помощью имени пользователя
+        <div class="send_request_show_panel_wrapper">
         </div>
-        <div class="send_request_input_wrapper">
-            <form method="post" action="" id="send_friend_request_form">
-                {% csrf_token %}
-                {{ form.receiver_username }}
-                <button type="submit" class="btn btn-success">Отправить запрос на добавление в друзья</button>
-            </form>
-            <div id="friend_request_form_errors">{{ error }}</div>
-        </div>
-    </div>
-    <div class="send_request_show_panel_wrapper">
-        Sth
     </div>
 </div>
 {% endblock main_panel %}

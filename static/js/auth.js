@@ -1,24 +1,34 @@
-let username_input = document.getElementById('username_input')
-let password_input = document.getElementById('password_input')
-let password_frame = document.getElementById('password_frame')
-let username_frame = document.getElementById('username_frame')
+const INPUT_FRAMES = [{"input": document.getElementById('username_input'),
+                       "frame": document.getElementById('username_frame')
+                      },
 
-username_input.addEventListener('click', () => {
-    username_frame.classList.add('frame_open')
-})
+                      {"input": document.getElementById('password_input'),
+                       "frame": document.getElementById('password_frame')
+                      },
 
-document.addEventListener('click', (event) => {
-    if (!username_input.contains(event.target)){
-        username_frame.classList.remove('frame_open')        
+                      {"input": document.getElementById('password2_input'),
+                       "frame": document.getElementById('password2_frame')
+                      },
+                       
+                      {"input": document.getElementById('email_input'),
+                       "frame": document.getElementById('email_frame')}]
+
+let setEventListener = (input, frame) => {
+    if (input) {
+        input.addEventListener('focus', () => {
+            frame.classList.add('frame_open')
+        })
+        
+        input.addEventListener('blur', () => {
+            frame.classList.remove('frame_open')        
+        })
     }
-})
+}
 
-password_input.addEventListener('click', () => {
-    password_frame.classList.add('frame_open')
-})
-
-document.addEventListener('click', (event) => {
-    if (!password_input.contains(event.target)){
-        password_frame.classList.remove('frame_open')        
+let multiObjectSetEventListener = (input_frame_list) => {
+    for (const frame_map of input_frame_list){
+        setEventListener(frame_map["input"], frame_map["frame"])
     }
-})
+}
+
+multiObjectSetEventListener(INPUT_FRAMES)
