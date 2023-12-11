@@ -1,0 +1,78 @@
+$header_background_charm_color_5: #7b5eab;
+$auth_buttons_prm_color_3: #8e84c3;
+$auth_buttons_aux_color_4: #7e74b3;
+$main_font_color: white;
+$hover_font_color: #4e39ba;
+
+html, body, ul{
+    margin: 0px;
+    padding: 0px;
+}
+
+.non_ref{
+    text-decoration: none;
+    color: #666;
+}
+
+li{
+    list-style-type: none;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+body{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content{
+  flex-grow: 1;
+}
+
+.header{
+  position: sticky;
+  top:0;
+  background-color: $header_background_charm_color_5;
+  color: $main_font_color;
+}
+
+.auth_panel{
+    margin-left: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth_button{
+    outline: none;
+    border-style: none;
+    border-radius: 5px;
+    padding: 8px 12px 8px 12px;
+    margin-top: 3px;
+    background-color: $auth_buttons_prm_color_3;
+    color: $main_font_color;
+    transition: background-color 0.2s ease-in-out;
+
+    &:hover{
+        background-color: $auth_buttons_aux_color_4;
+    }
+}
+
+.open_button_wrapper{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.open_lightlink_button{
+    outline: none;
+    border-style: none;
+    border-radius: 40px;
+    padding: 8px;
+    transition: color 0.1s ease-in-out;
+
+    &:hover{
+        color: $header_background_charm_color_5;
+    }
+}

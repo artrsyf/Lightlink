@@ -58,18 +58,11 @@ class FriendshipForm(ModelForm):
     class Meta:
         model = Friendship
         fields = ['receiver_username']
-        widgets = {
-            "receiver_username": TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Имя пользователя'
-            })
-        }
 
     def __init__(self, *args, sender=None, **kwargs):
         super().__init__(*args, **kwargs)
         user = User.objects.get(username=sender)
         self.sender = Profile.objects.get(user=user)
-        # print('init', sender)
 
     def clean(self):
         self.cleaned_data = super().clean()
