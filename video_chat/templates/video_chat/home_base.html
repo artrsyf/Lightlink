@@ -76,7 +76,7 @@
                 </div>
                 <div class="profile_panel">
                     <div class="profile_part">
-                        <div class="profile_info">
+                        <div class="profile_info" onclick="openProfileOptions('{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}')">
                             <div class="profile_img_wrapper">
                                 <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
                             </div>
@@ -1648,6 +1648,58 @@
     }
 
     //
+
+    getProfileOptionsWindow = (profilename, profile_avatar_url) => {
+        let profile_modal = `<div class="profile_options_wrapper">
+            <div class="profile_options_header"></div>
+            <div class="profile_options_content">
+                <form method="post" id="edit_profile_form" class="profile_options_form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input class="profilename_edit_input_field" type="text" name="profilename" maxlength="40" autocomplete="off" placeholder="Новое имя профиля">
+                    <input class="profile_avatar_edit_input_field" type="file" name="profile_avatar" accept="image/*">
+                    <button type="submit" class="profile_options_apply_button">Сохранить</button>
+                </form>
+            </div>
+        </div>`
+
+        return profile_modal
+    }
+
+    openProfileOptions = (profilename, profile_avatar_url) => {
+        let profile_modal = getProfileOptionsWindow(profilename, profile_avatar_url)
+
+        let global_wrapper = document.querySelector(".global_wrapper")
+        global_wrapper.innerHTML += profile_modal
+
+        document.querySelector('.profilename_edit_input_field').value = profilename;
+        document.querySelector('.profile_avatar_edit_input_field').src = profile_avatar_url;
+
+        document.getElementById('edit_profile_form').addEventListener('submit', post_edit_profile_ajax)
+    }
+
+    post_edit_profile_ajax = (e) => {
+        alert(1)
+        e.preventDefault();
+        const formElement = document.getElementById('edit_profile_form');
+        const formData = new FormData(formElement);
+        $.ajax({
+            url: '/vw/edit-profile',
+            dataType: 'json',
+            data: formData,
+            method: 'POST',
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(data){
+                alert(322)
+            },
+            error: function(xhr, status, error){
+                console.error('AJAX Error: ', error)
+            }
+        })
+    }
 
 </script>
 

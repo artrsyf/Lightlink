@@ -8,7 +8,7 @@ class ProfileForm(ModelForm):
     profilename = forms.CharField(label='profilename',
                                   max_length=20,
                                   required=False)
-    profile_avatar = forms.ImageField()
+    profile_avatar = forms.ImageField(required=False)
     
     class Meta:
         model = Profile

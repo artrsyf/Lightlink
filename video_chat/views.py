@@ -262,7 +262,8 @@ def editProfile(request):
         print(form.errors)
         if form.is_valid():
             profile.profile_name = request.POST['profilename']
-            profile.profile_avatar = request.FILES['profile_avatar']
+            if request.FILES:
+                profile.profile_avatar = request.FILES['profile_avatar']
             profile.save()
             # cacheclear
 
