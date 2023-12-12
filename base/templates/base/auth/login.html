@@ -46,6 +46,20 @@
                 <div class="login_button_wrapper">
                     <button class="login_button" type="submit">Login</button>
                 </div>
+                <div class="login_wigh_google_wrapper">
+                    <a class="login_wigh_google_body" href="{% provider_login_url 'google'%}?next=/">
+                    <div class="login_with_google_img_wrapper">
+                        <img class="login_with_google_img" src="{% static "img/google-icon.png" %}" alt="Google"></img>
+                    </div>
+                    <div class="login_with_google_text">
+                        Login with Google
+                    </div>
+                </div>
+                <div class="have_no_acc_wrapper">
+                    <a class="have_no_acc_link" href="{% url 'Signup' %}">
+                        Create an account
+                    </a>
+                </div>
             </form>
         </div>
     </div>

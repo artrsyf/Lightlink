@@ -221,4 +221,33 @@ body {
   width: 100%;
   margin-bottom: 16px; }
 
+.login_wigh_google_wrapper {
+  padding: 15px; }
+  .login_wigh_google_wrapper .login_wigh_google_body {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none; }
+
+.login_with_google_img_wrapper {
+  padding-right: 10px; }
+  .login_with_google_img_wrapper .login_with_google_img {
+    width: 40px;
+    height: 40px; }
+
+.login_with_google_text {
+  font-family: Ubuntu-Bold;
+  color: #403866; }
+
+.have_no_acc_wrapper {
+  padding-top: 3px; }
+  .have_no_acc_wrapper .have_no_acc_link {
+    display: flex;
+    flex-direction: row;
+    justify-content: center; }
+
+.sign_in_instead {
+  padding-top: 18px; }
+
 /*# sourceMappingURL=auth.css.map */
