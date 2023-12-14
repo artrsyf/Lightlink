@@ -76,16 +76,18 @@
                 </div>
                 <div class="profile_panel">
                     <div class="profile_part">
-                        <div class="profile_info" onclick="openProfileOptions('{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}')">
-                            <div class="profile_img_wrapper">
-                                <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
-                            </div>
-                            <div class="profile_nicknames">
-                                <div class="profile_nickname">
-                                    {{ current_profile.profile_name }}
+                        <div class="profile_info_wrapper">
+                            <div class="profile_info" onclick="openProfile('{{ current_user.username }}', '{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}')">
+                                <div class="profile_img_wrapper">
+                                    <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
                                 </div>
-                                <div class="user_nickname">
-                                    {{ current_user.username }}
+                                <div class="profile_nicknames">
+                                    <div class="profile_nickname">
+                                        {{ current_profile.profile_name }}
+                                    </div>
+                                    <div class="user_nickname">
+                                        {{ current_user.username }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1649,9 +1651,37 @@
 
     //
 
-    getProfileOptionsWindow = (profilename, profile_avatar_url) => {
+    getProfileWindow = (username, profilename, profile_avatar_url) => {
         let profile_modal = `<div class="profile_options_wrapper">
-            <div class="profile_options_header"></div>
+            <div class="profile_options_header">
+                <div class="profile_options_header_panel">
+                    <div class="update_profile_icon_wrapper">
+                        <i class="fa-solid fa-user-pen"></i>
+                    </div>
+                </div>
+                <div class="profile_options_avatar_wrapper">
+                    <div class="profile_options_avatar_border"></div>
+                    <img class="profile_options_avatar" src="${profile_avatar_url}" alt="Avatar">
+                </div>
+                <div class="profile_options_info_wrapper">
+                    <div class="profile_options_info_element">
+                        <div class="profile_options_profilename">
+                            ${profilename}
+                        </div>
+                        <div class="profile_options_username">
+                            ${username}
+                        </div>
+                    </div>
+                    <div class="profile_options_info_element">
+                        <div class="profile_options_about_date_message">
+                            В числе участников с
+                        </div>
+                        <div class="profile_options_date">
+                            27 oct. 2020
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="profile_options_content">
                 <form method="post" id="edit_profile_form" class="profile_options_form" enctype="multipart/form-data">
                     {% csrf_token %}
@@ -1665,20 +1695,40 @@
         return profile_modal
     }
 
-    openProfileOptions = (profilename, profile_avatar_url) => {
-        let profile_modal = getProfileOptionsWindow(profilename, profile_avatar_url)
+    window.addEventListener('click', (e) => {
+        const target = e.target
+        if (!target.closest(".profile_options_wrapper") && !target.closest(".profile_info")){
+            closeProfileWindow()
+        }
+    })
 
+    closeProfileWindow = () => {
         let global_wrapper = document.querySelector(".global_wrapper")
-        global_wrapper.innerHTML += profile_modal
+        let existing_options_window = document.querySelector(".profile_options_wrapper")
 
-        document.querySelector('.profilename_edit_input_field').value = profilename;
-        document.querySelector('.profile_avatar_edit_input_field').src = profile_avatar_url;
+        if (existing_options_window){
+            global_wrapper.removeChild(existing_options_window)
+            return true
+        }
+        
+        return false
+    }
 
-        document.getElementById('edit_profile_form').addEventListener('submit', post_edit_profile_ajax)
+    openProfile = (username, profilename, profile_avatar_url) => {
+        let global_wrapper = document.querySelector(".global_wrapper")
+        let closing_result = closeProfileWindow()
+        if (!closing_result){
+            let profile_modal = getProfileWindow(username, profilename, profile_avatar_url)
+            global_wrapper.innerHTML += profile_modal
+
+            document.querySelector('.profilename_edit_input_field').value = profilename;
+            document.querySelector('.profile_avatar_edit_input_field').src = profile_avatar_url;
+
+            document.getElementById('edit_profile_form').addEventListener('submit', post_edit_profile_ajax)
+        }
     }
 
     post_edit_profile_ajax = (e) => {
-        alert(1)
         e.preventDefault();
         const formElement = document.getElementById('edit_profile_form');
         const formData = new FormData(formElement);
@@ -1693,7 +1743,7 @@
                 'X-CSRFToken': '{{ csrf_token }}'
             },
             success: function(data){
-                alert(322)
+
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
