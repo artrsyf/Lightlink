@@ -77,7 +77,7 @@
                 <div class="profile_panel">
                     <div class="profile_part">
                         <div class="profile_info_wrapper">
-                            <div class="profile_info" onclick="openProfile('{{ current_user.username }}', '{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}')">
+                            <div class="profile_info" onclick="openProfile('{{ current_user.username }}', '{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}', '{{ current_user.date_joined }}')">
                                 <div class="profile_img_wrapper">
                                     <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
                                 </div>
@@ -1651,12 +1651,76 @@
 
     //
 
-    getProfileWindow = (username, profilename, profile_avatar_url) => {
+    recoverProfileWindow = (username, profilename, profile_avatar_url, joined_date) => {
+        let profile_window = document.querySelector(".profile_options_wrapper")
+        if (!profile_window) return
+
+        let update_profile_icon_wrapper = document.querySelector(".update_profile_icon_wrapper")
+        update_profile_icon_wrapper.setAttribute('onclick', `transformEditProfileWindow('${username}', '${profilename}', '${profile_avatar_url}', '${joined_date}')`)
+        update_profile_icon_wrapper.innerHTML = '<i class="update_window_icon fa-solid fa-user-pen"></i>'
+
+        let profile_options_info_wrapper = document.querySelector(".profile_options_info_wrapper")
+        profile_options_info_wrapper.innerHTML = getProfileOptionsInfoWrapper(username, profilename, joined_date)
+    }
+
+    transformEditProfileWindow = (username, profilename, profile_avatar_url, joined_date) => {
+        let profile_window = document.querySelector(".profile_options_wrapper")
+        if (!profile_window) return
+
+        let update_profile_icon_wrapper = document.querySelector(".update_profile_icon_wrapper")
+        update_profile_icon_wrapper.setAttribute('onclick', `recoverProfileWindow('${username}', '${profilename}', '${profile_avatar_url}', '${joined_date}')`)
+        update_profile_icon_wrapper.innerHTML = '<i class="update_window_icon fa-solid fa-arrow-left"></i>'
+
+        let profile_options_info_wrapper = document.querySelector(".profile_options_info_wrapper")
+        profile_options_info_wrapper.innerHTML = getProfileEditFieldsWrapper(profilename, profile_avatar_url)
+
+        document.querySelector('.profilename_edit_input_field').value = profilename;
+        document.querySelector('.profile_avatar_edit_input_field').src = profile_avatar_url;
+
+        document.getElementById('edit_profile_form').addEventListener('submit', post_edit_profile_ajax)
+    }
+
+    getProfileEditFieldsWrapper = (profilename, profile_avatar_url) => {
+        let profile_edit_fields_wrapper_inner = `<div class="profile_options_content">
+            <form method="post" id="edit_profile_form" class="profile_options_form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input class="profilename_edit_input_field" type="text" name="profilename" maxlength="40" autocomplete="off" placeholder="Новое имя профиля">
+                <label for="formFile" class="profile_avatar_edit_label form-label">Выберите новое фото профиля</label>
+                <input class="profile_avatar_edit_input_field form-control" type="file" name="profile_avatar" accept="image/*" id="formFile">
+                <button type="submit" class="profile_options_apply_button">Сохранить</button>
+            </form>
+        </div>`
+
+        return profile_edit_fields_wrapper_inner
+    }
+
+    getProfileOptionsInfoWrapper = (username, profilename, joined_date) => {
+        let profile_options_info_wrapper_inner = `<div class="profile_options_info_element">
+                <div class="profile_options_profilename">
+                    ${profilename}
+                </div>
+                <div class="profile_options_username">
+                    ${username}
+                </div>
+            </div>
+            <div class="profile_options_info_element">
+                <div class="profile_options_about_date_message">
+                    В числе участников с
+                </div>
+                <div class="profile_options_date">
+                    ${joined_date}
+                </div>
+            </div>`
+
+        return profile_options_info_wrapper_inner
+    }
+
+    getProfileWindow = (username, profilename, profile_avatar_url, joined_date) => {
         let profile_modal = `<div class="profile_options_wrapper">
             <div class="profile_options_header">
                 <div class="profile_options_header_panel">
-                    <div class="update_profile_icon_wrapper">
-                        <i class="fa-solid fa-user-pen"></i>
+                    <div class="update_profile_icon_wrapper" onclick="transformEditProfileWindow('${username}', '${profilename}', '${profile_avatar_url}', '${joined_date}')">
+                        <i class="update_window_icon fa-solid fa-user-pen"></i>
                     </div>
                 </div>
                 <div class="profile_options_avatar_wrapper">
@@ -1664,31 +1728,8 @@
                     <img class="profile_options_avatar" src="${profile_avatar_url}" alt="Avatar">
                 </div>
                 <div class="profile_options_info_wrapper">
-                    <div class="profile_options_info_element">
-                        <div class="profile_options_profilename">
-                            ${profilename}
-                        </div>
-                        <div class="profile_options_username">
-                            ${username}
-                        </div>
-                    </div>
-                    <div class="profile_options_info_element">
-                        <div class="profile_options_about_date_message">
-                            В числе участников с
-                        </div>
-                        <div class="profile_options_date">
-                            27 oct. 2020
-                        </div>
-                    </div>
+                    ${getProfileOptionsInfoWrapper(username, profilename, joined_date)}
                 </div>
-            </div>
-            <div class="profile_options_content">
-                <form method="post" id="edit_profile_form" class="profile_options_form" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input class="profilename_edit_input_field" type="text" name="profilename" maxlength="40" autocomplete="off" placeholder="Новое имя профиля">
-                    <input class="profile_avatar_edit_input_field" type="file" name="profile_avatar" accept="image/*">
-                    <button type="submit" class="profile_options_apply_button">Сохранить</button>
-                </form>
             </div>
         </div>`
 
@@ -1697,7 +1738,7 @@
 
     window.addEventListener('click', (e) => {
         const target = e.target
-        if (!target.closest(".profile_options_wrapper") && !target.closest(".profile_info")){
+        if (!target.closest(".profile_options_wrapper") && !target.closest(".profile_info") && !target.closest(".update_window_icon")){
             closeProfileWindow()
         }
     })
@@ -1710,21 +1751,16 @@
             global_wrapper.removeChild(existing_options_window)
             return true
         }
-        
+
         return false
     }
 
-    openProfile = (username, profilename, profile_avatar_url) => {
+    openProfile = (username, profilename, profile_avatar_url, joined_date) => {
         let global_wrapper = document.querySelector(".global_wrapper")
         let closing_result = closeProfileWindow()
         if (!closing_result){
-            let profile_modal = getProfileWindow(username, profilename, profile_avatar_url)
+            let profile_modal = getProfileWindow(username, profilename, profile_avatar_url, joined_date)
             global_wrapper.innerHTML += profile_modal
-
-            document.querySelector('.profilename_edit_input_field').value = profilename;
-            document.querySelector('.profile_avatar_edit_input_field').src = profile_avatar_url;
-
-            document.getElementById('edit_profile_form').addEventListener('submit', post_edit_profile_ajax)
         }
     }
 

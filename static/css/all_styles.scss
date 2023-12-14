@@ -1088,8 +1088,21 @@ body{
 
     .profile_options_content{
         .profile_options_form{
-            .profilename_edit_input_field{
+            padding: 8px 0 8px 0;
 
+            .profilename_edit_input_field{
+                padding: 3px;
+                border-radius: 5px;
+                margin-bottom: 15px;
+                border: none;
+                outline: none;
+                background-color: $main_profile_update_violet_color_9;
+                color: $aux_font_grey_color_3
+            }
+
+            .profile_avatar_edit_label{
+                font-size: 0.9rem;
+                color: $aux_font_grey_color_3;
             }
 
             .profile_avatar_edit_input_field{
@@ -1097,7 +1110,13 @@ body{
             }
 
             .profile_options_apply_button{
-
+                margin-top: 15px;
+                outline: none;
+                border-style: none;
+                border-radius: 5px;
+                padding: 3px;
+                background-color: $main_profile_update_violet_color_9;
+                color: $aux_font_grey_color_3
             }
         }
     }
