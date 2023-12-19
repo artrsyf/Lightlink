@@ -557,6 +557,18 @@
     }
 
     handleFriendClick = (channel_id, open_video_chat=false) => {
+        if (isVideoChatOpened){
+            let global_wrapper = document.querySelector(".global_wrapper")
+            let saved_video_players = AgoraClient.instance.players
+            for (player of saved_video_players){
+                if (player.mediaType != "ico"){
+                    let player_link_div = document.createElement("div")
+                    player_link_div.id = `user-container-${player.user.uid}`
+                    global_wrapper.appendChild(player_link_div)
+                }
+            }
+        }
+
         $.ajax({
             url: `/vw/get-channel-data/${channel_id}`,
             dataType: "json",
@@ -1172,8 +1184,8 @@
 
     apply_incoming_call = (channel_id, channel_name, channel_avatar_url) => {
         close_incoming_call_modal()
-        isVideoChatOpened = true
         handleFriendClick(channel_id, true)
+        isVideoChatOpened = true
     }
 
     decline_incoming_call = (channel_id, status="declined") => {
@@ -1417,8 +1429,14 @@
                 agora_player_wrapper.style.opacity = "0"
             }
             else{
+                alert(111)
+                this.removePlayerMetaByUserAndMediaType(user, mediaType)
                 player.remove()
             }   
+        }
+
+        removePlayerMetaByUserAndMediaType = (user, mediaType) => {
+            this.players = this.players.filter(player => (player.user !== user) && (player.mediaType !== mediaType));
         }
 
         handleUserJoined = async (user, mediaType) => {
@@ -1585,7 +1603,6 @@
                 document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
     
                 document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
-    
                 obj.joinAndDisplayLocalStream()
             }
             else{
