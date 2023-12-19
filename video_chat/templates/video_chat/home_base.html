@@ -120,6 +120,20 @@
 
     const WebSocketConnections = new Set()
 
+    createNewSingleWebSocketConnection = (ws_url) => {
+        for (ws of WebSocketConnections){
+            if (ws.url == ws_url) {
+                ws.close()
+                WebSocketConnections.delete(ws)
+            }
+        }
+
+        let new_web_socket = new WebSocket(ws_url)
+        WebSocketConnections.add(new_web_socket)
+        
+        return new_web_socket
+    }
+
     const myFriendSocket = new ReconnectingWebSocket(
         ws_scheme
         + window.location.host
@@ -165,6 +179,7 @@
                 console.log(data)
                 if (data.type == 'message_notification'){
                     let sender_profilename = data.sender_profilename
+                    let sender_profile_avatar_url = data.sender_profile_avatar_url
                     let message = data.message
                     
                     // previous notification check
@@ -180,7 +195,7 @@
                     let target_path = `/vw/channel/${data.channel_id}`
 
                     if ((current_path != target_path) || (!messages_area_wrapper) || (messages_area_wrapper.attributes.turned.value == "true")){
-                        create_new_message_notif(sender_profilename, message)
+                        create_new_message_notif(sender_profilename, message, sender_profile_avatar_url)
                     }
                     else{
                         console.log('textchat is not turned')
@@ -208,10 +223,10 @@
         }
     })
 
-    create_new_message_notif = (sender_profilename, message) => {
+    create_new_message_notif = (sender_profilename, message, sender_profile_avatar_url) => {
         let date = new Date()
         
-        let main_panel_element = document.querySelector('.main_panel')
+        let content_wrapper_element = document.querySelector('.content_wrapper')
         let friend_request_notification = document.createElement('div')
         friend_request_notification.className = 'notification_modal_wrapper'
         friend_request_notification.innerHTML = 
@@ -227,16 +242,26 @@
                 <div class="friend_request_notification_modal_body">
                     <div class="friend_request_notification_modal_body_info">
                         <div class="friend_request_notification_modal_body_message">
-                            ${sender_profilename}: ${message}
+                            <div class="friend_request_notification_modal_body_avatar">
+                                <img class="friend_request_notification_modal_body_img" src="${sender_profile_avatar_url}">
+                            </div>
+                            <div class="friend_request_notification_modal_body_text">
+                                <div class="friend_request_notification_modal_sender">
+                                    ${sender_profilename}
+                                </div>
+                                <div class="friend_request_notification_modal_message_text">
+                                    ${message}
+                                </div>
+                            </div>
                         </div>
                         <div class="friend_request_notification_modal_body_date">
-                            ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
+                            ${date.getDate()}.${addLeadingZero(date.getMonth() + 1)}.${date.getFullYear()} ${addLeadingZero(date.getHours())}:${addLeadingZero(date.getMinutes())}
                         </div>
                     </div>
                 </div>
             </div>`
 
-        main_panel_element.appendChild(friend_request_notification)
+            content_wrapper_element.appendChild(friend_request_notification)
     }
 
     permitFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
@@ -274,6 +299,10 @@
         }  
     }
 
+    addLeadingZero = (value) => {
+        return value < 10 ? `0${value}` : value;
+    }
+
     myFriendSocket.onopen = () => {
         myFriendSocket.send(JSON.stringify({
             'type': 'friendrequest.verif',
@@ -282,7 +311,7 @@
 
         myFriendSocket.onmessage = (e) => {
             const data = JSON.parse(e.data)
-            let main_panel_element = document.querySelector('.main_panel')
+            let content_wrapper = document.querySelector('.content_wrapper')
             console.log(data.type)
             if (data.type == 'request'){
                 let sender_profilename = data.sender_profilename
@@ -318,20 +347,20 @@
                         <div class="friend_request_notification_modal_body">
                             <div class="friend_request_notification_modal_body_info">
                                 <div class="friend_request_notification_modal_body_message">
-                                    ${sender_profilename} sent you a friend request
+                                    <span class="friend_request_notification_modal_sender">${sender_profilename}</span>&nbspsent you a friend request
                                 </div>
                                 <div class="friend_request_notification_modal_body_date">
-                                    ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
+                                    ${date.getDate()}.${addLeadingZero(date.getMonth() + 1)}.${date.getFullYear()} ${addLeadingZero(date.getHours())}:${addLeadingZero(date.getMinutes())}
                                 </div>
                             </div>
                             <div class="friend_request_notification_modal_body_controls">
-                                <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Accept</button>
-                                <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Ignore</button>
+                                <button class="friend_request_notification_body_controls_button" onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Accept</button>
+                                <button class="friend_request_notification_body_controls_button" onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Ignore</button>
                             </div>
                         </div>
                     </div>`
 
-                main_panel_element.appendChild(friend_request_notification)
+                    content_wrapper.appendChild(friend_request_notification)
             }
             else if (data.type == 'permitted'){
                 status = data.status
@@ -342,6 +371,7 @@
                     refresh_friends_list({{ current_user.id }}, true)
 
                     // После добавления в друзья и создания канала подписываемся на уведомления
+                    // Репит кода, переписать
                     const new_channel_socket = new WebSocket(
                         ws_scheme
                         + window.location.host
@@ -360,10 +390,11 @@
                             }
                             console.log('got new notif')
                             console.log(data)
-                            let main_panel_element = document.querySelector('.main_panel')
+                            let content_wrapper = document.querySelector('.content_wrapper')
                             if (data.type == 'message_notification'){
                                 let sender_profilename = data.sender_profilename
                                 let message = data.message
+                                let sender_profile_avatar_url = data.sender_profile_avatar_url
                                 
                                 // previous notification check
                                 let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
@@ -374,7 +405,15 @@
                                     closeNotificationModal()
                                 }
                                 refresh_private_message(data.channel_id)
-                                create_new_message_notif(sender_profilename, message)
+                                create_new_message_notif(sender_profilename, message, sender_profile_avatar_url)
+                            }
+                            else if (data.type == 'incoming_dialog_call'){
+                                let sender_profilename = data.sender_profilename
+                                let channel_id = data.channel_id
+                                let sender_profilename_avatar_url = data.sender_profilename_avatar_url
+                                // Actions after user got incoming dialog come
+                                close_incoming_call_modal()
+                                create_incoming_call_modal_window(sender_profilename, sender_profilename_avatar_url, channel_id)
                             }
                         }
                     }
@@ -475,7 +514,7 @@
                             'message': message
                         }))
             
-                        let channelNotificationSocket = new WebSocket(
+                        let channelNotificationSocket = createNewSingleWebSocketConnection(
                             ws_scheme
                             + window.location.host
                             + '/ws/service/notification/'
@@ -488,6 +527,7 @@
                                 'type': 'notification.getmessage',
                                 'sender_username': '{{ current_user.username }}',
                                 'sender_profilename': '{{ current_profile.profile_name }}',
+                                'sender_profile_avatar_url': '{{ current_profile.profile_avatar.url }}',
                                 'channel_id': channel_id,
                                 'message': `${message}`
                             }))
@@ -564,14 +604,14 @@
 
             // For dialog channels
             if (channel_type_id == 2){
-                const channelCallNotificationSocket = new WebSocket(
+                const channelCallNotificationSocket = createNewSingleWebSocketConnection(
                     ws_scheme
                     + window.location.host
                     + '/ws/service/notification/'
                     + channel_id
                     + '/'
                 )
-                WebSocketConnections.add(channelCallNotificationSocket)
+                console.log(channelCallNotificationSocket)
 
                 channelCallNotificationSocket.onopen = () => {
                     channelCallNotificationSocket.send(JSON.stringify({
@@ -750,13 +790,13 @@
     }
 
     closeNotificationModal = () => {
-        main_panel = document.querySelector('.main_panel')
+        content_wrapper = document.querySelector('.content_wrapper')
         modal = document.querySelector('.notification_modal_wrapper')
         if (modal){
             modal.style["opacity"] = "0"
             modal.addEventListener('transitionend', () => {
                 modal.style["display"] = "none"
-                main_panel.removeChild(modal)
+                content_wrapper.removeChild(modal)
             });
         }    
     }
@@ -846,7 +886,7 @@
     get_notification_item_html = (notification_type_id, sender_username, sender_profilename, friend_username, friend_profilename, status) => {
         switch(notification_type_id){
             case 1:
-                return get_missing_call_notification_item_html()
+                return get_missing_call_notification_item_html(sender_profilename)
             case 2:
                 return get_friend_request_notification_item_html(sender_username, sender_profilename, friend_username, friend_profilename, status)
             default:
@@ -855,8 +895,19 @@
         }
     }
 
-    get_missing_call_notification_item_html = () => {
+    get_missing_call_notification_item_html = (sender_profilename) => {
+        let missing_call_notification_item_html = `<div class="message_item notification_item">
+            <div class="notification_content">
+                <div class="notification_content_header">
+                    Пропущенный звонок
+                </div>
+                <div class="notification_content_body">
+                    Вы пропустили звонок от <span class="notification_content_body_sender">${sender_profilename}</span>
+                </div>
+            </div>
+        </div>`
 
+        return missing_call_notification_item_html 
     }
     
     get_friend_request_notification_item_html = (sender_username, sender_profilename, friend_username, friend_profilename, status) => {
@@ -864,8 +915,8 @@
         switch(status){
             case 'opened':
                 friend_request_notification_item_panel_html = `<div class="notification_content_panel">
-                    <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Принять</button>
-                    <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Отклонить</button>
+                    <button class="friend_request_notif_button" onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Принять</button>
+                    <button class="friend_request_notif_button" onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Отклонить</button>
                 </div>`
             case 'closed':
                 break
@@ -873,13 +924,13 @@
                 break
         }
 
-        let friend_request_notification_item_html = `<div class="message_item">
+        let friend_request_notification_item_html = `<div class="message_item notification_item">
             <div class="notification_content">
                 <div class="notification_content_header">
                     Новая заявка в друзья
                 </div>
                 <div class="notification_content_body">
-                    ${sender_profilename} хочет добавить вас в друзья
+                    <span class="notification_content_body_sender">${sender_profilename}</span> хочет добавить вас в друзья
                 </div>
                 ${friend_request_notification_item_panel_html}
             </div>
@@ -1050,15 +1101,26 @@
 
                     </div>
                     <div class="incoming_call_modal_content_header_panel">
-                        <button role="button" onclick="close_incoming_call_modal(${channel_id})">x</button>
+                        <button id="close_incoming_call_notif_button" role="button" onclick="close_incoming_call_modal(${channel_id})">
+                            <i class="fa-solid fa-sm fa-xmark"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="incoming_call_modal_content_body">
-                    ${profilename} is calling you
+                    <div class="incoming_call_modal_img_content">
+                        <img class="incoming_call_modal_avatar" src="${sender_profilename_avatar_url}">
+                    </div>
+                    <div class="incoming_call_modal_text_content">
+                        <span class="incoming_call_modal_text_sender">${profilename}</span> is calling you
+                    </div>
                 </div>
                 <div class="incoming_call_modal_content_panel">
-                    <button role="button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id}, '${profilename}', '${sender_profilename_avatar_url}')">Apply</button>
-                    <button role="button" id="decline_incoming_call_button" onclick="decline_incoming_call(${channel_id})">Decline</button>
+                    <button role="button" class="incoming_call_notif_button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id}, '${profilename}', '${sender_profilename_avatar_url}')">
+                        <i class="fa-solid fa-lg fa-phone-volume"></i>
+                    </button>
+                    <button role="button" class="incoming_call_notif_button" id="decline_incoming_call_button" onclick="decline_incoming_call(${channel_id})">
+                        <i class="fa-solid fa-xl fa-xmark"></i>
+                    </button>
                 </div>
             </div>
         </div>`
@@ -1068,10 +1130,24 @@
 
     create_incoming_call_modal_window = (profilename, sender_profilename_avatar_url, channel_id) => {
         let call_modal_window = get_incoming_call_modal_window(profilename, sender_profilename_avatar_url, channel_id)
-
+        let is_user_active = false
         let content_wrapper = document.querySelector('.content_wrapper')
         content_wrapper.appendChild(call_modal_window)
-        setTimeout(() => decline_incoming_call(channel_id, "timeout"), 15_000)
+        let apply_button = document.getElementById("apply_incoming_call_button")
+        let decline_button = document.getElementById("decline_incoming_call_button")
+
+        apply_button.addEventListener('click', () => {
+            is_user_active = true
+        })
+
+        decline_button.addEventListener('click', () => {
+            is_user_active = true
+        })
+        setTimeout(() => {
+            if (!is_user_active){
+                decline_incoming_call(channel_id, "timeout")
+            }
+        }, 15_000)
     }
 
     apply_incoming_call = (channel_id, channel_name, channel_avatar_url) => {
@@ -1084,14 +1160,13 @@
 
         // Далее посылаем сигнал об отказе
 
-        const channelNotificationSocket = new WebSocket(
+        const channelNotificationSocket = createNewSingleWebSocketConnection(
             ws_scheme
             + window.location.host
             + '/ws/service/notification/'
             + `${channel_id}`
             + '/'
         )
-        WebSocketConnections.add(channelNotificationSocket)
 
         channelNotificationSocket.onopen = () => {
             channelNotificationSocket.send(JSON.stringify({
@@ -1786,7 +1861,6 @@
             }
         })
     }
-
 </script>
 
 {% block aux_script %}{% endblock aux_script %}

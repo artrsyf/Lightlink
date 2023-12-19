@@ -17,6 +17,13 @@ $dark_control_panel_grey: #575757;
 $send_friend_request_button_blue_color: #5865f2;
 $main_profile_update_violet_color_9: #444357;
 $aux_profile_update_violet_color_2: #8c5ed5;
+$main_apply_decline_friend_request_notif_buttons_violet_4: #6464a3;
+$aux_apply_decline_friend_request_notif_buttons_violet_3: #7474ab;
+$main_call_notif_violet_6: #5d5c70;
+$apply_call_button_green_5: rgb(71, 231, 71);
+$aux_close_incoming_call_notif_button_violet_4: #7b7a9d;
+$aux_call_button_green_3: #71e371;
+$aux_leave_channel_button_red_3: #d16161;
 
 $side_panel_width: 272px;
 
@@ -261,13 +268,13 @@ body{
         }
 
         &:hover{
-            overflow-y: auto; 
+            overflow-y: auto;
         }
 
         .message_item{
             display: flex;
             flex-direction: row;
-            padding: 5px 10px 5px 10px;
+            padding: 5px 14px 5px 10px;
             border-radius: 5px;
             cursor: pointer;
             overflow: hidden;
@@ -556,7 +563,7 @@ body{
     position: absolute;
     right: 0;
     bottom: 0;
-    padding: 10px;
+    padding: 20px;
     opacity: 1;
     z-index: 1;
     transition: opacity 0.2s ease-out;
@@ -566,23 +573,36 @@ body{
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: aquamarine;
+    background-color: $main_call_notif_violet_6;
+    color: $aux_font_grey_color_3;
+    border-radius: 5px;
 }
 .friend_request_notification_modal_header{
     width: 100%;
-    background-color: thistle;
-    padding: 5px 15px 5px 15px;
+    background-color: $dark_contrast_element_violet_5;
+    padding: 5px 5px 5px 15px;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
 }
 .friend_request_notification_text{
-
+    font-weight: 600;
 }
 .friend_request_notification_exit_button{
     display: flex;
     flex-direction: column;
     justify-content: center;
+    cursor: pointer;
+    border-radius: 5px;
+    padding: 5px 7px 5px 7px;
+    transition: background-color 0.1s ease-in-out;
+    background-color: transparent;
+
+    &:hover{
+        background-color: $aux_apply_decline_friend_request_notif_buttons_violet_3;
+    }
 }
 .friend_request_notification_modal_body{
     padding: 0 15px 8px 15px;
@@ -598,15 +618,60 @@ body{
     max-width: 250px;
     text-wrap: nowrap;
     overflow: hidden;
+    display: flex;
+    flex-direction: row;
+
+    .friend_request_notification_modal_body_avatar{
+        padding-top: 3px;
+
+        .friend_request_notification_modal_body_img{
+            height: 30px;
+            width: 30px;
+            border-radius: 50%;
+        }
+    }
+
+    .friend_request_notification_modal_body_text{
+        display: flex;
+        flex-direction: column;
+        padding-left: 10px;
+
+        .friend_request_notification_modal_message_text{
+            font-weight: 300;
+        }
+    }
 }
+
+.friend_request_notification_modal_sender{
+    font-weight: 500;
+    color: $auxiliary_light_color;
+}
+
 .friend_request_notification_modal_body_date{
     font-size: 0.8rem;
+    font-weight: 300;
 }
+
 .friend_request_notification_modal_body_controls{
     width: 100%;
     display: flex;
     flex-direction: row;
     justify-content: space-around;
+
+    .friend_request_notification_body_controls_button{
+        border-style: none;
+        outline: none;
+        border-radius: 5px;
+        padding: 4px 6px 4px 6px;
+        background-color: $dark_contrast_element_violet_5;
+        color: $auxiliary_light_color;
+        transition: color background-color 0.1s ease-in-out;
+
+        &:hover{
+            background-color: $aux_apply_decline_friend_request_notif_buttons_violet_3;
+            color: $aux_font_grey_color_3;
+        }
+    }
 }
 .friend_request_modal_control_button{
     width: 40%;
@@ -634,6 +699,7 @@ body{
     height: 100%;
     position: absolute;
 }
+
 .incoming_call_modal_background{
     width: 100%;
     height: 100%;
@@ -641,11 +707,14 @@ body{
     opacity: 0.3;
     z-index: 0;
 }
+
 .incoming_call_modal_wrapper{
     width: 20%;
-    height: 15%;
+    height: 25%;
+    min-width: 200px;
+    min-height: 260px;
     position: absolute;
-    background-color: aqua;
+    background-color: $main_call_notif_violet_6;
     z-index: 1; 
     left: 0; 
     right: 0;
@@ -653,7 +722,9 @@ body{
     bottom: 0; 
     margin: auto;
     padding: 5px;
+    border-radius: 10px;
 }
+
 .incoming_call_modal_content{
     width: 100%;
     height: 100%;
@@ -661,17 +732,95 @@ body{
     flex-direction: column;
     justify-content: space-between;
 }
+.incoming_call_modal_content_body{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .incoming_call_modal_avatar{
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+    }
+
+    .incoming_call_modal_text_content{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 15px;
+        font-weight: 500;
+        color: $aux_font_grey_color_6;
+        font-size: 0.9rem;
+
+        .incoming_call_modal_text_sender{
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: $auxiliary_light_color;
+        }
+    }
+}
+
+#close_incoming_call_notif_button{
+    outline: none;
+    border-style: none;
+    padding: 8px 5px 8px 5px;
+    background-color: transparent;
+    color: $aux_font_grey_color_3;
+    border-radius: 3px;
+    transition: background-color 0.1s ease-in-out;
+
+    &:hover{
+        background-color: $aux_close_incoming_call_notif_button_violet_4;
+    }
+}
+
+.incoming_call_notif_button{
+    width: 50px;
+    height: 50px;
+    border-style: none;
+    outline: none;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: $auxiliary_light_color;
+}
+
+#apply_incoming_call_button{
+    background-color: $apply_call_button_green_5;
+    transition: background-color 0.1s ease-in-out;
+
+    &:hover{
+        background-color: $aux_call_button_green_3;
+    }
+}
+
+#decline_incoming_call_button{
+    background-color: $leave_channel_red_button;
+    transition: background-color 0.1s ease-in-out;
+
+    &:hover{
+        background-color: $aux_leave_channel_button_red_3;
+    }
+}
+
 .incoming_call_modal_content_header{
     display: flex;
     flex-direction: row;
 }
+
 .incoming_call_modal_content_header_space{
     flex-grow: 1;
 }
+
 .incoming_call_modal_content_header_panel{
 
 }
+
 .incoming_call_modal_content_panel{
+    padding-bottom: 15px;
     display: flex;
     flex-direction: row;
     justify-content: space-around;
@@ -1116,10 +1265,62 @@ body{
                 border-radius: 5px;
                 padding: 3px;
                 background-color: $main_profile_update_violet_color_9;
-                color: $aux_font_grey_color_3
+                color: $aux_font_grey_color_3;
+                transition: background-color 0.2s ease-in-out;
+
+                &:hover{
+                    background-color: $dark_button_active_violet_color_6;
+                }
             }
         }
     }
 }
 
 // Profile options end
+
+// Notifications
+
+.notification_item{
+    border-bottom: 1px solid $dark_background_violet_color_9;
+}
+
+.notification_content{
+    display: flex;
+    flex-direction: column;
+
+    .notification_content_header{
+        color: $active_panel_font_grey_color_7;
+    }
+
+    .notification_content_body{
+        font-size: 0.9rem;
+        font-weight: 500;
+
+        .notification_content_body_sender{
+            color: $aux_font_grey_color_6;
+            font-weight: 700;
+        }
+    }
+
+    .notification_content_panel{
+        display: flex;
+        flex-direction: row;
+        padding: 5px 10 4px 0;
+
+        .friend_request_notif_button{
+            border-style: none;
+            outline: none;
+            border-radius: 5px;
+            padding: 2px 4px 2px 4px;
+            margin-left: 13%;
+            background-color:$main_apply_decline_friend_request_notif_buttons_violet_4;
+            color: $aux_font_grey_color_6;
+            transition: color background-color 0.1s ease-in-out;
+
+            &:hover{
+                background-color: $aux_apply_decline_friend_request_notif_buttons_violet_3;
+                color: $aux_font_grey_color_3;
+            }
+        }
+    }
+}
