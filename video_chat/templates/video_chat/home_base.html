@@ -120,6 +120,8 @@
 
     const WebSocketConnections = new Set()
 
+    var isVideoChatOpened = false
+
     createNewSingleWebSocketConnection = (ws_url) => {
         for (ws of WebSocketConnections){
             if (ws.url == ws_url) {
@@ -555,8 +557,6 @@
     }
 
     handleFriendClick = (channel_id, open_video_chat=false) => {
-        deleteUnusedAgoraClient()
-
         $.ajax({
             url: `/vw/get-channel-data/${channel_id}`,
             dataType: "json",
@@ -569,8 +569,27 @@
                 let current_user_id = {{ current_user.id }}
 
                 createDefaultChannelElement(channel_id, channel_name, channel_type_id, channel_messages, current_user_id, channel_avatar_url)
-                if (open_video_chat){
+                if (open_video_chat || (isVideoChatOpened && AgoraClient.instance.channel_id == channel_id)){
                     create_video_chat_element(channel_id, channel_name, channel_avatar_url)
+
+                    let saved_video_players = AgoraClient.instance.players
+                    let streams_store = document.getElementById("streams_store")
+                    for (player of saved_video_players){
+                        player_html = player.player
+                        player_user = player.user
+                        player_media_type = player.mediaType
+
+                        if (player_media_type == "video"){
+                            streams_store.innerHTML += player_html
+                            player_user.videoTrack.play(`user-${player_user.uid}`)
+                        }
+                        else if (player_media_type == "ico"){
+                            streams_store.innerHTML += player_html
+                        }
+                        else{
+                            console.error(`Unrecognized mediaType: ${player_media_type}`)
+                        }
+                    }
                 }
             },
             error: function(xhr, status, error){
@@ -595,6 +614,9 @@
     }
 
     start_call = (channel_id) => {
+        deleteUnusedAgoraClient()
+        isVideoChatOpened = true
+
         fetch(`/vw/get-channel-meta/${channel_id}`)
         .then(response => response.json())
         .then((data) => {
@@ -624,8 +646,6 @@
                 channelCallNotificationSocket.onclose = function(e){
 
                 }
-                // redeirect on the channel page after call is starting
-                //window.open(`/vw/channel/${channel_id}`, '_self')
 
                 create_video_chat_element(channel_id, channel_name, channel_avatar_url)
             }
@@ -1152,6 +1172,7 @@
 
     apply_incoming_call = (channel_id, channel_name, channel_avatar_url) => {
         close_incoming_call_modal()
+        isVideoChatOpened = true
         handleFriendClick(channel_id, true)
     }
 
@@ -1266,6 +1287,7 @@
             this.profile_avatar_url = _profile_avatar_url
             this.isSharingEnabled = false
             this.screenTrack = []
+            this.players = []
         }
 
         destroy = async () => {
@@ -1390,7 +1412,7 @@
             let player = document.getElementById(`user-container-${user.uid}`)
             if (!player) return
 
-            if (user.uid < 90000){
+            if (user.uid < 90000){ // stream condition..
                 let agora_player_wrapper = player.firstChild
                 agora_player_wrapper.style.opacity = "0"
             }
@@ -1400,7 +1422,7 @@
         }
 
         handleUserJoined = async (user, mediaType) => {
-            if (user.uid > 90000) return
+            if (user.uid > 90000) return // stream condition..
             let member_profile_data = {profilename: "Undefined", profile_avatar_url: "/"}
             try{
                 member_profile_data = await this.getMemberData(user)
@@ -1413,7 +1435,7 @@
             let user_ico = `<div class="videostream" id="user-ico-container-${user.uid}">
                 <img class="user_video_chat_icon" id="user_video_chat_icon_${user.uid}" src="${member_profile_data.profile_avatar_url}">
             </div>`
-
+            this.players.push({"user": user, "player": user_ico, "mediaType": "ico"})
             document.getElementById('streams_store').insertAdjacentHTML("beforeend", user_ico)
         }
         
@@ -1441,6 +1463,7 @@
                     <div class="video-player" id="user-${user.uid}" name="${member_profile_data.profilename}"></div>
                     {% comment %} <div class="video-player-user-name">${member_profile_data.profilename}</div> {% endcomment %}
                 </div>`
+                this.players.push({"user": user, "player": player, "mediaType": mediaType})
         
                 document.getElementById('streams_store').insertAdjacentHTML('beforeend', player)
                 document.getElementById(`user_video_chat_icon_${user.uid}`).style.zIndex = "0"
@@ -1476,6 +1499,7 @@
         }
 
         endVideoCall = async () => {
+            isVideoChatOpened = false
             let destroyPromise = this.destroy()
             destroyPromise.then(() => {
                 handleFriendClick(this.channel_id)
@@ -1552,36 +1576,49 @@
             let videostreams = document.getElementById('streams_store')
             let observer = new MutationObserver(handleChanges);
             observer.observe(videostreams, observerOptions);
+            if (AgoraClient.instance){
+                obj = AgoraClient.instance
+                document.getElementById('leave-btn').addEventListener('click', obj.endVideoCall)
+                
+                document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
+    
+                document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
+    
+                document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
+    
+                obj.joinAndDisplayLocalStream()
+            }
+            else{
+                var obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
+            
+                obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
 
-            var obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
-           
-            obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
+                    obj.app_id = data.app_id
+                    fetch(`/vw/get_token/?channel=${input_channel_id}`)
+                        .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
+                        .then(CONVERSATION_DATA =>{
+                            console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
+                
+                            obj.user_id = CONVERSATION_DATA.user_id
+                            obj.token = CONVERSATION_DATA.token
+                            obj.stream_id = CONVERSATION_DATA.stream_id
+                            obj.stream_token = CONVERSATION_DATA.stream_token
 
-                obj.app_id = data.app_id
-                fetch(`/vw/get_token/?channel=${input_channel_id}`)
-                    .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
-                    .then(CONVERSATION_DATA =>{
-                        console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
-            
-                        obj.user_id = CONVERSATION_DATA.user_id
-                        obj.token = CONVERSATION_DATA.token
-                        obj.stream_id = CONVERSATION_DATA.stream_id
-                        obj.stream_token = CONVERSATION_DATA.stream_token
-
-                        obj.profilename = "{{ current_profile.profile_name }}"
-                        obj.profile_avatar_url = "{{ current_profile.profile_avatar.url }}"
-            
-                        document.getElementById('leave-btn').addEventListener('click', obj.endVideoCall)
-            
-                        document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
-            
-                        document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
-            
-                        document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
-            
-                        obj.joinAndDisplayLocalStream()
+                            obj.profilename = "{{ current_profile.profile_name }}"
+                            obj.profile_avatar_url = "{{ current_profile.profile_avatar.url }}"
+                
+                            document.getElementById('leave-btn').addEventListener('click', obj.endVideoCall)
+                
+                            document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
+                
+                            document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
+                
+                            document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
+                
+                            obj.joinAndDisplayLocalStream()
+                    })
                 })
-            })
+            }
         }
     }
 
