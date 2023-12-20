@@ -4,6 +4,7 @@ from .models import Profile, User, Channel, ChannelType, ChannelInfo, \
     Message, Friendship, FriendRequestType, Notification, NotificationType, NotificationStatus
 from .utils import Queries, clearCache
 from channels.db import database_sync_to_async
+from django.db.models import Q
 
 import redis
 import environ
@@ -90,7 +91,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"notification_{self.room_name}"
-
+        self.user = self.scope["user"]
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
@@ -121,12 +122,14 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         
         sender_username = event["sender_username"]
         sender_profilename = event["sender_profilename"]
+        sender_profile_avatar_url = event["sender_profile_avatar_url"]
         message = event["message"]
         channel_id = event["channel_id"]
         #** db request.....
 
         await self.send(text_data=json.dumps({"type": "message_notification",
                                               "sender_profilename": sender_profilename,
+                                              "sender_profile_avatar_url": sender_profile_avatar_url,
                                               "sender_username": sender_username,
                                               "channel_id": channel_id,
                                               "message": message
@@ -136,8 +139,25 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     def create_notification_and_get_profile(self, sender_username: str) -> Profile:
         #** db request for notif
         return Queries.getCurrentProfileByUsername(sender_username, False)
+    
+    @database_sync_to_async
+    def create_missing_call_notification(self, declined_username: str, channel_id: int) -> None:
+        declined_profile = Queries.getCurrentProfileByUsername(declined_username, False)
+        channel = Channel.objects.get(id=channel_id)
+        if channel.channel_type.id == 2:
+            sender_profile = ChannelInfo.objects.filter(Q(channel=channel) & ~Q(profile=declined_profile)).last().profile
+            MISSING_CALL_CLOSED_NOTIFICATION_STATUS = NotificationStatus.objects.get(id=2)
+            MISSING_CALL_NOTIFICATION_TYPE = NotificationType.objects.get(id=1)
+            missing_call_notification = Notification.objects\
+                .create(notification_type=MISSING_CALL_NOTIFICATION_TYPE, 
+                        owner_profile=declined_profile, 
+                        sender_profile=sender_profile, 
+                        notification_status=MISSING_CALL_CLOSED_NOTIFICATION_STATUS)
+        else:
+            return
+            # process for multi user channel
 
-        
+
     async def notification_incomingdialogcall(self, event):
         sender_username = event["sender_username"]
         channel_id = event["channel_id"]
@@ -155,6 +175,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         declined_username = event["declined_username"]
         declined_profilename = event["declined_profilename"]
         channel_id = event["channel_id"]
+        if status == "timeout" and self.user.username == declined_username:
+            await self.create_missing_call_notification(declined_username, channel_id)
 
         await self.send(text_data=json.dumps({"type": "call_declining",
                                               "sender_username": declined_username,

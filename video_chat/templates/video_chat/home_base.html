@@ -76,16 +76,18 @@
                 </div>
                 <div class="profile_panel">
                     <div class="profile_part">
-                        <div class="profile_info" onclick="openProfileOptions('{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}')">
-                            <div class="profile_img_wrapper">
-                                <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
-                            </div>
-                            <div class="profile_nicknames">
-                                <div class="profile_nickname">
-                                    {{ current_profile.profile_name }}
+                        <div class="profile_info_wrapper">
+                            <div class="profile_info" onclick="openProfile('{{ current_user.username }}', '{{ current_profile.profile_name }}', '{{ current_profile.profile_avatar.url }}', '{{ current_user.date_joined }}')">
+                                <div class="profile_img_wrapper">
+                                    <img class="profile_img" src="{{ current_profile.profile_avatar.url }}" alt="Profile_pic">
                                 </div>
-                                <div class="user_nickname">
-                                    {{ current_user.username }}
+                                <div class="profile_nicknames">
+                                    <div class="profile_nickname">
+                                        {{ current_profile.profile_name }}
+                                    </div>
+                                    <div class="user_nickname">
+                                        {{ current_user.username }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -117,6 +119,22 @@
     const INACTIVE_VIDEO_CHAT_PANEL_BUTTON_COLOR = "#1c1c1c"
 
     const WebSocketConnections = new Set()
+
+    var isVideoChatOpened = false
+
+    createNewSingleWebSocketConnection = (ws_url) => {
+        for (ws of WebSocketConnections){
+            if (ws.url == ws_url) {
+                ws.close()
+                WebSocketConnections.delete(ws)
+            }
+        }
+
+        let new_web_socket = new WebSocket(ws_url)
+        WebSocketConnections.add(new_web_socket)
+        
+        return new_web_socket
+    }
 
     const myFriendSocket = new ReconnectingWebSocket(
         ws_scheme
@@ -160,6 +178,7 @@
                 console.log(data)
                 if (data.type == 'message_notification'){
                     let sender_profilename = data.sender_profilename
+                    let sender_profile_avatar_url = data.sender_profile_avatar_url
                     let message = data.message
                     
                     // previous notification check
@@ -175,7 +194,7 @@
                     let target_path = `/vw/channel/${data.channel_id}`
 
                     if ((current_path != target_path) || (!messages_area_wrapper) || (messages_area_wrapper.attributes.turned.value == "true")){
-                        create_new_message_notif(sender_profilename, message)
+                        create_new_message_notif(sender_profilename, message, sender_profile_avatar_url)
                     }
                     else{
                         console.log('textchat is not turned')
@@ -202,10 +221,10 @@
         }
     })
 
-    create_new_message_notif = (sender_profilename, message) => {
+    create_new_message_notif = (sender_profilename, message, sender_profile_avatar_url) => {
         let date = new Date()
         
-        let main_panel_element = document.querySelector('.main_panel')
+        let content_wrapper_element = document.querySelector('.content_wrapper')
         let friend_request_notification = document.createElement('div')
         friend_request_notification.className = 'notification_modal_wrapper'
         friend_request_notification.innerHTML = 
@@ -221,16 +240,26 @@
                 <div class="friend_request_notification_modal_body">
                     <div class="friend_request_notification_modal_body_info">
                         <div class="friend_request_notification_modal_body_message">
-                            ${sender_profilename}: ${message}
+                            <div class="friend_request_notification_modal_body_avatar">
+                                <img class="friend_request_notification_modal_body_img" src="${sender_profile_avatar_url}">
+                            </div>
+                            <div class="friend_request_notification_modal_body_text">
+                                <div class="friend_request_notification_modal_sender">
+                                    ${sender_profilename}
+                                </div>
+                                <div class="friend_request_notification_modal_message_text">
+                                    ${message}
+                                </div>
+                            </div>
                         </div>
                         <div class="friend_request_notification_modal_body_date">
-                            ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
+                            ${date.getDate()}.${addLeadingZero(date.getMonth() + 1)}.${date.getFullYear()} ${addLeadingZero(date.getHours())}:${addLeadingZero(date.getMinutes())}
                         </div>
                     </div>
                 </div>
             </div>`
 
-        main_panel_element.appendChild(friend_request_notification)
+            content_wrapper_element.appendChild(friend_request_notification)
     }
 
     permitFriendRequest = (sender_username, friend_username, sender_profilename, friend_profilename) => {
@@ -268,6 +297,10 @@
         }  
     }
 
+    addLeadingZero = (value) => {
+        return value < 10 ? `0${value}` : value;
+    }
+
     myFriendSocket.onopen = () => {
         myFriendSocket.send(JSON.stringify({
             'type': 'friendrequest.verif',
@@ -276,7 +309,7 @@
 
         myFriendSocket.onmessage = (e) => {
             const data = JSON.parse(e.data)
-            let main_panel_element = document.querySelector('.main_panel')
+            let content_wrapper = document.querySelector('.content_wrapper')
             console.log(data.type)
             if (data.type == 'request'){
                 let sender_profilename = data.sender_profilename
@@ -312,20 +345,20 @@
                         <div class="friend_request_notification_modal_body">
                             <div class="friend_request_notification_modal_body_info">
                                 <div class="friend_request_notification_modal_body_message">
-                                    ${sender_profilename} sent you a friend request
+                                    <span class="friend_request_notification_modal_sender">${sender_profilename}</span>&nbspsent you a friend request
                                 </div>
                                 <div class="friend_request_notification_modal_body_date">
-                                    ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}|${date.getHours()}:${date.getMinutes()}
+                                    ${date.getDate()}.${addLeadingZero(date.getMonth() + 1)}.${date.getFullYear()} ${addLeadingZero(date.getHours())}:${addLeadingZero(date.getMinutes())}
                                 </div>
                             </div>
                             <div class="friend_request_notification_modal_body_controls">
-                                <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Accept</button>
-                                <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Ignore</button>
+                                <button class="friend_request_notification_body_controls_button" onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Accept</button>
+                                <button class="friend_request_notification_body_controls_button" onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')" class="friend_request_modal_control_button" role="button">Ignore</button>
                             </div>
                         </div>
                     </div>`
 
-                main_panel_element.appendChild(friend_request_notification)
+                    content_wrapper.appendChild(friend_request_notification)
             }
             else if (data.type == 'permitted'){
                 status = data.status
@@ -336,6 +369,7 @@
                     refresh_friends_list({{ current_user.id }}, true)
 
                     // После добавления в друзья и создания канала подписываемся на уведомления
+                    // Репит кода, переписать
                     const new_channel_socket = new WebSocket(
                         ws_scheme
                         + window.location.host
@@ -354,10 +388,11 @@
                             }
                             console.log('got new notif')
                             console.log(data)
-                            let main_panel_element = document.querySelector('.main_panel')
+                            let content_wrapper = document.querySelector('.content_wrapper')
                             if (data.type == 'message_notification'){
                                 let sender_profilename = data.sender_profilename
                                 let message = data.message
+                                let sender_profile_avatar_url = data.sender_profile_avatar_url
                                 
                                 // previous notification check
                                 let previous_notifications = document.getElementsByClassName('notification_modal_wrapper')
@@ -368,7 +403,15 @@
                                     closeNotificationModal()
                                 }
                                 refresh_private_message(data.channel_id)
-                                create_new_message_notif(sender_profilename, message)
+                                create_new_message_notif(sender_profilename, message, sender_profile_avatar_url)
+                            }
+                            else if (data.type == 'incoming_dialog_call'){
+                                let sender_profilename = data.sender_profilename
+                                let channel_id = data.channel_id
+                                let sender_profilename_avatar_url = data.sender_profilename_avatar_url
+                                // Actions after user got incoming dialog come
+                                close_incoming_call_modal()
+                                create_incoming_call_modal_window(sender_profilename, sender_profilename_avatar_url, channel_id)
                             }
                         }
                     }
@@ -469,7 +512,7 @@
                             'message': message
                         }))
             
-                        let channelNotificationSocket = new WebSocket(
+                        let channelNotificationSocket = createNewSingleWebSocketConnection(
                             ws_scheme
                             + window.location.host
                             + '/ws/service/notification/'
@@ -482,6 +525,7 @@
                                 'type': 'notification.getmessage',
                                 'sender_username': '{{ current_user.username }}',
                                 'sender_profilename': '{{ current_profile.profile_name }}',
+                                'sender_profile_avatar_url': '{{ current_profile.profile_avatar.url }}',
                                 'channel_id': channel_id,
                                 'message': `${message}`
                             }))
@@ -509,7 +553,17 @@
     }
 
     handleFriendClick = (channel_id, open_video_chat=false) => {
-        deleteUnusedAgoraClient()
+        if (isVideoChatOpened){
+            let global_wrapper = document.querySelector(".global_wrapper")
+            let saved_video_players = AgoraClient.instance.players
+            for (player of saved_video_players){
+                if (player.mediaType != "ico"){
+                    let player_link_div = document.createElement("div")
+                    player_link_div.id = `user-container-${player.user.uid}`
+                    global_wrapper.appendChild(player_link_div)
+                }
+            }
+        }
 
         $.ajax({
             url: `/vw/get-channel-data/${channel_id}`,
@@ -523,6 +577,28 @@
                 let current_user_id = {{ current_user.id }}
 
                 createDefaultChannelElement(channel_id, channel_name, channel_type_id, channel_messages, current_user_id, channel_avatar_url)
+                if (open_video_chat || (isVideoChatOpened && AgoraClient.instance.channel_id == channel_id)){
+                    create_video_chat_element(channel_id, channel_name, channel_avatar_url)
+
+                    let saved_video_players = AgoraClient.instance.players
+                    let streams_store = document.getElementById("streams_store")
+                    for (player of saved_video_players){
+                        player_html = player.player
+                        player_user = player.user
+                        player_media_type = player.mediaType
+
+                        if (player_media_type == "video"){
+                            streams_store.innerHTML += player_html
+                            player_user.videoTrack.play(`user-${player_user.uid}`)
+                        }
+                        else if (player_media_type == "ico"){
+                            streams_store.innerHTML += player_html
+                        }
+                        else{
+                            console.error(`Unrecognized mediaType: ${player_media_type}`)
+                        }
+                    }
+                }
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
@@ -537,6 +613,9 @@
     }
 
     start_call = (channel_id) => {
+        deleteUnusedAgoraClient()
+        isVideoChatOpened = true
+
         fetch(`/vw/get-channel-meta/${channel_id}`)
         .then(response => response.json())
         .then((data) => {
@@ -545,14 +624,14 @@
 
             // For dialog channels
             if (channel_type_id == 2){
-                const channelCallNotificationSocket = new WebSocket(
+                const channelCallNotificationSocket = createNewSingleWebSocketConnection(
                     ws_scheme
                     + window.location.host
                     + '/ws/service/notification/'
                     + channel_id
                     + '/'
                 )
-                WebSocketConnections.add(channelCallNotificationSocket)
+                console.log(channelCallNotificationSocket)
 
                 channelCallNotificationSocket.onopen = () => {
                     channelCallNotificationSocket.send(JSON.stringify({
@@ -565,8 +644,6 @@
                 channelCallNotificationSocket.onclose = function(e){
 
                 }
-                // redeirect on the channel page after call is starting
-                //window.open(`/vw/channel/${channel_id}`, '_self')
 
                 create_video_chat_element(channel_id, channel_name)
             }
@@ -731,13 +808,13 @@
     }
 
     closeNotificationModal = () => {
-        main_panel = document.querySelector('.main_panel')
+        content_wrapper = document.querySelector('.content_wrapper')
         modal = document.querySelector('.notification_modal_wrapper')
         if (modal){
             modal.style["opacity"] = "0"
             modal.addEventListener('transitionend', () => {
                 modal.style["display"] = "none"
-                main_panel.removeChild(modal)
+                content_wrapper.removeChild(modal)
             });
         }    
     }
@@ -827,7 +904,7 @@
     get_notification_item_html = (notification_type_id, sender_username, sender_profilename, friend_username, friend_profilename, status) => {
         switch(notification_type_id){
             case 1:
-                return get_missing_call_notification_item_html()
+                return get_missing_call_notification_item_html(sender_profilename)
             case 2:
                 return get_friend_request_notification_item_html(sender_username, sender_profilename, friend_username, friend_profilename, status)
             default:
@@ -836,8 +913,19 @@
         }
     }
 
-    get_missing_call_notification_item_html = () => {
+    get_missing_call_notification_item_html = (sender_profilename) => {
+        let missing_call_notification_item_html = `<div class="message_item notification_item">
+            <div class="notification_content">
+                <div class="notification_content_header">
+                    Пропущенный звонок
+                </div>
+                <div class="notification_content_body">
+                    Вы пропустили звонок от <span class="notification_content_body_sender">${sender_profilename}</span>
+                </div>
+            </div>
+        </div>`
 
+        return missing_call_notification_item_html 
     }
     
     get_friend_request_notification_item_html = (sender_username, sender_profilename, friend_username, friend_profilename, status) => {
@@ -845,8 +933,8 @@
         switch(status){
             case 'opened':
                 friend_request_notification_item_panel_html = `<div class="notification_content_panel">
-                    <button onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Принять</button>
-                    <button onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Отклонить</button>
+                    <button class="friend_request_notif_button" onclick="permitFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Принять</button>
+                    <button class="friend_request_notif_button" onclick="declineFriendRequest('${sender_username}', '${friend_username}', '${sender_profilename}', '${friend_profilename}')">Отклонить</button>
                 </div>`
             case 'closed':
                 break
@@ -854,13 +942,13 @@
                 break
         }
 
-        let friend_request_notification_item_html = `<div class="message_item">
+        let friend_request_notification_item_html = `<div class="message_item notification_item">
             <div class="notification_content">
                 <div class="notification_content_header">
                     Новая заявка в друзья
                 </div>
                 <div class="notification_content_body">
-                    ${sender_profilename} хочет добавить вас в друзья
+                    <span class="notification_content_body_sender">${sender_profilename}</span> хочет добавить вас в друзья
                 </div>
                 ${friend_request_notification_item_panel_html}
             </div>
@@ -1031,15 +1119,26 @@
 
                     </div>
                     <div class="incoming_call_modal_content_header_panel">
-                        <button role="button" onclick="close_incoming_call_modal(${channel_id})">x</button>
+                        <button id="close_incoming_call_notif_button" role="button" onclick="close_incoming_call_modal(${channel_id})">
+                            <i class="fa-solid fa-sm fa-xmark"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="incoming_call_modal_content_body">
-                    ${profilename} is calling you
+                    <div class="incoming_call_modal_img_content">
+                        <img class="incoming_call_modal_avatar" src="${sender_profilename_avatar_url}">
+                    </div>
+                    <div class="incoming_call_modal_text_content">
+                        <span class="incoming_call_modal_text_sender">${profilename}</span> is calling you
+                    </div>
                 </div>
                 <div class="incoming_call_modal_content_panel">
-                    <button role="button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id})">Apply</button>
-                    <button role="button" id="decline_incoming_call_button" onclick="decline_incoming_call(${channel_id})">Decline</button>
+                    <button role="button" class="incoming_call_notif_button" id="apply_incoming_call_button" onclick="apply_incoming_call(${channel_id}, '${profilename}', '${sender_profilename_avatar_url}')">
+                        <i class="fa-solid fa-lg fa-phone-volume"></i>
+                    </button>
+                    <button role="button" class="incoming_call_notif_button" id="decline_incoming_call_button" onclick="decline_incoming_call(${channel_id})">
+                        <i class="fa-solid fa-xl fa-xmark"></i>
+                    </button>
                 </div>
             </div>
         </div>`
@@ -1047,16 +1146,32 @@
         return call_modal_window
     }
 
-    create_incoming_call_modal_window = (profilename, channel_id) => {
-        let call_modal_window = get_incoming_call_modal_window(profilename, channel_id)
-
+    create_incoming_call_modal_window = (profilename, sender_profilename_avatar_url, channel_id) => {
+        let call_modal_window = get_incoming_call_modal_window(profilename, sender_profilename_avatar_url, channel_id)
+        let is_user_active = false
         let content_wrapper = document.querySelector('.content_wrapper')
         content_wrapper.appendChild(call_modal_window)
-        setTimeout(() => decline_incoming_call(channel_id, "timeout"), 15_000)
+        let apply_button = document.getElementById("apply_incoming_call_button")
+        let decline_button = document.getElementById("decline_incoming_call_button")
+
+        apply_button.addEventListener('click', () => {
+            is_user_active = true
+        })
+
+        decline_button.addEventListener('click', () => {
+            is_user_active = true
+        })
+        setTimeout(() => {
+            if (!is_user_active){
+                decline_incoming_call(channel_id, "timeout")
+            }
+        }, 15_000)
     }
 
-    apply_incoming_call = (channel_id) => {
-        window.open(`/vw/channel/${channel_id}`, '_self')
+    apply_incoming_call = (channel_id, channel_name, channel_avatar_url) => {
+        close_incoming_call_modal()
+        handleFriendClick(channel_id, true)
+        isVideoChatOpened = true
     }
 
     decline_incoming_call = (channel_id, status="declined") => {
@@ -1064,14 +1179,13 @@
 
         // Далее посылаем сигнал об отказе
 
-        const channelNotificationSocket = new WebSocket(
+        const channelNotificationSocket = createNewSingleWebSocketConnection(
             ws_scheme
             + window.location.host
             + '/ws/service/notification/'
             + `${channel_id}`
             + '/'
         )
-        WebSocketConnections.add(channelNotificationSocket)
 
         channelNotificationSocket.onopen = () => {
             channelNotificationSocket.send(JSON.stringify({
@@ -1184,6 +1298,7 @@
             this.profile_avatar_url = _profile_avatar_url
             this.isSharingEnabled = false
             this.screenTrack = []
+            this.players = []
         }
 
         destroy = async () => {
@@ -1308,17 +1423,23 @@
             let player = document.getElementById(`user-container-${user.uid}`)
             if (!player) return
 
-            if (user.uid < 90000){
+            if (user.uid < 90000){ // stream condition..
                 let agora_player_wrapper = player.firstChild
                 agora_player_wrapper.style.opacity = "0"
             }
             else{
+                alert(111)
+                this.removePlayerMetaByUserAndMediaType(user, mediaType)
                 player.remove()
             }   
         }
 
+        removePlayerMetaByUserAndMediaType = (user, mediaType) => {
+            this.players = this.players.filter(player => (player.user !== user) && (player.mediaType !== mediaType));
+        }
+
         handleUserJoined = async (user, mediaType) => {
-            if (user.uid > 90000) return
+            if (user.uid > 90000) return // stream condition..
             let member_profile_data = {profilename: "Undefined", profile_avatar_url: "/"}
             try{
                 member_profile_data = await this.getMemberData(user)
@@ -1331,7 +1452,7 @@
             let user_ico = `<div class="videostream" id="user-ico-container-${user.uid}">
                 <img class="user_video_chat_icon" id="user_video_chat_icon_${user.uid}" src="${member_profile_data.profile_avatar_url}">
             </div>`
-
+            this.players.push({"user": user, "player": user_ico, "mediaType": "ico"})
             document.getElementById('streams_store').insertAdjacentHTML("beforeend", user_ico)
         }
         
@@ -1359,6 +1480,7 @@
                     <div class="video-player" id="user-${user.uid}" name="${member_profile_data.profilename}"></div>
                     {% comment %} <div class="video-player-user-name">${member_profile_data.profilename}</div> {% endcomment %}
                 </div>`
+                this.players.push({"user": user, "player": player, "mediaType": mediaType})
         
                 document.getElementById('streams_store').insertAdjacentHTML('beforeend', player)
                 document.getElementById(`user_video_chat_icon_${user.uid}`).style.zIndex = "0"
@@ -1394,6 +1516,7 @@
         }
 
         endVideoCall = async () => {
+            isVideoChatOpened = false
             let destroyPromise = this.destroy()
             destroyPromise.then(() => {
                 handleFriendClick(this.channel_id)
@@ -1470,36 +1593,48 @@
             let videostreams = document.getElementById('streams_store')
             let observer = new MutationObserver(handleChanges);
             observer.observe(videostreams, observerOptions);
+            if (AgoraClient.instance){
+                obj = AgoraClient.instance
+                document.getElementById('leave-btn').addEventListener('click', obj.endVideoCall)
+                
+                document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
+    
+                document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
+    
+                document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
+                obj.joinAndDisplayLocalStream()
+            }
+            else{
+                var obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
+            
+                obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
 
-            var obj = new AgoraClient(`${input_channel_id}`, '{{ csrf_token }}')
-           
-            obj.getAgoraSDKData('{{ csrf_token }}').then(data => {
+                    obj.app_id = data.app_id
+                    fetch(`/vw/get_token/?channel=${input_channel_id}`)
+                        .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
+                        .then(CONVERSATION_DATA =>{
+                            console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
+                
+                            obj.user_id = CONVERSATION_DATA.user_id
+                            obj.token = CONVERSATION_DATA.token
+                            obj.stream_id = CONVERSATION_DATA.stream_id
+                            obj.stream_token = CONVERSATION_DATA.stream_token
 
-                obj.app_id = data.app_id
-                fetch(`/vw/get_token/?channel=${input_channel_id}`)
-                    .then(CONVERSATION_DATA_JSON => CONVERSATION_DATA_JSON.json())
-                    .then(CONVERSATION_DATA =>{
-                        console.log(`*CLIENT RESPONSE: Client settings: ${JSON.stringify(CONVERSATION_DATA)}`)
-            
-                        obj.user_id = CONVERSATION_DATA.user_id
-                        obj.token = CONVERSATION_DATA.token
-                        obj.stream_id = CONVERSATION_DATA.stream_id
-                        obj.stream_token = CONVERSATION_DATA.stream_token
-
-                        obj.profilename = "{{ current_profile.profile_name }}"
-                        obj.profile_avatar_url = "{{ current_profile.profile_avatar.url }}"
-            
-                        document.getElementById('leave-btn').addEventListener('click', obj.leaveAndRemovLocalStreams)
-            
-                        document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
-            
-                        document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
-            
-                        document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
-            
-                        obj.joinAndDisplayLocalStream()
+                            obj.profilename = "{{ current_profile.profile_name }}"
+                            obj.profile_avatar_url = "{{ current_profile.profile_avatar.url }}"
+                
+                            document.getElementById('leave-btn').addEventListener('click', obj.endVideoCall)
+                
+                            document.getElementById('video-btn').addEventListener('click', obj.toggleCamera)
+                
+                            document.getElementById('mic-btn').addEventListener('click', obj.toggleMicrophone)
+                
+                            document.getElementById('share-btn').addEventListener('click', obj.toggleSharing)
+                
+                            obj.joinAndDisplayLocalStream()
+                    })
                 })
-            })
+            }
         }
     }
 
@@ -1644,27 +1779,28 @@
 
     //
 
-    getProfileOptionsWindow = (profilename, profile_avatar_url) => {
-        let profile_modal = `<div class="profile_options_wrapper">
-            <div class="profile_options_header"></div>
-            <div class="profile_options_content">
-                <form method="post" id="edit_profile_form" class="profile_options_form" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <input class="profilename_edit_input_field" type="text" name="profilename" maxlength="40" autocomplete="off" placeholder="Новое имя профиля">
-                    <input class="profile_avatar_edit_input_field" type="file" name="profile_avatar" accept="image/*">
-                    <button type="submit" class="profile_options_apply_button">Сохранить</button>
-                </form>
-            </div>
-        </div>`
+    recoverProfileWindow = (username, profilename, profile_avatar_url, joined_date) => {
+        let profile_window = document.querySelector(".profile_options_wrapper")
+        if (!profile_window) return
 
-        return profile_modal
+        let update_profile_icon_wrapper = document.querySelector(".update_profile_icon_wrapper")
+        update_profile_icon_wrapper.setAttribute('onclick', `transformEditProfileWindow('${username}', '${profilename}', '${profile_avatar_url}', '${joined_date}')`)
+        update_profile_icon_wrapper.innerHTML = '<i class="update_window_icon fa-solid fa-user-pen"></i>'
+
+        let profile_options_info_wrapper = document.querySelector(".profile_options_info_wrapper")
+        profile_options_info_wrapper.innerHTML = getProfileOptionsInfoWrapper(username, profilename, joined_date)
     }
 
-    openProfileOptions = (profilename, profile_avatar_url) => {
-        let profile_modal = getProfileOptionsWindow(profilename, profile_avatar_url)
+    transformEditProfileWindow = (username, profilename, profile_avatar_url, joined_date) => {
+        let profile_window = document.querySelector(".profile_options_wrapper")
+        if (!profile_window) return
 
-        let global_wrapper = document.querySelector(".global_wrapper")
-        global_wrapper.innerHTML += profile_modal
+        let update_profile_icon_wrapper = document.querySelector(".update_profile_icon_wrapper")
+        update_profile_icon_wrapper.setAttribute('onclick', `recoverProfileWindow('${username}', '${profilename}', '${profile_avatar_url}', '${joined_date}')`)
+        update_profile_icon_wrapper.innerHTML = '<i class="update_window_icon fa-solid fa-arrow-left"></i>'
+
+        let profile_options_info_wrapper = document.querySelector(".profile_options_info_wrapper")
+        profile_options_info_wrapper.innerHTML = getProfileEditFieldsWrapper(profilename, profile_avatar_url)
 
         document.querySelector('.profilename_edit_input_field').value = profilename;
         document.querySelector('.profile_avatar_edit_input_field').src = profile_avatar_url;
@@ -1672,8 +1808,91 @@
         document.getElementById('edit_profile_form').addEventListener('submit', post_edit_profile_ajax)
     }
 
+    getProfileEditFieldsWrapper = (profilename, profile_avatar_url) => {
+        let profile_edit_fields_wrapper_inner = `<div class="profile_options_content">
+            <form method="post" id="edit_profile_form" class="profile_options_form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input class="profilename_edit_input_field" type="text" name="profilename" maxlength="40" autocomplete="off" placeholder="Новое имя профиля">
+                <label for="formFile" class="profile_avatar_edit_label form-label">Выберите новое фото профиля</label>
+                <input class="profile_avatar_edit_input_field form-control" type="file" name="profile_avatar" accept="image/*" id="formFile">
+                <button type="submit" class="profile_options_apply_button">Сохранить</button>
+            </form>
+        </div>`
+
+        return profile_edit_fields_wrapper_inner
+    }
+
+    getProfileOptionsInfoWrapper = (username, profilename, joined_date) => {
+        let profile_options_info_wrapper_inner = `<div class="profile_options_info_element">
+                <div class="profile_options_profilename">
+                    ${profilename}
+                </div>
+                <div class="profile_options_username">
+                    ${username}
+                </div>
+            </div>
+            <div class="profile_options_info_element">
+                <div class="profile_options_about_date_message">
+                    В числе участников с
+                </div>
+                <div class="profile_options_date">
+                    ${joined_date}
+                </div>
+            </div>`
+
+        return profile_options_info_wrapper_inner
+    }
+
+    getProfileWindow = (username, profilename, profile_avatar_url, joined_date) => {
+        let profile_modal = `<div class="profile_options_wrapper">
+            <div class="profile_options_header">
+                <div class="profile_options_header_panel">
+                    <div class="update_profile_icon_wrapper" onclick="transformEditProfileWindow('${username}', '${profilename}', '${profile_avatar_url}', '${joined_date}')">
+                        <i class="update_window_icon fa-solid fa-user-pen"></i>
+                    </div>
+                </div>
+                <div class="profile_options_avatar_wrapper">
+                    <div class="profile_options_avatar_border"></div>
+                    <img class="profile_options_avatar" src="${profile_avatar_url}" alt="Avatar">
+                </div>
+                <div class="profile_options_info_wrapper">
+                    ${getProfileOptionsInfoWrapper(username, profilename, joined_date)}
+                </div>
+            </div>
+        </div>`
+
+        return profile_modal
+    }
+
+    window.addEventListener('click', (e) => {
+        const target = e.target
+        if (!target.closest(".profile_options_wrapper") && !target.closest(".profile_info") && !target.closest(".update_window_icon")){
+            closeProfileWindow()
+        }
+    })
+
+    closeProfileWindow = () => {
+        let global_wrapper = document.querySelector(".global_wrapper")
+        let existing_options_window = document.querySelector(".profile_options_wrapper")
+
+        if (existing_options_window){
+            global_wrapper.removeChild(existing_options_window)
+            return true
+        }
+
+        return false
+    }
+
+    openProfile = (username, profilename, profile_avatar_url, joined_date) => {
+        let global_wrapper = document.querySelector(".global_wrapper")
+        let closing_result = closeProfileWindow()
+        if (!closing_result){
+            let profile_modal = getProfileWindow(username, profilename, profile_avatar_url, joined_date)
+            global_wrapper.innerHTML += profile_modal
+        }
+    }
+
     post_edit_profile_ajax = (e) => {
-        alert(1)
         e.preventDefault();
         const formElement = document.getElementById('edit_profile_form');
         const formData = new FormData(formElement);
@@ -1688,14 +1907,13 @@
                 'X-CSRFToken': '{{ csrf_token }}'
             },
             success: function(data){
-                alert(322)
+
             },
             error: function(xhr, status, error){
                 console.error('AJAX Error: ', error)
             }
         })
     }
-
 </script>
 
 {% block aux_script %}{% endblock aux_script %}
