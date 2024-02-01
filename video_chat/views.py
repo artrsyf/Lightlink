@@ -285,3 +285,7 @@ def getMemberNotifications(request, user_id):
     notifications_serialized = [notification.to_dict() for notification in notifications]
 
     return JsonResponse({'fresh_notifications': notifications_serialized})
+
+@login_required(login_url="/login/")
+def webrtc(request, channel_id):
+    return render(request, 'video_chat/webrtc.html')

@@ -17,6 +17,47 @@ redis_adapter = redis.Redis(host=env("REDIS_HOST"),
                             db=0,
                             decode_responses=True) 
 
+class WebRtcConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
+        self.room_group_name = f"webrtc_{self.room_name}"
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        
+        self.user_id = self.scope["user"].id
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+    
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        
+        await self.channel_layer.group_send(
+            self.room_group_name, text_data_json
+        )
+
+    async def webrtc_peer_connection(self, event):
+        head = event["head"]
+        sender_user_id = event["sender_user_id"]
+        body = event["body"]
+
+        if sender_user_id == self.user_id:
+            return
+
+        if head == "RTCPeerConnectionOffer":
+            print(f"making peer conection offer from {self.user_id}")
+            await self.send(text_data=json.dumps({"type": "RTCPeerConnectionOffer",
+                                              "body": body
+                                              }))
+
+        elif head == "RTCPeerConnectionAnswer":
+            print(f"making peer conection answer from {self.user_id}")
+            await self.send(text_data=json.dumps({"type": "RTCPeerConnectionAnswer",
+                                              "body": body
+                                              }))
+
 class ChatConsumer(AsyncWebsocketConsumer):
     """
     A class to handle WebSocket connections connected with text chates in channels.
