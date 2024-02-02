@@ -288,4 +288,5 @@ def getMemberNotifications(request, user_id):
 
 @login_required(login_url="/login/")
 def webrtc(request, channel_id):
-    return render(request, 'video_chat/webrtc.html')
+    context = {'user_id': request.user.id}
+    return render(request, 'video_chat/webrtc.html', context)

@@ -12,4 +12,20 @@
 </body>
 </html>
 
-<script type="text/javascript" src="{% static 'js/webrtc.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/p2p.js' %}"></script>
+<script>
+    const ICE_CONF = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
+
+    const p2p_conn = new P2pConnection("ws://"
+        + window.location.host
+        + '/ws/service/webrtc/'
+        + '1' // for test
+        + '/', '{{ user_id }}', ICE_CONF)
+    
+    let user_id = {{ user_id }}
+
+    if (user_id == 1) p2p_conn.is_calling = true
+    else p2p_conn.is_calling = false
+    
+    p2p_conn.makeConnection()
+</script>

@@ -38,22 +38,33 @@ class WebRtcConsumer(AsyncWebsocketConsumer):
             self.room_group_name, text_data_json
         )
 
+    async def webrtc_share_ice_candidate(self, event):
+        sender_user_id = event["sender_user_id"]
+        ice_candidate = event["ice_candidate"]
+
+        if sender_user_id == self.user_id:
+            return
+        
+        await self.send(text_data=json.dumps({"type": "NewIceCandidate",
+                                              "iceCandidate": ice_candidate
+                                              }))
+
+
     async def webrtc_peer_connection(self, event):
         head = event["head"]
         sender_user_id = event["sender_user_id"]
         body = event["body"]
-
-        if sender_user_id == self.user_id:
+        if int(sender_user_id) == self.user_id:
             return
 
         if head == "RTCPeerConnectionOffer":
-            print(f"making peer conection offer from {self.user_id}")
+            print(f"making peer conection offer from {sender_user_id}")
             await self.send(text_data=json.dumps({"type": "RTCPeerConnectionOffer",
                                               "body": body
                                               }))
 
         elif head == "RTCPeerConnectionAnswer":
-            print(f"making peer conection answer from {self.user_id}")
+            print(f"making peer conection answer from {sender_user_id}")
             await self.send(text_data=json.dumps({"type": "RTCPeerConnectionAnswer",
                                               "body": body
                                               }))
