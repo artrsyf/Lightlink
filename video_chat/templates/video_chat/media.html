@@ -1,0 +1,25 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media</title>
+</head>
+<body>
+    <h1>Try in Media Servers</h1>
+    <video id="localVideo" autoplay playsinline controls></video>
+    <video id="echoVideo" autoplay playsinline controls></video>
+    <video id="remoteVideo" autoplay playsinline controls></video>
+</body>
+</html>
+
+<script type="text/javascript" src="{% static 'js/kurento-utils.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/media.js' %}"></script>
+<script>
+    const ICE_CONF = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
+    
+    let user_id = {{ user_id }}
+
+</script>

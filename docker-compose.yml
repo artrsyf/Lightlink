@@ -43,6 +43,17 @@ services:
     expose:
       - 6379
 
+  lightlink_media_server:
+    container_name: lightlink_kurento
+    image: kurento/kurento-media-server:6.17
+    environment:
+      - KMS_STUN_IP=stun.l.google.com
+      - KMS_STUN_PORT=19302
+    ports:
+      - "8888:8888"
+    expose:
+      - 8888
+
 volumes:
   lightlink_db_data:
     driver: "local"

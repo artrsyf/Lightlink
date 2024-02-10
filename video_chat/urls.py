@@ -18,5 +18,7 @@ urlpatterns = [
     path('get-channel-meta/<int:channel_id>', getChannelMeta),
     path('edit-profile', editProfile),
     path('get-member-notifications/<int:user_id>', getMemberNotifications),
-    path('webrtc/<int:channel_id>', webrtc)
+    path('webrtc/<int:channel_id>', webrtc),
+    path('media/<int:channel_id>', media),
+    path('conf/<int:channel_id>', conf)
 ]
