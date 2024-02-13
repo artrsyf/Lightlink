@@ -2,7 +2,7 @@
 let localVideo = document.querySelector("#localVideo")
 let remoteVideo = document.querySelector("#remoteVideo")
 const constraints = {
-    audio : true,
+    audio : false,
     video : true
 }
 // For test
@@ -17,16 +17,17 @@ const ws = new WebSocket(
 
 function sendMessage(message)
 {
-  if (ws.readyState !== ws.OPEN) {
+    console.log(message)
+    if (ws.readyState !== ws.OPEN) {
     ws.onopen = () => {
-      const jsonMessage = JSON.stringify(message);
-      ws.send(jsonMessage);
+        const jsonMessage = JSON.stringify(message);
+        ws.send(jsonMessage);
     }
     return;
-  }
+    }
 
-  const jsonMessage = JSON.stringify(message);
-  ws.send(jsonMessage);
+    const jsonMessage = JSON.stringify(message);
+    ws.send(jsonMessage);
 }
 
 let rtc_peers = {}

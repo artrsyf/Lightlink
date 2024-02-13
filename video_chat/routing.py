@@ -8,5 +8,5 @@ websocket_urlpatterns = [
     re_path(r"ws/service/notification/(?P<room_name>\w+)/$", consumers.NotificationConsumer.as_asgi()),
     re_path(r"ws/service/webrtc/(?P<room_name>\w+)/$", consumers.WebRtcConsumer.as_asgi()),
     re_path(r"ws/service/media/(?P<room_name>\w+)/$", consumers.MediaConsumer.as_asgi()),
-    re_path(r"ws/service/conference/(?P<room_name>\w+)/$", consumers.VideoConferenceConsumer.as_asgi())
+    re_path(r"ws/service/conference/(?P<room_name>\w+)/$", consumers.AsyncVideoConferenceConsumer.as_asgi())
 ]

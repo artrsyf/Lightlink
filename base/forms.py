@@ -43,9 +43,9 @@ class LoginUserForm(AuthenticationForm):
                                max_length=20,
                                required=True,
                                widget=forms.PasswordInput(attrs={}))
-    captcha = ReCaptchaField(label='Captcha',
-                             widget=ReCaptchaV2Checkbox(),
-                             error_messages={
-                                'required': 'Please complete the captcha.',
-                                'invalid': 'Invalid captcha. Please try again.'
-                            })
+    # captcha = ReCaptchaField(label='Captcha',
+    #                          widget=ReCaptchaV2Checkbox(),
+    #                          error_messages={
+    #                             'required': 'Please complete the captcha.',
+    #                             'invalid': 'Invalid captcha. Please try again.'
+    #                         })
