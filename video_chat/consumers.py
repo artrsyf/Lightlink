@@ -117,9 +117,8 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
         print(f"diconn for user-{self.user_id}")
         VideoConferenceConsumer.users.remove(self.user_id)
         resp = await async_sdp_kurento_client.release_element(self.send_endpoint.elem_id, self.send_endpoint.session_id)
-        print(resp)
-        # del self.all_endpoints[send_end_point_id]
-        # del self.send_endpoint
+        del self.all_endpoints[self.send_endpoint.elem_id]
+        self.send_endpoint = None
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)    
     
     async def receive(self, text_data):
@@ -137,12 +136,12 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
         ice_candidate = event["candidate"]
         if handle_type == "sendEndPoint":
             resp = await async_sdp_kurento_client.add_ice_candidate(self.send_endpoint.elem_id, self.send_endpoint.session_id, ice_candidate)
-            print(resp)
             # self.send_endpoint.add_ice_candidate(ice_candidate)
         elif handle_type == "receiveEndPoint":
             remote_user_id = int(event["remote_user_id"])
             if self.user_id == remote_user_id: return
-            self.receive_endpoints[remote_user_id].add_ice_candidate(ice_candidate)
+            await async_sdp_kurento_client.add_ice_candidate(self.receive_endpoints[remote_user_id].elem_id, self.receive_endpoints[remote_user_id].session_id, ice_candidate)
+            # self.receive_endpoints[remote_user_id].add_ice_candidate(ice_candidate)
         else:
             print(f"Unrecognized handle_type in video_conference_handleIceCandidate: {handle_type}")
             return
