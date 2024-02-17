@@ -95,20 +95,20 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
         self.room_data = VideoConferenceConsumer.rooms_data[self.room_name]
 
         if "media_pipeline" not in self.room_data:
-            self.room_data["media_pipeline"] = kurento_client.create_media_pipeline()
+            self.room_data["media_pipeline"] = await async_sdp_kurento_client.create_media_pipeline()
             self.room_data["web_rtc_endpoints"] = {}
             print(f"Created Media Pipeline for room-{self.room_name}")
         self.media_pipeline = self.room_data["media_pipeline"]
 
         self.all_endpoints = self.room_data["web_rtc_endpoints"]
-        self.send_endpoint = self.media_pipeline.add_endpoint("WebRtcEndpoint")
-        self.all_endpoints[self.send_endpoint.elem_id] = self.send_endpoint
+        self.send_endpoint = await self.media_pipeline.add_web_rtc_endpoint()
+        self.all_endpoints[self.send_endpoint.element_id] = self.send_endpoint
         self.receive_endpoints = {}
         print(f"Create SendEndPoint in room-{self.room_name} for user-{self.user_id}")
 
         new_user_distribution_data = {"type": "video_conference.handleNewUserJoined",
          "new_user_id": self.user_id,
-         "new_user_source_endpoint_id": self.send_endpoint.elem_id
+         "new_user_source_endpoint_id": self.send_endpoint.element_id
         }
         print(new_user_distribution_data)
         await self.channel_layer.group_send(self.room_group_name, new_user_distribution_data)
@@ -116,8 +116,8 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         print(f"diconn for user-{self.user_id}")
         VideoConferenceConsumer.users.remove(self.user_id)
-        resp = await async_sdp_kurento_client.release_element(self.send_endpoint.elem_id, self.send_endpoint.session_id)
-        del self.all_endpoints[self.send_endpoint.elem_id]
+        resp = await async_sdp_kurento_client.release_element(self.send_endpoint.element_id, self.send_endpoint.session_id)
+        del self.all_endpoints[self.send_endpoint.element_id]
         self.send_endpoint = None
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)    
     
@@ -135,12 +135,12 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
         handle_type = event["endpoint_type"]
         ice_candidate = event["candidate"]
         if handle_type == "sendEndPoint":
-            resp = await async_sdp_kurento_client.add_ice_candidate(self.send_endpoint.elem_id, self.send_endpoint.session_id, ice_candidate)
+            resp = await async_sdp_kurento_client.add_ice_candidate(self.send_endpoint.element_id, self.send_endpoint.session_id, ice_candidate)
             # self.send_endpoint.add_ice_candidate(ice_candidate)
         elif handle_type == "receiveEndPoint":
             remote_user_id = int(event["remote_user_id"])
             if self.user_id == remote_user_id: return
-            await async_sdp_kurento_client.add_ice_candidate(self.receive_endpoints[remote_user_id].elem_id, self.receive_endpoints[remote_user_id].session_id, ice_candidate)
+            await async_sdp_kurento_client.add_ice_candidate(self.receive_endpoints[remote_user_id].element_id, self.receive_endpoints[remote_user_id].session_id, ice_candidate)
             # self.receive_endpoints[remote_user_id].add_ice_candidate(ice_candidate)
         else:
             print(f"Unrecognized handle_type in video_conference_handleIceCandidate: {handle_type}")
@@ -149,7 +149,7 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
     async def sendIceCandidate(self, response):
         ice_candidate = response["payload"]["candidate"]
         triggered_endpoint_id = response['subscriber']
-        if self.send_endpoint.elem_id == triggered_endpoint_id:
+        if self.send_endpoint.element_id == triggered_endpoint_id:
             on_ice_candidate_data = {"type": "handleIceCandidate",
                                      "endpoint_type": "sendEndPoint",
                                      "candidate": ice_candidate
@@ -157,7 +157,7 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(on_ice_candidate_data))
         else:
             for remote_user_id, receive_endpoint in self.receive_endpoints.items():
-                if receive_endpoint.elem_id == triggered_endpoint_id:
+                if receive_endpoint.element_id == triggered_endpoint_id:
                     on_ice_candidate_data = {"type": "handleIceCandidate",
                                              "endpoint_type": "receiveEndPoint",
                                              "remote_user_id": remote_user_id,
@@ -178,9 +178,9 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
         unix_incoming_sdp_offer = win_incoming_sdp_offer.replace("\r\n", "\n")
         if handle_type == "sendEndPoint":
             print("Got: ", unix_incoming_sdp_offer)
-            print("Info before sdp process: ", await async_sdp_kurento_client.get_remote_session_descriptor(self.send_endpoint.elem_id, self.send_endpoint.session_id))
+            print("Info before sdp process: ", await async_sdp_kurento_client.get_remote_session_descriptor(self.send_endpoint.element_id, self.send_endpoint.session_id))
             # outcoming_sdp_answer = self.send_endpoint.process_offer(unix_incoming_sdp_offer)
-            outcoming_sdp_answer = await async_sdp_kurento_client.process_offer(self.send_endpoint.elem_id, self.send_endpoint.session_id, unix_incoming_sdp_offer)
+            outcoming_sdp_answer = await async_sdp_kurento_client.process_offer(self.send_endpoint.element_id, self.send_endpoint.session_id, unix_incoming_sdp_offer)
             outcoming_sdp_answer = outcoming_sdp_answer["value"]["value"]
             print(f"Holu - {self.send_endpoint}")
             print(outcoming_sdp_answer)
@@ -189,17 +189,18 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
                                "sdp_anwer": outcoming_sdp_answer
                                }
             # Sending SDP Answer
-            print("Info after sdp process: ", await async_sdp_kurento_client.get_remote_session_descriptor(self.send_endpoint.elem_id, self.send_endpoint.session_id))
+            print("Info after sdp process: ", await async_sdp_kurento_client.get_remote_session_descriptor(self.send_endpoint.element_id, self.send_endpoint.session_id))
             await self.send(text_data=json.dumps(sdp_answer_data))
-            self.send_endpoint.add_event_listener("OnIceCandidate", self.sendIceCandidate)
-            self.send_endpoint.gather_ice_candidates()
-            print(f"ICESSS with endpoint id: {self.send_endpoint.elem_id} for user-{self.user_id}")
+            await self.send_endpoint.add_event_listener("OnIceCandidate", self.sendIceCandidate)
+            print("loop ended")
+            await self.send_endpoint.gather_ice_candidates()
+            print(f"ICESSS with endpoint id: {self.send_endpoint.element_id} for user-{self.user_id}")
             
         elif handle_type == "receiveEndPoint":
             remote_user_id = int(event["remote_user_id"])
             if remote_user_id == self.user_id: return
             print("offer")
-            outcoming_sdp_answer = await async_sdp_kurento_client.process_offer(self.receive_endpoints[remote_user_id].elem_id, self.receive_endpoints[remote_user_id].session_id, unix_incoming_sdp_offer)
+            outcoming_sdp_answer = await async_sdp_kurento_client.process_offer(self.receive_endpoints[remote_user_id].element_id, self.receive_endpoints[remote_user_id].session_id, unix_incoming_sdp_offer)
             outcoming_sdp_answer = outcoming_sdp_answer["value"]["value"]
             # outcoming_sdp_answer = self.receive_endpoints[remote_user_id].process_offer(unix_incoming_sdp_offer)
             sdp_answer_data = {"type": "handleSdpAnswer",
@@ -209,9 +210,9 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
                                }
             # Sending SDP Answer
             await self.send(text_data=json.dumps(sdp_answer_data))
-            self.receive_endpoints[remote_user_id].add_event_listener("OnIceCandidate", self.sendIceCandidate)
-            self.receive_endpoints[remote_user_id].gather_ice_candidates()
-            print(f"ICESSS with endpoint id: {self.receive_endpoints[remote_user_id].elem_id} for user-{self.user_id}")
+            await self.receive_endpoints[remote_user_id].add_event_listener("OnIceCandidate", self.sendIceCandidate)
+            await self.receive_endpoints[remote_user_id].gather_ice_candidates()
+            print(f"ICESSS with endpoint id: {self.receive_endpoints[remote_user_id].element_id} for user-{self.user_id}")
         else:
             print(f"Unrecognized handle_type in video_conference_handleSdpOffer: {handle_type}")
             return
@@ -222,11 +223,11 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
         if self.user_id == new_user_id:
             return
         
-        self.receive_endpoints[new_user_id] = self.media_pipeline.add_endpoint("WebRtcEndpoint")
-        self.all_endpoints[self.receive_endpoints[new_user_id].elem_id] = self.receive_endpoints[new_user_id]
+        self.receive_endpoints[new_user_id] = await self.media_pipeline.add_web_rtc_endpoint()
+        self.all_endpoints[self.receive_endpoints[new_user_id].element_id] = self.receive_endpoints[new_user_id]
         new_user_source_endpoint_id = event["new_user_source_endpoint_id"]
         new_user_source_endpoint = self.all_endpoints[new_user_source_endpoint_id]
-        new_user_source_endpoint.connect(self.receive_endpoints[new_user_id])
+        await new_user_source_endpoint.connect(self.receive_endpoints[new_user_id])
 
         # Starting connection for new receive endpoint
         await self.send(text_data=json.dumps({
@@ -239,7 +240,7 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
         new_user_acknowledgement_data = {"type": "video_conference.handleExistingUsersMedia",
          "new_user_id": new_user_id,
          "existing_user_id": self.user_id,
-         "existing_user_source_endpoint_id": self.send_endpoint.elem_id
+         "existing_user_source_endpoint_id": self.send_endpoint.element_id
         }
         await self.channel_layer.group_send(self.room_group_name, new_user_acknowledgement_data)
 
@@ -250,11 +251,11 @@ class AsyncVideoConferenceConsumer(AsyncWebsocketConsumer):
             return
         
         existing_user_id = event["existing_user_id"]
-        self.receive_endpoints[existing_user_id] = self.media_pipeline.add_endpoint("WebRtcEndpoint")
-        self.all_endpoints[self.receive_endpoints[existing_user_id].elem_id] = self.receive_endpoints[existing_user_id]
+        self.receive_endpoints[existing_user_id] = await self.media_pipeline.add_web_rtc_endpoint()
+        self.all_endpoints[self.receive_endpoints[existing_user_id].element_id] = self.receive_endpoints[existing_user_id]
         existing_user_source_endpoint_id = event["existing_user_source_endpoint_id"]
         existing_user_source_endpoint = self.all_endpoints[existing_user_source_endpoint_id]
-        existing_user_source_endpoint.connect(self.receive_endpoints[existing_user_id])
+        await existing_user_source_endpoint.connect(self.receive_endpoints[existing_user_id])
 
         # Starting connection for new receive endpoint
         await self.send(text_data=json.dumps({
@@ -294,13 +295,13 @@ class VideoConferenceConsumer(WebsocketConsumer):
 
         self.all_endpoints = self.room_data["web_rtc_endpoints"]
         self.send_endpoint = self.media_pipeline.add_endpoint("WebRtcEndpoint")
-        self.all_endpoints[self.send_endpoint.elem_id] = self.send_endpoint
+        self.all_endpoints[self.send_endpoint.element_id] = self.send_endpoint
         self.receive_endpoints = {}
         print(f"Create SendEndPoint in room-{self.room_name} for user-{self.user_id}")
 
         new_user_distribution_data = {"type": "video_conference.handleNewUserJoined",
          "new_user_id": self.user_id,
-         "new_user_source_endpoint_id": self.send_endpoint.elem_id
+         "new_user_source_endpoint_id": self.send_endpoint.element_id
         }
         print(new_user_distribution_data)
         async_to_sync(self.channel_layer.group_send)(self.room_group_name, new_user_distribution_data)
@@ -340,7 +341,7 @@ class VideoConferenceConsumer(WebsocketConsumer):
     def sendIceCandidate(self, response):
         ice_candidate = response["payload"]["candidate"]
         triggered_endpoint_id = response['subscriber']
-        if self.send_endpoint.elem_id == triggered_endpoint_id:
+        if self.send_endpoint.element_id == triggered_endpoint_id:
             on_ice_candidate_data = {"type": "handleIceCandidate",
                                      "endpoint_type": "sendEndPoint",
                                      "candidate": ice_candidate
@@ -348,7 +349,7 @@ class VideoConferenceConsumer(WebsocketConsumer):
             self.send(text_data=json.dumps(on_ice_candidate_data))
         else:
             for remote_user_id, receive_endpoint in self.receive_endpoints.items():
-                if receive_endpoint.elem_id == triggered_endpoint_id:
+                if receive_endpoint.element_id == triggered_endpoint_id:
                     on_ice_candidate_data = {"type": "handleIceCandidate",
                                              "endpoint_type": "receiveEndPoint",
                                              "remote_user_id": remote_user_id,
@@ -369,9 +370,9 @@ class VideoConferenceConsumer(WebsocketConsumer):
         unix_incoming_sdp_offer = win_incoming_sdp_offer.replace("\r\n", "\n")
         if handle_type == "sendEndPoint":
             print("Got: ", unix_incoming_sdp_offer)
-            print("Info before sdp process: ", async_to_sync(async_sdp_kurento_client.get_remote_session_descriptor)(self.send_endpoint.elem_id, self.send_endpoint.session_id))
+            print("Info before sdp process: ", async_to_sync(async_sdp_kurento_client.get_remote_session_descriptor)(self.send_endpoint.element_id, self.send_endpoint.session_id))
             # outcoming_sdp_answer = self.send_endpoint.process_offer(unix_incoming_sdp_offer)
-            outcoming_sdp_answer = async_to_sync(async_sdp_kurento_client.process_offer)(self.send_endpoint.elem_id, self.send_endpoint.session_id, unix_incoming_sdp_offer)["value"]["value"]
+            outcoming_sdp_answer = async_to_sync(async_sdp_kurento_client.process_offer)(self.send_endpoint.element_id, self.send_endpoint.session_id, unix_incoming_sdp_offer)["value"]["value"]
             print(f"Holu - {self.send_endpoint}")
             print(outcoming_sdp_answer)
             sdp_answer_data = {"type": "handleSdpAnswer",
@@ -379,17 +380,17 @@ class VideoConferenceConsumer(WebsocketConsumer):
                                "sdp_anwer": outcoming_sdp_answer
                                }
             # Sending SDP Answer
-            print("Info after sdp process: ", async_to_sync(async_sdp_kurento_client.get_remote_session_descriptor)(self.send_endpoint.elem_id, self.send_endpoint.session_id))
+            print("Info after sdp process: ", async_to_sync(async_sdp_kurento_client.get_remote_session_descriptor)(self.send_endpoint.element_id, self.send_endpoint.session_id))
             self.send(text_data=json.dumps(sdp_answer_data))
             self.send_endpoint.add_event_listener("OnIceCandidate", self.sendIceCandidate)
             self.send_endpoint.gather_ice_candidates()
-            print(f"ICESSS with endpoint id: {self.send_endpoint.elem_id} for user-{self.user_id}")
+            print(f"ICESSS with endpoint id: {self.send_endpoint.element_id} for user-{self.user_id}")
             
         elif handle_type == "receiveEndPoint":
             remote_user_id = int(event["remote_user_id"])
             if remote_user_id == self.user_id: return
             print("offer")
-            outcoming_sdp_answer = async_to_sync(async_sdp_kurento_client.process_offer)(self.receive_endpoints[remote_user_id].elem_id, self.receive_endpoints[remote_user_id].session_id, unix_incoming_sdp_offer)["value"]["value"]
+            outcoming_sdp_answer = async_to_sync(async_sdp_kurento_client.process_offer)(self.receive_endpoints[remote_user_id].element_id, self.receive_endpoints[remote_user_id].session_id, unix_incoming_sdp_offer)["value"]["value"]
             # outcoming_sdp_answer = self.receive_endpoints[remote_user_id].process_offer(unix_incoming_sdp_offer)
             sdp_answer_data = {"type": "handleSdpAnswer",
                                "endpoint_type": handle_type,
@@ -400,7 +401,7 @@ class VideoConferenceConsumer(WebsocketConsumer):
             self.send(text_data=json.dumps(sdp_answer_data))
             self.receive_endpoints[remote_user_id].add_event_listener("OnIceCandidate", self.sendIceCandidate)
             self.receive_endpoints[remote_user_id].gather_ice_candidates()
-            print(f"ICESSS with endpoint id: {self.receive_endpoints[remote_user_id].elem_id} for user-{self.user_id}")
+            print(f"ICESSS with endpoint id: {self.receive_endpoints[remote_user_id].element_id} for user-{self.user_id}")
         else:
             print(f"Unrecognized handle_type in video_conference_handleSdpOffer: {handle_type}")
             return
@@ -412,7 +413,7 @@ class VideoConferenceConsumer(WebsocketConsumer):
             return
         
         self.receive_endpoints[new_user_id] = self.media_pipeline.add_endpoint("WebRtcEndpoint")
-        self.all_endpoints[self.receive_endpoints[new_user_id].elem_id] = self.receive_endpoints[new_user_id]
+        self.all_endpoints[self.receive_endpoints[new_user_id].element_id] = self.receive_endpoints[new_user_id]
         new_user_source_endpoint_id = event["new_user_source_endpoint_id"]
         new_user_source_endpoint = self.all_endpoints[new_user_source_endpoint_id]
         new_user_source_endpoint.connect(self.receive_endpoints[new_user_id])
@@ -428,7 +429,7 @@ class VideoConferenceConsumer(WebsocketConsumer):
         new_user_acknowledgement_data = {"type": "video_conference.handleExistingUsersMedia",
          "new_user_id": new_user_id,
          "existing_user_id": self.user_id,
-         "existing_user_source_endpoint_id": self.send_endpoint.elem_id
+         "existing_user_source_endpoint_id": self.send_endpoint.element_id
         }
         async_to_sync(self.channel_layer.group_send)(self.room_group_name, new_user_acknowledgement_data)
 
@@ -440,7 +441,7 @@ class VideoConferenceConsumer(WebsocketConsumer):
         
         existing_user_id = event["existing_user_id"]
         self.receive_endpoints[existing_user_id] = self.media_pipeline.add_endpoint("WebRtcEndpoint")
-        self.all_endpoints[self.receive_endpoints[existing_user_id].elem_id] = self.receive_endpoints[existing_user_id]
+        self.all_endpoints[self.receive_endpoints[existing_user_id].element_id] = self.receive_endpoints[existing_user_id]
         existing_user_source_endpoint_id = event["existing_user_source_endpoint_id"]
         existing_user_source_endpoint = self.all_endpoints[existing_user_source_endpoint_id]
         existing_user_source_endpoint.connect(self.receive_endpoints[existing_user_id])
@@ -505,8 +506,8 @@ class MediaConsumer(WebsocketConsumer):
         ice = resp["payload"]["candidate"]
         print('Got ice')
         print(resp['subscriber'])
-        print(self.rtc.elem_id)
-        print(resp['subscriber'] == self.rtc.elem_id)
+        print(self.rtc.element_id)
+        print(resp['subscriber'] == self.rtc.element_id)
         text_data = {"type": "media.flood_ice", "payload": ice}
         async_to_sync(self.channel_layer.group_send)(self.room_group_name, text_data)
 

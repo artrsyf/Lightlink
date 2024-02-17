@@ -246,6 +246,7 @@ class AsyncKurentoClient(AsyncKurentoBaseClient):
         return response
     
     async def _on_event(self, _event, callback, ws_connection):
+        print("ON EVENT LISTENING")
         while True:
             try:
                 incoming_event_response = await ws_connection.recv()
@@ -345,11 +346,14 @@ class AsyncMediaElement(object):
             raise RuntimeError("Callback has to be callable e.g. a function")
         else:
             ws_connection, response = await self._subscribe(event)
-            await self._on_event(event, callback, ws_connection)
+            asyncio.create_task(super()._on_event(event, callback, ws_connection))
 
 class AsyncEndPoint(AsyncMediaElement):
     def __init__(self, sesison_id, endpoint_id, async_kurento_client) -> None:
         super().__init__(sesison_id, endpoint_id, async_kurento_client)
+
+    async def connect(self, external_sink=None):
+        return await super()._connect(external_sink)
 
 class AsyncWebRtcEndpoint(AsyncEndPoint):
     def __init__(self, sesison_id, endpoint_id, async_kurento_client) -> None:
@@ -362,7 +366,8 @@ class AsyncWebRtcEndpoint(AsyncEndPoint):
             "sessionId": self.session_id
         }
 
-        self.async_kurento_client._invoke(params)
+        response = await self.async_kurento_client._invoke(params)
+        print("GATHER RESP: ", response)
 
     async def add_event_listener(self, event, callback):
         expected = ["OnIceCandidate", "OnIceGatheringDone"]
@@ -374,7 +379,7 @@ class AsyncWebRtcEndpoint(AsyncEndPoint):
                 raise RuntimeError("Callback has to be callable e.g. a function")
             else:
                 ws_connection, response = await super()._subscribe(event)
-                await super()._on_event(event, callback, ws_connection)
+                asyncio.create_task(super()._on_event(event, callback, ws_connection))
 
 class AsyncMediaPipeLine(object):
     def __init__(self, session_id, pipeline_id, async_kurento_client) -> None:
@@ -410,6 +415,9 @@ async def main():
     conn = await AsyncKurentoClient.create("ws://localhost:8888/kurento")
     pipeline = await conn.create_media_pipeline()
     endpoint = await pipeline.add_web_rtc_endpoint()
+    offer = "v=0\r\no=- 1113439286307267998 3 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS\r\n"
+    resp = await conn.process_offer(endpoint.element_id, endpoint.session_id, offer)
+    print(resp)
     await endpoint.add_event_listener("OnIceCandidate", callback_foo)
     await endpoint.gather_ice_candidates()
 
